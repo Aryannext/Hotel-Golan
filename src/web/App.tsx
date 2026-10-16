@@ -1,11 +1,15 @@
-// Raíz de la PWA: decide entre inicio de sesión y la aplicación; muestra el mapa (TICKET-01).
+// Raíz de la PWA: inicio de sesión, recibir el turno si está por recibir (TICKET-03) y las vistas Habitaciones y Caja.
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion, type SesionActual } from './api.ts';
 import { Acceso } from './componentes/Acceso.tsx';
 import { Mapa } from './componentes/Mapa.tsx';
 import { Cotizar } from './componentes/Cotizar.tsx';
+import { RecibirTurno } from './componentes/RecibirTurno.tsx';
+import { Caja } from './componentes/Caja.tsx';
 import { Ico } from './componentes/Ico.tsx';
 import { iniciales } from './logica.ts';
+
+const VISTAS: Array<['mapa' | 'caja', string]> = [['mapa', 'Habitaciones'], ['caja', 'Caja']];
 
 export function App() {
   const [sesion, setSesion] = useState<SesionActual | null | undefined>(undefined);
@@ -13,6 +17,7 @@ export function App() {
   const [mensaje, setMensaje] = useState<string | undefined>();
   const [error, setError] = useState('');
   const [cotizando, setCotizando] = useState<Habitacion | null>(null);
+  const [vista, setVista] = useState<'mapa' | 'caja'>('mapa');
 
   useEffect(() => {
     api.sesionActual().then(setSesion).catch(() => setSesion(null));
@@ -32,6 +37,8 @@ export function App() {
   async function salir() {
     await api.cerrarSesion().catch(() => undefined);
     setSesion(null);
+    setVista('mapa');
+    setCotizando(null);
     setMensaje('Sesión cerrada.');
   }
 
@@ -53,9 +60,17 @@ export function App() {
           </div>
         </header>
         <main class="vista" id="vista" tabIndex={-1}>
-          {error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>
-            : cotizando ? <Cotizar habitacion={cotizando} alVolver={() => setCotizando(null)} />
-            : <Mapa habitaciones={habitaciones} alElegir={setCotizando} />}
+          {sesion.turno_por_recibir ? <RecibirTurno alRecibir={() => { setSesion({ ...sesion, turno_por_recibir: false }); setVista('caja'); }} />
+            : <>
+              <div class="pestanas" role="tablist" style="margin-bottom:16px">
+                {VISTAS.map(([v, t]) => <button type="button" class="pestana" role="tab" aria-selected={vista === v}
+                  onClick={() => { setVista(v); setCotizando(null); }}><Ico id={v === 'mapa' ? 'habitaciones' : 'caja'} clase="ico--s" /> {t}</button>)}
+              </div>
+              {vista === 'caja' ? <Caja />
+                : error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>
+                : cotizando ? <Cotizar habitacion={cotizando} alVolver={() => setCotizando(null)} />
+                : <Mapa habitaciones={habitaciones} alElegir={setCotizando} />}
+            </>}
         </main>
       </div>
     </div>

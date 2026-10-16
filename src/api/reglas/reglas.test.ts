@@ -1,7 +1,7 @@
 // TICKET-02 · núcleo de reglas puro (ADR-001). Ejemplos de docs/TESTS_ACEPTACION.feature, reglas RN-01, RN-02, RN-03 y RN-05.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { calcularSalida, calcularTarifa, calcularDescuento, cotizar, ErrorRegla, type Tarifa } from './reglas.ts';
+import { calcularSalida, calcularTarifa, calcularDescuento, cotizar, finProgramadoTurno, ErrorRegla, type Tarifa } from './reglas.ts';
 import { aBogota } from '../comun/tiempo.ts';
 
 const bogota = (local: string) => new Date(local.replace(' ', 'T') + ':00-05:00');
@@ -81,6 +81,22 @@ describe('RN-05 — Descuento de $5.000 por noche, solo en la modalidad de noche
   it('tres horas con descuento: DESCUENTO_NO_PERMITIDO', () => {
     assert.throws(() => calcularDescuento('TRES_HORAS', 1, true, 5000), (e: ErrorRegla) => e.codigo === 'DESCUENTO_NO_PERMITIDO');
   });
+});
+
+describe('RN-09 — Fin programado del turno (día 6:30 a. m. – 6:30 p. m.; noche 6:30 p. m. – 6:30 a. m.)', () => {
+  const casos: Array<['DIA' | 'NOCHE', string, string]> = [
+    ['NOCHE', '2026-10-12 18:30', '2026-10-13 06:30'],
+    ['NOCHE', '2026-10-12 18:10', '2026-10-13 06:30'],
+    ['NOCHE', '2026-10-13 01:00', '2026-10-13 06:30'],
+    ['DIA', '2026-10-13 06:30', '2026-10-13 18:30'],
+    ['DIA', '2026-10-13 06:05', '2026-10-13 18:30'],
+    ['DIA', '2026-10-13 19:00', '2026-10-14 18:30'],
+  ];
+  for (const [tipo, inicio, fin] of casos) {
+    it(`${tipo} recibido ${inicio} → termina ${fin}`, () => {
+      assert.equal(aBogota(finProgramadoTurno(tipo, bogota(inicio))), aBogota(bogota(fin)));
+    });
+  }
 });
 
 describe('Cotización completa', () => {

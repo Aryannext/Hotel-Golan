@@ -8,6 +8,7 @@ import { ErrorApi } from './comun/errores.ts';
 import { rutasIdentidad } from './identidad/rutas.ts';
 import { rutasHabitaciones } from './habitaciones/rutas.ts';
 import { rutasCotizaciones } from './estadias/cotizaciones.ts';
+import { rutasTurnos } from './caja/turnos.ts';
 import { ErrorRegla } from './reglas/reglas.ts';
 
 export type App = FastifyInstance;
@@ -49,6 +50,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rutasIdentidad(api, o.bd, ahora);
     rutasHabitaciones(api, o.bd, ahora);
     rutasCotizaciones(api, o.bd, ahora);
+    rutasTurnos(api, o.bd, ahora);
   }, { prefix: '/api/v1' });
 
   const conWeb = !!o.dirWeb && existsSync(o.dirWeb);

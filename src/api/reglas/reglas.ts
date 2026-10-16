@@ -60,6 +60,14 @@ export function calcularDescuento(modalidad: ModalidadCotizable, noches: number,
   return descuentoNoche * Math.max(1, noches);
 }
 
+/** RN-09. El turno de día termina a las 6:30 p. m. y el de noche a las 6:30 a. m.: la primera de esas horas después del inicio. */
+export function finProgramadoTurno(tipo: 'DIA' | 'NOCHE', inicio: Date): Date {
+  const minutosFin = tipo === 'DIA' ? 18 * 60 + 30 : 6 * 60 + 30;
+  const l = new Date(inicio.getTime() - DESFASE_MS);
+  const hoy = Date.UTC(l.getUTCFullYear(), l.getUTCMonth(), l.getUTCDate()) + minutosFin * 60_000 + DESFASE_MS;
+  return new Date(hoy > inicio.getTime() ? hoy : hoy + DIA_MS);
+}
+
 export interface EntradaCotizacion {
   tarifas: Tarifa[]; descuentoNoche: number; tipo: TipoHabitacion; modalidad: ModalidadCotizable;
   personas: number; noches: number; aplicarDescuento: boolean; entrada: Date;

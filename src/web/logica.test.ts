@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -55,5 +55,23 @@ describe('TICKET-02 — Paso «Habitación y servicio»', () => {
   it('describe la salida en palabras: «mañana a las 12:00 m.»', () => {
     assert.equal(textoSalida('2026-10-14T12:00:00-05:00', '2026-10-13'), 'mañana a las 12:00 m.');
     assert.equal(textoSalida('2026-10-13T01:30:00-05:00', '2026-10-13'), 'hoy a la 1:30 a. m.');
+  });
+});
+
+describe('TICKET-03 · recibir el turno y caja', () => {
+  it('lee pesos escritos con puntos, signo o espacios; vacío o sin números es null', () => {
+    assert.equal(leerPesos('184.500'), 184500);
+    assert.equal(leerPesos('$ 183000'), 183000);
+    assert.equal(leerPesos(''), null);
+    assert.equal(leerPesos('abc'), null);
+  });
+  it('describe la diferencia entre lo contado y lo entregado', () => {
+    assert.deepEqual(diferenciaConteo(184500, 184500), { tono: 'exito', texto: 'Sin diferencia' });
+    assert.deepEqual(diferenciaConteo(183000, 184500), { tono: 'alerta', texto: 'Faltan $1.500' });
+    assert.deepEqual(diferenciaConteo(185000, 184500), { tono: 'alerta', texto: 'Sobran $500' });
+  });
+  it('nombra el turno y su horario (RN-09)', () => {
+    assert.equal(nombreTurno('DIA'), 'de día · 6:30 a. m. a 6:30 p. m.');
+    assert.equal(nombreTurno('NOCHE'), 'de noche · 6:30 p. m. a 6:30 a. m.');
   });
 });

@@ -6,7 +6,7 @@ Fase 2 del pipeline AI-SDLC (16-10-2026). Aprobados por el usuario. Se trabaja l
 |---|---|---|---|
 | [TICKET-01](01-iniciar-sesion-y-mapa.md) | Iniciar sesión y ver el mapa de habitaciones | — | **done** |
 | [TICKET-02](02-cotizar-estadia.md) | Cotizar una estadía (precio y hora de salida) | 01 | **done** |
-| [TICKET-03](03-recibir-turno-y-ver-caja.md) | Recibir el turno y ver la caja | 01 | ready-for-agent |
+| [TICKET-03](03-recibir-turno-y-ver-caja.md) | Recibir el turno y ver la caja | 01 | **done** |
 | [TICKET-04](04-entrada-en-efectivo.md) | Registrar una entrada pagada en efectivo | 02, 03 | ready-for-agent |
 | [TICKET-05](05-transferencia-y-confirmacion-en-vivo.md) | Transferencia por verificar y confirmación en tiempo real | 04 | ready-for-agent |
 | [TICKET-06](06-cargos-y-pagos-en-la-cuenta.md) | Cargos y pagos en la cuenta de la habitación | 04 | ready-for-agent |

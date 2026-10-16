@@ -1,7 +1,8 @@
 // Errores de la API con código estable y mensaje en español sencillo (CONTRATO_API.yaml, schema Error).
 export type CodigoError =
   | 'INVALID_PAYLOAD' | 'NO_AUTENTICADO' | 'CREDENCIALES_INVALIDAS' | 'USUARIO_BLOQUEADO' | 'SIN_PERMISO'
-  | 'NO_ENCONTRADO' | 'CONFLICTO' | 'ERROR_INTERNO' | 'CAPACIDAD_EXCEDIDA' | 'DESCUENTO_NO_PERMITIDO';
+  | 'NO_ENCONTRADO' | 'CONFLICTO' | 'ERROR_INTERNO' | 'CAPACIDAD_EXCEDIDA' | 'DESCUENTO_NO_PERMITIDO'
+  | 'SIN_TURNO_ABIERTO' | 'MOTIVO_REQUERIDO';
 
 export class ErrorApi extends Error {
   readonly estado: number;

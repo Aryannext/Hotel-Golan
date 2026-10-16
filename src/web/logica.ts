@@ -51,3 +51,19 @@ export function textoSalida(iso: string, hoy: string): string {
   const hora = horaBogota(iso);
   return `${diaRelativo(iso, hoy)} ${hora.startsWith('1:') ? 'a la' : 'a las'} ${hora}`;
 }
+
+// TICKET-03 · recibir el turno y caja.
+/** Lee lo que escribe recepción («184.500», «$ 183000»); sin números devuelve null. */
+export function leerPesos(texto: string): number | null {
+  const d = texto.replace(/\D/g, '');
+  return d ? Number(d) : null;
+}
+
+export function diferenciaConteo(contado: number, entregado: number): { tono: 'exito' | 'alerta'; texto: string } {
+  const d = contado - entregado;
+  if (d === 0) return { tono: 'exito', texto: 'Sin diferencia' };
+  return { tono: 'alerta', texto: `${d < 0 ? 'Faltan' : 'Sobran'} ${pesos(Math.abs(d))}` };
+}
+
+export const nombreTurno = (tipo: 'DIA' | 'NOCHE') =>
+  tipo === 'DIA' ? 'de día · 6:30 a. m. a 6:30 p. m.' : 'de noche · 6:30 p. m. a 6:30 a. m.';
