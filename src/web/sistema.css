@@ -52,3 +52,7 @@
   .pestana { padding: 10px 9px; font-size: 13px; white-space: nowrap; }
   .pestana > .ico { display: none; }
 }
+
+/* Ficha de la habitación (TICKET-06): el velo del prototipo se anima con GSAP; aquí se muestra directo. */
+.velo--visible { opacity: 1; }
+.panel__cab .titulos p { overflow-wrap: break-word; }

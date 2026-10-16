@@ -1,3 +1,5 @@
+import type { Producto } from './logica.ts';
+
 // Cliente de la API. La sesión viaja en la cookie HttpOnly; el navegador la envía sola (same-origin).
 export interface Usuario { id: string; nombre: string; usuario: string; rol: 'RECEPCION' | 'ADMINISTRACION'; activo: boolean }
 export interface SesionActual { usuario: Usuario; expira_en: string; turno_por_recibir: boolean }
@@ -71,6 +73,12 @@ export const api = {
   pagosPorConfirmar: () => pedir<{ items: Pago[] }>('GET', '/pagos?estado=POR_VERIFICAR'),
   verificarPago: (id: string, resultado: 'LLEGO' | 'NO_LLEGO', clave: string) =>
     pedir<Pago>('POST', `/pagos/${id}/verificacion`, { resultado }, { 'idempotency-key': clave }),
+  estadia: (id: string) => pedir<Estadia>('GET', `/estadias/${id}`),
+  productos: () => pedir<{ items: Producto[] }>('GET', '/productos'),
+  agregarCargos: (id: string, items: Array<{ producto_id: string; cantidad: number }>, clave: string) =>
+    pedir<Estadia>('POST', `/estadias/${id}/cargos`, { items }, { 'idempotency-key': clave }),
+  registrarPago: (id: string, medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA', valor: number, clave: string) =>
+    pedir<Pago>('POST', `/estadias/${id}/pagos`, { medio, valor }, { 'idempotency-key': clave }),
   turnoActual: () => pedir<Turno>('GET', '/turnos/actual'),
   recibirTurno: (base_contada: number, motivo_diferencia?: string) =>
     pedir<Turno>('POST', '/turnos/actual/recepcion', motivo_diferencia ? { base_contada, motivo_diferencia } : { base_contada }),

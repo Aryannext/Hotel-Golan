@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -134,5 +134,32 @@ describe('TICKET-05 · fechas relativas', () => {
   it('dice «ayer» para el día anterior', () => {
     assert.equal(diaRelativo('2026-10-12T20:12:00-05:00', '2026-10-13'), 'ayer');
     assert.equal(diaRelativo('2026-10-11T20:12:00-05:00', '2026-10-13'), '11/10');
+  });
+});
+
+describe('TICKET-06 · ficha de la habitación: cargos y pagos', () => {
+  const p = (id: string, nombre: string, grupo: string, precio: number) => ({ id, nombre, grupo, precio, seccion: null, pertenece_a: 'HOTEL', activo: true });
+  const catalogo = [p('1', 'Coca-Cola', 'NEVERA', 4000), p('2', 'Toalla', 'LAVANDERIA', 3000), p('3', 'Llave perdida', 'OTROS', 40000), p('4', 'Champú', 'VITRINA_ASEO', 6000)];
+  it('agrupa el catálogo en nevera, lavandería y otros; la vitrina queda para la segunda entrega', () => {
+    assert.deepEqual(agruparCatalogo(catalogo).map(([g, ps]) => [g, ps.map((x) => x.nombre)]),
+      [['Nevera', ['Coca-Cola']], ['Lavandería', ['Toalla']], ['Llave, aseo y otros', ['Llave perdida']]]);
+  });
+  it('resume la selección múltiple con cantidades y total', () => {
+    const r = resumenSeleccion(catalogo, { 1: 2, 3: 1, 2: 0 });
+    assert.deepEqual(r.items.map((x) => [x.producto.nombre, x.cantidad, x.subtotal]), [['Coca-Cola', 2, 8000], ['Llave perdida', 1, 40000]]);
+    assert.equal(r.total, 48000);
+  });
+  it('describe el saldo: debe, por verificar o al día', () => {
+    assert.deepEqual(estadoSaldo({ total_cargos: 84000, pagado: 26000, por_verificar: 30000, saldo: 28000, a_favor: 0 }),
+      { tono: 'alerta', titulo: 'Debe', detalle: 'Además hay $30.000 por verificar', valor: 28000 });
+    assert.deepEqual(estadoSaldo({ total_cargos: 45000, pagado: 0, por_verificar: 45000, saldo: 0, a_favor: 0 }),
+      { tono: 'aviso', titulo: 'Por verificar', detalle: 'Queda al día cuando la administración confirme la transferencia', valor: 45000 });
+    assert.deepEqual(estadoSaldo({ total_cargos: 55000, pagado: 55000, por_verificar: 0, saldo: 0, a_favor: 0 }),
+      { tono: 'ok', titulo: 'Al día', detalle: 'No debe nada', valor: 0 });
+  });
+  it('en efectivo cobra hasta el saldo y lo demás son vueltas; por transferencia, lo escrito', () => {
+    assert.deepEqual(valorPago('EFECTIVO', 28000, 50000), { valor: 28000, vueltas: 22000 });
+    assert.deepEqual(valorPago('EFECTIVO', 28000, 10000), { valor: 10000, vueltas: 0 });
+    assert.deepEqual(valorPago('NEQUI', 28000, 28000), { valor: 28000, vueltas: 0 });
   });
 });

@@ -7,13 +7,18 @@ import { verificarPago, type ResultadoVerificacion } from '../../../scripts/lib/
 import { requiere } from '../identidad/sesiones.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
+import { auditar } from '../comun/auditoria.ts';
+import { conIdempotencia } from '../comun/idempotencia.ts';
+import { turnoAbiertoId } from '../caja/turnos.ts';
+import { estadiaActiva } from '../estadias/cargos.ts';
+import { leerEstadia } from '../estadias/estadias.ts';
 
 interface FilaPago {
   id: string; estadia_id: string; habitacion_numero: string; turno_id: string; medio: string; valor: number; estado: string;
   registrado_por: string; registrado_en: Date; verificado_por: string | null; verificado_en: Date | null; anulado: boolean;
 }
 
-async function leerPagos(bd: Bd, filtro: { id?: string; estado?: string; turnoId?: string }) {
+export async function leerPagos(bd: Bd, filtro: { id?: string; estado?: string; turnoId?: string }) {
   const filas = await bd.consultar<FilaPago>(
     `SELECT p.id, p.estadia_id, e.habitacion_numero, p.turno_id, p.medio, p.valor, p.estado, r.usuario AS registrado_por, p.registrado_en,
             v.usuario AS verificado_por, p.verificado_en, p.anulado_en IS NOT NULL AS anulado
@@ -67,5 +72,49 @@ export function rutasPagos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     }
     const [pago] = await leerPagos(bd, { id: req.params.id });
     return pago;
+  });
+
+  // Pago o abono a la cuenta (FR-07): efectivo → EN_CAJA; transferencia → POR_VERIFICAR (RN-10, RN-12).
+  app.post<{ Params: { id: string }; Body: { medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA'; valor: number }; Headers: { 'idempotency-key'?: string } }>('/estadias/:id/pagos', {
+    preHandler: requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']),
+    schema: {
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+      headers: { type: 'object', properties: { 'idempotency-key': { type: 'string', format: 'uuid' } } },
+      body: {
+        type: 'object', additionalProperties: false, required: ['medio', 'valor'],
+        properties: { medio: { type: 'string', enum: ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'] }, valor: { type: 'integer', minimum: 1, maximum: 100000000 } },
+      },
+    },
+  }, async (req, rep) => {
+    const u = req.usuario!;
+    const { medio, valor } = req.body;
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'registrarPago', async (tx) => {
+      const momento = ahora();
+      const turnoId = await turnoAbiertoId(tx);
+      const est = await estadiaActiva(tx, req.params.id);
+      const { cuenta } = (await leerEstadia(tx, req.params.id))!;
+      // Lo que sobra se devuelve como vueltas en la recepción; la cuenta no queda con saldo a favor.
+      if (valor > cuenta.saldo) {
+        throw new ErrorApi(409, 'CONFLICTO', cuenta.saldo === 0
+          ? 'La cuenta está al día: no hay nada por cobrar.'
+          : `El pago supera lo que se debe. El saldo es de $${cuenta.saldo.toLocaleString('es-CO')}.`);
+      }
+      const efectivo = medio === 'EFECTIVO';
+      const [p] = await tx.consultar<{ id: string }>(
+        `INSERT INTO pagos (estadia_id, turno_id, medio, valor, estado, registrado_por, registrado_en)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [req.params.id, turnoId, medio, valor, efectivo ? 'EN_CAJA' : 'POR_VERIFICAR', u.id, momento]);
+      await auditar(tx, {
+        usuarioId: u.id, accion: 'CREAR', entidad: 'pagos', entidadId: p.id, detalle: { medio, valor: String(valor) }, ocurrido: momento,
+      });
+      const eventos: Array<[string, Record<string, unknown>]> = [['habitacion.actualizada', { numero: est.habitacion_numero, entidad_id: req.params.id }]];
+      if (!efectivo) eventos.push(['pago.por_verificar', { entidad_id: p.id, habitacion_numero: est.habitacion_numero, valor }]);
+      for (const [tipo, payload] of eventos) {
+        await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
+      }
+      const [pago] = await leerPagos(tx, { id: p.id });
+      return { estado: 201, cuerpo: pago };
+    });
+    return rep.code(r.estado).send(r.cuerpo);
   });
 }

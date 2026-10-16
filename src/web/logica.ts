@@ -141,3 +141,32 @@ export function avisoEvento(ev: EventoVivo): { tono: 'exito' | 'alerta' | 'info'
   if (ev.tipo === 'pago.por_verificar') return { tono: 'info', texto: `Nueva transferencia por confirmar: ${valor} de la habitación ${hab}.` };
   return null;
 }
+
+// TICKET-06 · ficha de la habitación: cargos y pagos.
+export interface Producto { id: string; nombre: string; grupo: string; precio: number; seccion: number | null; pertenece_a: string; activo: boolean }
+export interface Cuenta { total_cargos: number; pagado: number; por_verificar: number; saldo: number; a_favor: number }
+
+const GRUPOS: Array<[string, string]> = [['NEVERA', 'Nevera'], ['LAVANDERIA', 'Lavandería'], ['OTROS', 'Llave, aseo y otros']];
+
+/** La vitrina se carga desde la segunda entrega (sus precios están pendientes). */
+export function agruparCatalogo(productos: Producto[]): Array<[string, Producto[]]> {
+  return GRUPOS.map(([g, t]) => [t, productos.filter((p) => p.grupo === g)] as [string, Producto[]]).filter(([, ps]) => ps.length > 0);
+}
+
+export function resumenSeleccion(productos: Producto[], cantidades: Record<string, number>) {
+  const items = productos.filter((p) => (cantidades[p.id] ?? 0) > 0)
+    .map((p) => ({ producto: p, cantidad: cantidades[p.id], subtotal: p.precio * cantidades[p.id] }));
+  return { items, total: items.reduce((s, x) => s + x.subtotal, 0) };
+}
+
+export function estadoSaldo(c: Cuenta): { tono: 'alerta' | 'aviso' | 'ok'; titulo: string; detalle: string; valor: number } {
+  if (c.saldo > 0) return { tono: 'alerta', titulo: 'Debe', detalle: c.por_verificar ? `Además hay ${pesos(c.por_verificar)} por verificar` : 'Saldo pendiente', valor: c.saldo };
+  if (c.por_verificar > 0) return { tono: 'aviso', titulo: 'Por verificar', detalle: 'Queda al día cuando la administración confirme la transferencia', valor: c.por_verificar };
+  return { tono: 'ok', titulo: 'Al día', detalle: 'No debe nada', valor: 0 };
+}
+
+/** En efectivo se cobra hasta el saldo y lo que sobra se devuelve; una transferencia se registra por lo que llegó. */
+export function valorPago(medio: string, saldo: number, escrito: number): { valor: number; vueltas: number } {
+  if (medio !== 'EFECTIVO') return { valor: escrito, vueltas: 0 };
+  return { valor: Math.min(escrito, saldo), vueltas: Math.max(0, escrito - saldo) };
+}

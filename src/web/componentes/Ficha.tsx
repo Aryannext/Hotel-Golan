@@ -1,0 +1,155 @@
+// Ficha de la habitación ocupada (TICKET-06, FR-06, FR-07): cuenta con cargos, pagos y saldo; «Agregar» y «Registrar pago».
+// Es el panel del prototipo (abajo en el celular). Se vuelve a pedir con cada evento en vivo (`recarga`).
+import { useEffect, useState } from 'preact/hooks';
+import { api, ErrorApi, type Estadia, type Habitacion } from '../api.ts';
+import {
+  agruparCatalogo, cambioEfectivo, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
+  valorPago, type Producto,
+} from '../logica.ts';
+import { Ico } from './Ico.tsx';
+
+type Sub = 'cuenta' | 'cargo' | 'pago';
+type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
+
+export function Ficha({ habitacion, recarga, alCerrar, alCambiar }: {
+  habitacion: Habitacion; recarga: number; alCerrar: () => void; alCambiar: () => void;
+}) {
+  const id = habitacion.estadia_activa!.id;
+  const [est, setEst] = useState<Estadia | null>(null);
+  const [sub, setSub] = useState<Sub>('cuenta');
+  const [catalogo, setCatalogo] = useState<Producto[]>([]);
+  const [cantidades, setCantidades] = useState<Record<string, number>>({});
+  const [medio, setMedio] = useState<Medio>('EFECTIVO');
+  const [valor, setValor] = useState('');
+  const [error, setError] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  // Una clave por operación: si se toca dos veces o se reintenta, no se duplica.
+  const [clave, setClave] = useState(nuevaClave);
+
+  useEffect(() => { api.estadia(id).then(setEst).catch((e: Error) => setError(e.message)); }, [id, recarga]);
+  useEffect(() => { if (sub === 'cargo' && catalogo.length === 0) api.productos().then((r) => setCatalogo(r.items)).catch((e: Error) => setError(e.message)); }, [sub]);
+  useEffect(() => {
+    const cerrarConEscape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
+    document.addEventListener('keydown', cerrarConEscape);
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', cerrarConEscape); document.body.style.overflow = ''; };
+  }, []);
+
+  function ir(s: Sub) {
+    setSub(s);
+    setError('');
+    setClave(nuevaClave());
+    if (s === 'cargo') setCantidades({});
+    if (s === 'pago') { setMedio('EFECTIVO'); setValor(''); }
+  }
+
+  async function enviar(accion: () => Promise<unknown>) {
+    setEnviando(true);
+    setError('');
+    try {
+      await accion();
+      alCambiar();
+      setEst(await api.estadia(id));
+      ir('cuenta');
+    } catch (e) {
+      setError(e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  const sumar = (pid: string, paso: number) => setCantidades({ ...cantidades, [pid]: Math.max(0, Math.min(20, (cantidades[pid] ?? 0) + paso)) });
+  const e = est;
+  const subtitulo = e ? `${e.huesped.nombre_mostrado} · ${e.personas} ${e.personas === 1 ? 'persona' : 'personas'} · sale ${diaRelativo(e.salida_prevista_en, hoyBogota())} ${horaBogota(e.salida_prevista_en)}` : '';
+  const sel = resumenSeleccion(catalogo, cantidades);
+  const saldo = e?.cuenta.saldo ?? 0;
+  const escrito = leerPesos(valor) ?? saldo;
+  const pago = valorPago(medio, saldo, escrito);
+
+  let cuerpo = null;
+  let pie = null;
+  if (e && sub === 'cuenta') {
+    const s = estadoSaldo(e.cuenta);
+    cuerpo = <>
+      <section class="tarjeta"><div class="tarjeta__cab"><h3>Cargos</h3>
+        <button type="button" class="enlace" onClick={() => ir('cargo')}><Ico id="mas" clase="ico--xs" />Agregar</button></div>
+        {e.cargos.filter((c) => !c.anulado).map((c) => <div class="fila"><div class="fila__txt"><div class="fila__concepto">{c.concepto}{c.cantidad > 1 && c.tipo !== 'ALOJAMIENTO' && c.tipo !== 'DESCUENTO' ? ` × ${c.cantidad}` : ''}</div>
+          <div class="fila__detalle">{diaRelativo(c.creado_en, hoyBogota())} {horaBogota(c.creado_en)} · {c.creado_por}</div></div><div class="fila__valor">{pesos(c.valor)}</div></div>)}
+        <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">Total cargos</div></div><div class="fila__valor">{pesos(e.cuenta.total_cargos)}</div></div>
+      </section>
+      <section class="tarjeta"><div class="tarjeta__cab"><h3>Pagos</h3>
+        <button type="button" class="enlace" disabled={saldo === 0} onClick={() => ir('pago')}><Ico id="mas" clase="ico--xs" />Registrar pago</button></div>
+        {e.pagos.length === 0 ? <p class="ayuda">Sin pagos.</p> : e.pagos.map((p) => <div class={`mov${p.anulado ? ' mov--anulado' : ''}`}>
+          <span class="mov__ico"><Ico id={p.medio === 'EFECTIVO' ? 'efectivo' : 'transferencia'} clase="ico--s" /></span>
+          <div class="mov__txt"><div class="mov__titulo">{textoMedio(p.medio)}</div>
+            <div class="mov__detalle">{diaRelativo(p.registrado_en, hoyBogota())} {horaBogota(p.registrado_en)} · {p.registrado_por}</div></div>
+          <div class="mov__der"><span class="mov__valor">{pesos(p.valor)}</span>
+            {p.estado === 'POR_VERIFICAR' && <span class="pill pill--aviso">Por verificar</span>}
+            {p.estado === 'RECHAZADO' && <span class="pill pill--alerta">No llegó</span>}
+            {p.estado === 'VERIFICADO' && <span class="pill pill--exito">Llegó</span>}</div>
+        </div>)}
+      </section>
+      <div class={`saldo saldo--${s.tono}`}><div><b>{s.titulo}</b><p>{s.detalle}</p></div><strong>{pesos(s.valor)}</strong></div>
+    </>;
+  } else if (sub === 'cargo') {
+    cuerpo = <>
+      {agruparCatalogo(catalogo).map(([grupo, productos]) => <>
+        <p class="subtitulo">{grupo}</p>
+        <div class="catalogo">{productos.map((p) => {
+          const n = cantidades[p.id] ?? 0;
+          return <button type="button" class="producto" aria-pressed={n > 0} aria-label={`Agregar ${p.nombre}${n ? ', van ' + n : ''}`} onClick={() => sumar(p.id, 1)}>
+            <strong>{p.nombre}</strong><span>{pesos(p.precio)}</span>{n > 0 && <em class="producto__n">{n}</em>}</button>;
+        })}</div>
+      </>)}
+      {sel.items.length === 0
+        ? <p class="ayuda">Toque los productos para agregarlos. Puede elegir varios y tocar de nuevo para sumar cantidad.</p>
+        : <section class="tarjeta tarjeta--oro"><div class="tarjeta__cab"><h3>Seleccionados</h3></div>
+          {sel.items.map((x) => <div class="item-sel"><span class="item-sel__nombre">{x.producto.nombre}</span>
+            <div class="contador contador--mini">
+              <button type="button" aria-label={`Quitar uno de ${x.producto.nombre}`} onClick={() => sumar(x.producto.id, -1)}>−</button>
+              <output>{x.cantidad}</output>
+              <button type="button" aria-label={`Agregar uno de ${x.producto.nombre}`} onClick={() => sumar(x.producto.id, 1)}>+</button>
+            </div><strong>{pesos(x.subtotal)}</strong></div>)}
+          <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">Total</div></div><div class="fila__valor">{pesos(sel.total)}</div></div>
+        </section>}
+    </>;
+    pie = <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={!sel.items.length || enviando}
+      onClick={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>
+      <Ico id="mas" clase="ico--s" />{sel.items.length ? `Agregar ${sel.items.length} ${sel.items.length === 1 ? 'producto' : 'productos'} · ${pesos(sel.total)}` : 'Elija productos'}</button>;
+  } else if (e && sub === 'pago') {
+    const cambio = cambioEfectivo(saldo, escrito);
+    cuerpo = <section class="tarjeta"><div class="tarjeta__cab"><h3>Medio de pago</h3></div>
+      <div class="segmentado">{(['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'] as Medio[]).map((m) =>
+        <button type="button" class="opcion" aria-pressed={medio === m} onClick={() => setMedio(m)}>{textoMedio(m)}</button>)}</div>
+      <div class="campo"><label for="valor-pago">{medio === 'EFECTIVO' ? 'Valor recibido' : 'Valor de la transferencia'}</label>
+        <input id="valor-pago" inputmode="numeric" autocomplete="off" placeholder={String(saldo)} value={valor} onInput={(ev) => setValor((ev.target as HTMLInputElement).value)} /></div>
+      {medio === 'EFECTIVO'
+        ? <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>
+          <b>{cambio.tipo === 'vueltas' ? 'Vueltas' : cambio.tipo === 'abono' ? 'Abono: sigue debiendo' : 'Pago exacto'}</b>
+          <p>Entran {pesos(pago.valor)} a la caja.</p></div><strong>{pesos(cambio.valor)}</strong></div>
+        : <p class="ayuda">Quedará «por verificar» hasta que la administración confirme que llegó.</p>}
+      <p class="ayuda">Saldo pendiente: {pesos(saldo)}</p>
+    </section>;
+    pie = <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando || pago.valor < 1}
+      onClick={() => enviar(() => api.registrarPago(id, medio, pago.valor, clave))}><Ico id="check" clase="ico--s" />Registrar pago de {pesos(pago.valor)}</button>;
+  }
+
+  const titulo = sub === 'cargo' ? 'Agregar cargos' : sub === 'pago' ? 'Registrar pago' : `Hab. ${habitacion.numero}`;
+  return (
+    <div class="capa-panel">
+      <div class="velo velo--visible" onClick={alCerrar} />
+      <section class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-titulo">
+        <div class="panel__cab">
+          <button type="button" class="redondo" aria-label={sub === 'cuenta' ? 'Cerrar' : 'Volver'} onClick={() => (sub === 'cuenta' ? alCerrar() : ir('cuenta'))}>
+            <Ico id={sub === 'cuenta' ? 'cerrar' : 'atras'} clase="ico--s" /></button>
+          <div class="titulos"><h2 id="panel-titulo">{titulo}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
+        </div>
+        <div class="panel__cuerpo">
+          {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
+          {cuerpo}
+        </div>
+        {pie && <div class="panel__pie">{pie}</div>}
+      </section>
+    </div>
+  );
+}
