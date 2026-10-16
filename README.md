@@ -18,7 +18,7 @@ Código de la primera entrega: caja, transferencias y habitaciones.
 ```bash
 npm install
 cp .env.example .env          # cambie las contraseñas
-docker compose up -d db
+docker compose up -d db       # si el puerto 5432 está ocupado, use 5433 en .env
 npm run db:migrar
 npm run db:sembrar            # datos sintéticos; solo contra 127.0.0.1
 ```

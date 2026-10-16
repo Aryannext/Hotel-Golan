@@ -24,6 +24,10 @@ try {
     });
     console.log(r.repetida ? `Clave repetida: no se aplicó de nuevo (${r.estado}).` : `Pago ${r.estado}: $${r.valor.toLocaleString('es-CO')}`);
   }
+} catch (error) {
+  // Mensaje claro en vez del error técnico completo (p. ej., «CONFLICTO: el pago está VERIFICADO»).
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
 } finally {
   await bd.cerrar();
 }
