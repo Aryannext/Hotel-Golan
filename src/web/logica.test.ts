@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -37,5 +37,23 @@ describe('Presentación del mapa de habitaciones', () => {
   it('saca dos iniciales para el avatar, ignorando números y paréntesis', () => {
     assert.equal(iniciales('Recepción Prueba 2 (noche entre semana)'), 'RP');
     assert.equal(iniciales('Administradora'), 'A');
+  });
+});
+
+describe('TICKET-02 — Paso «Habitación y servicio»', () => {
+  it('máximo 3 personas por noche y 2 en tres horas', () => {
+    assert.equal(maxPersonas('NOCHE'), 3);
+    assert.equal(maxPersonas('TRES_HORAS'), 2);
+  });
+
+  it('al pasar a tres horas, baja las personas a 2 si había más', () => {
+    assert.equal(ajustarPersonas(3, 'TRES_HORAS'), 2);
+    assert.equal(ajustarPersonas(1, 'TRES_HORAS'), 1);
+    assert.equal(ajustarPersonas(0, 'NOCHE'), 1);
+  });
+
+  it('describe la salida en palabras: «mañana a las 12:00 m.»', () => {
+    assert.equal(textoSalida('2026-10-14T12:00:00-05:00', '2026-10-13'), 'mañana a las 12:00 m.');
+    assert.equal(textoSalida('2026-10-13T01:30:00-05:00', '2026-10-13'), 'hoy a la 1:30 a. m.');
   });
 });

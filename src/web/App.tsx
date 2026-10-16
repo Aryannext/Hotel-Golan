@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion, type SesionActual } from './api.ts';
 import { Acceso } from './componentes/Acceso.tsx';
 import { Mapa } from './componentes/Mapa.tsx';
+import { Cotizar } from './componentes/Cotizar.tsx';
 import { Ico } from './componentes/Ico.tsx';
 import { iniciales } from './logica.ts';
 
@@ -11,6 +12,7 @@ export function App() {
   const [habitaciones, setHabitaciones] = useState<Habitacion[]>([]);
   const [mensaje, setMensaje] = useState<string | undefined>();
   const [error, setError] = useState('');
+  const [cotizando, setCotizando] = useState<Habitacion | null>(null);
 
   useEffect(() => {
     api.sesionActual().then(setSesion).catch(() => setSesion(null));
@@ -51,7 +53,9 @@ export function App() {
           </div>
         </header>
         <main class="vista" id="vista" tabIndex={-1}>
-          {error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div> : <Mapa habitaciones={habitaciones} />}
+          {error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>
+            : cotizando ? <Cotizar habitacion={cotizando} alVolver={() => setCotizando(null)} />
+            : <Mapa habitaciones={habitaciones} alElegir={setCotizando} />}
         </main>
       </div>
     </div>

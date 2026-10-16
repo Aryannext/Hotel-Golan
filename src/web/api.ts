@@ -4,6 +4,12 @@ export interface SesionActual { usuario: Usuario; expira_en: string; turno_por_r
 export interface EstadiaResumen { id: string; nombre_corto: string; salida_prevista_en: string; saldo: number; por_verificar: number; vencida: boolean }
 export interface Habitacion { numero: string; tipo: 'AIRE' | 'VENTILADOR'; estado: string; nota: string | null; estadia_activa: EstadiaResumen | null }
 
+export interface Cotizacion {
+  tarifa: number; descuento: number; total: number; salida_prevista_en: string; permite_pago_al_salir: boolean;
+  franja_salida: 'MADRUGADA_MISMO_DIA' | 'VEINTICUATRO_HORAS' | 'MEDIODIA_SIGUIENTE' | 'TRES_HORAS';
+}
+export interface PedidoCotizacion { habitacion_numero: string; modalidad: 'NOCHE' | 'TRES_HORAS'; personas: number; noches: number; aplicar_descuento: boolean }
+
 export class ErrorApi extends Error {
   readonly estado: number;
   readonly codigo: string;
@@ -32,4 +38,5 @@ export const api = {
   sesionActual: () => pedir<SesionActual>('GET', '/sesiones/actual'),
   cerrarSesion: () => pedir<void>('DELETE', '/sesiones/actual'),
   habitaciones: () => pedir<{ items: Habitacion[] }>('GET', '/habitaciones'),
+  cotizar: (p: PedidoCotizacion) => pedir<Cotizacion>('POST', '/cotizaciones', p),
 };

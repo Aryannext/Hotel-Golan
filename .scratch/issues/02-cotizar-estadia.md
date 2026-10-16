@@ -7,7 +7,7 @@
 
 **Blocked by:** TICKET-01 (Iniciar sesión y ver el mapa de habitaciones)
 
-**Status:** ready-for-agent
+**Status:** done (16-10-2026)
 
 ## Invariantes de negocio
 - Salida: hasta las 6:00 a. m. → 12 m. del mismo día; de 6:01 a 11:59 a. m. → 24 horas; desde las 12 m. → 12 m. del día siguiente; N noches según RN-01.
@@ -21,9 +21,9 @@
 - Reglas de negocio evaluadas en America/Bogota; la base guarda timestamptz.
 
 ## Criterios de aceptación
-- [ ] POST /cotizaciones cumple el contrato.
-- [ ] Pasan los ejemplos de las reglas RN-01, RN-02, RN-03 y RN-05 de TESTS_ACEPTACION.feature (14 casos de salida y 8 de tarifa), como pruebas unitarias de `reglas` y como pruebas de la API.
-- [ ] El paso 2 del asistente en la PWA muestra el precio y la salida al instante.
+- [x] POST /cotizaciones cumple el contrato.
+- [x] Pasan los ejemplos de las reglas RN-01, RN-02, RN-03 y RN-05 de TESTS_ACEPTACION.feature (14 casos de salida y 8 de tarifa), como pruebas unitarias de `reglas` y como pruebas de la API.
+- [x] El paso 2 del asistente en la PWA muestra el precio y la salida al instante.
 
 ## Módulos a tocar
 reglas (núcleo puro), configuracion (lectura de tarifas y reglas), estadías (endpoint de cotización), PWA (paso 2 del asistente).
@@ -35,3 +35,10 @@ reglas (núcleo puro), configuracion (lectura de tarifas y reglas), estadías (e
 - TDD: primero la prueba que falla por falta de la funcionalidad, luego el código y por último la prueba en verde.
 - Circuit breaker: si una prueba falla 3 veces seguidas con hipótesis distintas, se detiene el ticket, se guarda la evidencia y se marca BLOCKED.
 - Prohibido debilitar o borrar una prueba para que pase.
+
+## Evidencia de cierre (16-10-2026)
+- Módulo `reglas` puro: 32 pruebas (14 de salida, 8 de tarifa, descuento, capacidad, zona horaria y cotización completa).
+- `POST /cotizaciones`: 10 pruebas (401, 400, 422 CAPACIDAD_EXCEDIDA y DESCUENTO_NO_PERMITIDO, tarifa vigente por fecha).
+- PWA: paso «Habitación y servicio» desde el mapa, con la lógica de presentación probada (personas máximas, texto de la salida).
+- Probado en el navegador con la hora real: 201 con aire y 3 personas, 2 noches con descuento → $180.000; tres horas → 2 personas, sin descuento.
+- `npm test`: 84 pruebas en verde (39 anteriores + 32 de reglas + 10 de cotizaciones + 3 de presentación); tipos limpios.

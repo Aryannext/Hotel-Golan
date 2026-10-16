@@ -7,6 +7,8 @@ import type { Bd } from '../../scripts/lib/bd.ts';
 import { ErrorApi } from './comun/errores.ts';
 import { rutasIdentidad } from './identidad/rutas.ts';
 import { rutasHabitaciones } from './habitaciones/rutas.ts';
+import { rutasCotizaciones } from './estadias/cotizaciones.ts';
+import { ErrorRegla } from './reglas/reglas.ts';
 
 export type App = FastifyInstance;
 
@@ -28,8 +30,10 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
   });
   await app.register(cookie);
 
-  app.setErrorHandler((error: FastifyError | ErrorApi, req, rep) => {
+  app.setErrorHandler((error: FastifyError | ErrorApi | ErrorRegla, req, rep) => {
     if (error instanceof ErrorApi) return rep.code(error.estado).send({ codigo: error.codigo, mensaje: error.message });
+    // Violación de una regla del hotel (RN-xx): 422 con el código de la regla.
+    if (error instanceof ErrorRegla) return rep.code(422).send({ codigo: error.codigo, mensaje: error.message });
     if ('validation' in error && error.validation) {
       return rep.code(400).send({
         codigo: 'INVALID_PAYLOAD',
@@ -44,6 +48,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
   await app.register(async (api) => {
     rutasIdentidad(api, o.bd, ahora);
     rutasHabitaciones(api, o.bd, ahora);
+    rutasCotizaciones(api, o.bd, ahora);
   }, { prefix: '/api/v1' });
 
   const conWeb = !!o.dirWeb && existsSync(o.dirWeb);

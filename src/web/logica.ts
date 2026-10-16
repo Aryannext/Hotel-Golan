@@ -39,3 +39,15 @@ export const hoyBogota = (ahora = Date.now()) => new Date(ahora - 5 * 3600_000).
 /** Dos iniciales para el avatar: «Recepción Prueba 2» → «RP». */
 export const iniciales = (nombre: string) =>
   nombre.trim().split(/\s+/).filter((p) => /^\p{L}/u.test(p)).slice(0, 2).map((p) => p[0].toUpperCase()).join('');
+
+export type Modalidad = 'NOCHE' | 'TRES_HORAS';
+
+/** RN-02 / RN-03: máximo 3 personas por noche y 2 en tres horas. */
+export const maxPersonas = (m: Modalidad) => (m === 'TRES_HORAS' ? 2 : 3);
+export const ajustarPersonas = (personas: number, m: Modalidad) => Math.min(maxPersonas(m), Math.max(1, personas));
+
+/** «mañana a las 12:00 m.», «hoy a la 1:30 a. m.» (en español se dice «a la una»). */
+export function textoSalida(iso: string, hoy: string): string {
+  const hora = horaBogota(iso);
+  return `${diaRelativo(iso, hoy)} ${hora.startsWith('1:') ? 'a la' : 'a las'} ${hora}`;
+}
