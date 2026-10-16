@@ -15,3 +15,18 @@
   .barra-sup__nombre { display: none; }
   .barra-sup__der .btn { padding-inline: 10px; }
 }
+
+/* Casillas del asistente de entrada (TICKET-04): autorización de datos y menor de edad. */
+.casilla { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; font: 500 14px/1.4 var(--f-ui); cursor: pointer; }
+.casilla input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--bronce, #8B6B3F); }
+.casilla--fuerte { padding: 12px 14px; border: 1px solid var(--borde); border-radius: var(--r-md, 12px); background: var(--crema-2, #FBF6EC); }
+.casilla--aviso { padding: 10px 12px; border-radius: var(--r-md, 12px); background: var(--ambar-bg); color: var(--ambar); }
+.casilla--error { border-color: var(--rojo); }
+
+/* Celular: en el asistente solo se ve el texto del paso activo. */
+@media (max-width: 600px) {
+  .asistente__paso:not(.asistente__paso--activo) .asistente__txt { display: none; }
+}
+
+/* Tipo de documento: que «Sin documento» se lea completo también en celular. */
+.doble { grid-template-columns: 150px minmax(0, 1fr); }

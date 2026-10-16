@@ -19,6 +19,21 @@ export interface Turno {
   inicio_en: string; fin_en: string | null; fin_programado_en: string; base_entregada: number; base_recibida: number | null; caja: ResumenCaja;
 }
 
+export interface Cargo { id: string; tipo: string; concepto: string; cantidad: number; valor_unitario: number; valor: number; creado_por: string; creado_en: string; anulado: boolean }
+export interface Pago { id: string; medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA'; valor: number; estado: string; registrado_por: string; registrado_en: string; anulado: boolean }
+export interface Estadia {
+  id: string; habitacion_numero: string; modalidad: string; personas: number; noches: number; entrada_en: string; salida_prevista_en: string;
+  estado: string; forma_cobro: 'ANTICIPADO' | 'AL_SALIR';
+  huesped: { id: string; nombre_mostrado: string; tipo_documento: string | null; documento_enmascarado: string | null; nacionalidad: string | null; anonimizado: boolean };
+  cargos: Cargo[]; pagos: Pago[]; cuenta: { total_cargos: number; pagado: number; por_verificar: number; saldo: number; a_favor: number };
+}
+export type FormaPago = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' | 'AL_SALIR';
+export interface PedidoEntrada extends PedidoCotizacion {
+  huesped: Record<string, unknown>;
+  autorizacion: { otorgada: boolean; version_aviso: string };
+  pago: { forma: FormaPago; valor_recibido?: number };
+}
+
 export class ErrorApi extends Error {
   readonly estado: number;
   readonly codigo: string;
@@ -29,11 +44,11 @@ export class ErrorApi extends Error {
   }
 }
 
-async function pedir<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
+async function pedir<T>(metodo: string, ruta: string, cuerpo?: unknown, cabeceras: Record<string, string> = {}): Promise<T> {
   const r = await fetch('/api/v1' + ruta, {
     method: metodo,
     credentials: 'same-origin',
-    headers: cuerpo ? { 'content-type': 'application/json' } : {},
+    headers: { ...(cuerpo ? { 'content-type': 'application/json' } : {}), ...cabeceras },
     body: cuerpo ? JSON.stringify(cuerpo) : undefined,
   });
   if (r.status === 204) return undefined as T;
@@ -48,6 +63,8 @@ export const api = {
   cerrarSesion: () => pedir<void>('DELETE', '/sesiones/actual'),
   habitaciones: () => pedir<{ items: Habitacion[] }>('GET', '/habitaciones'),
   cotizar: (p: PedidoCotizacion) => pedir<Cotizacion>('POST', '/cotizaciones', p),
+  /** La clave se genera una vez por asistente: si se toca dos veces o se reintenta, no se duplica la entrada. */
+  registrarEntrada: (p: PedidoEntrada, clave: string) => pedir<Estadia>('POST', '/estadias', p, { 'idempotency-key': clave }),
   turnoActual: () => pedir<Turno>('GET', '/turnos/actual'),
   recibirTurno: (base_contada: number, motivo_diferencia?: string) =>
     pedir<Turno>('POST', '/turnos/actual/recepcion', motivo_diferencia ? { base_contada, motivo_diferencia } : { base_contada }),

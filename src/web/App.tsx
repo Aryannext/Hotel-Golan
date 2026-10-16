@@ -3,7 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion, type SesionActual } from './api.ts';
 import { Acceso } from './componentes/Acceso.tsx';
 import { Mapa } from './componentes/Mapa.tsx';
-import { Cotizar } from './componentes/Cotizar.tsx';
+import { Entrada } from './componentes/Entrada.tsx';
 import { RecibirTurno } from './componentes/RecibirTurno.tsx';
 import { Caja } from './componentes/Caja.tsx';
 import { Ico } from './componentes/Ico.tsx';
@@ -17,6 +17,8 @@ export function App() {
   const [mensaje, setMensaje] = useState<string | undefined>();
   const [error, setError] = useState('');
   const [cotizando, setCotizando] = useState<Habitacion | null>(null);
+  const [aviso, setAviso] = useState('');
+  const [recarga, setRecarga] = useState(0);
   const [vista, setVista] = useState<'mapa' | 'caja'>('mapa');
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export function App() {
         if (e instanceof ErrorApi && e.estado === 401) { setSesion(null); setMensaje('Su sesión venció. Inicie sesión de nuevo.'); }
         else setError(e instanceof Error ? e.message : 'No se pudo cargar el mapa.');
       });
-  }, [sesion]);
+  }, [sesion, recarga]);
 
   async function salir() {
     await api.cerrarSesion().catch(() => undefined);
@@ -68,8 +70,15 @@ export function App() {
               </div>
               {vista === 'caja' ? <Caja />
                 : error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>
-                : cotizando ? <Cotizar habitacion={cotizando} alVolver={() => setCotizando(null)} />
-                : <Mapa habitaciones={habitaciones} alElegir={setCotizando} />}
+                : cotizando ? <Entrada habitacion={cotizando} alVolver={() => setCotizando(null)} alRegistrar={(est) => {
+                  setCotizando(null);
+                  setRecarga((n) => n + 1);
+                  setAviso(`Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.`);
+                }} />
+                : <>
+                  {aviso && <div class="nota nota--info" role="status" style="margin-bottom:16px"><Ico id="check" clase="ico--s" /><p>{aviso}</p></div>}
+                  <Mapa habitaciones={habitaciones} alElegir={(hab) => { setAviso(''); setCotizando(hab); }} />
+                </>}
             </>}
         </main>
       </div>

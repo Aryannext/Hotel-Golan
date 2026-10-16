@@ -48,8 +48,15 @@ export function conectarPostgres(url = process.env.DATABASE_URL): Bd {
 export async function conectarPglite(): Promise<Bd> {
   const { PGlite } = await import('@electric-sql/pglite');
   const db = new PGlite();
-  // PGlite no es multiusuario: las transacciones se serializan con BEGIN/COMMIT explícitos.
-  const bd: Bd = {
+  // PGlite tiene una sola conexión: un candado serializa las transacciones (como haría PostgreSQL con varias
+  // conexiones y bloqueos de fila) y las consultas sueltas esperan a que termine la transacción en curso.
+  let cola: Promise<unknown> = Promise.resolve();
+  const enExclusiva = <T>(fn: () => Promise<T>): Promise<T> => {
+    const turno = cola.then(fn, fn);
+    cola = turno.catch(() => undefined);
+    return turno;
+  };
+  const dentro: Bd = {
     async consultar(sql, params) {
       return (await db.query(sql, params as unknown[] | undefined)).rows as never[];
     },
@@ -57,19 +64,26 @@ export async function conectarPglite(): Promise<Bd> {
       await db.exec(sql);
     },
     async transaccion(fn) {
+      return fn(dentro); // Ya dentro de una transacción: no se anida.
+    },
+    async cerrar() {
+      await db.close();
+    },
+  };
+  return {
+    consultar: (sql, params) => enExclusiva(() => dentro.consultar(sql, params)),
+    ejecutar: (sql) => enExclusiva(() => dentro.ejecutar(sql)),
+    transaccion: (fn) => enExclusiva(async () => {
       await db.exec('BEGIN');
       try {
-        const resultado = await fn(bd);
+        const resultado = await fn(dentro);
         await db.exec('COMMIT');
         return resultado;
       } catch (error) {
         await db.exec('ROLLBACK');
         throw error;
       }
-    },
-    async cerrar() {
-      await db.close();
-    },
+    }),
+    cerrar: () => enExclusiva(() => db.close()),
   };
-  return bd;
 }

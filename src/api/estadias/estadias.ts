@@ -1,0 +1,273 @@
+// Estadías (FR-03, FR-05; RN-02, RN-03, RN-05, RN-06, RN-16): registrar la entrada y consultar la cuenta.
+// Todo el registro ocurre en una transacción: huésped, autorización, estadía, cargos, pago, habitación, auditoría y eventos.
+import type { FastifyInstance } from 'fastify';
+import type { Bd } from '../../../scripts/lib/bd.ts';
+import { requiere } from '../identidad/sesiones.ts';
+import { auditar } from '../comun/auditoria.ts';
+import { aBogota } from '../comun/tiempo.ts';
+import { ErrorApi } from '../comun/errores.ts';
+import { conIdempotencia } from '../comun/idempotencia.ts';
+import { turnoAbiertoId } from '../caja/turnos.ts';
+import { cotizar, type ModalidadCotizable, type TipoHabitacion } from '../reglas/reglas.ts';
+import { regla, tarifasVigentes } from './cotizaciones.ts';
+
+const HABITACIONES = ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '301'];
+const UNICO_VIOLADO = '23505';
+
+/** Solo los 3 últimos caracteres del documento (ADR-006). */
+export const enmascarar = (doc: string | null) => (doc ? '••••' + doc.slice(-3) : null);
+
+// ---------- Lectura ----------
+
+interface FilaEstadia {
+  id: string; habitacion_numero: string; modalidad: string; personas: number; noches: number; entrada_en: Date;
+  salida_prevista_en: Date; salida_real_en: Date | null; estado: string; forma_cobro: string;
+  huesped_id: string; nombre: string | null; tipo_documento: string | null; numero_documento: string | null;
+  nacionalidad: string | null; anonimizado_en: Date | null;
+}
+
+export async function leerEstadia(bd: Bd, id: string) {
+  const [f] = await bd.consultar<FilaEstadia>(
+    `SELECT e.id, e.habitacion_numero, e.modalidad, e.personas, e.noches, e.entrada_en, e.salida_prevista_en, e.salida_real_en,
+            e.estado, e.forma_cobro, h.id AS huesped_id, h.nombre, h.tipo_documento, h.numero_documento, h.nacionalidad, h.anonimizado_en
+       FROM estadias e JOIN huespedes h ON h.id = e.huesped_id WHERE e.id = $1`, [id]);
+  if (!f) return null;
+  const cargos = await bd.consultar<{ id: string; tipo: string; concepto: string; cantidad: number; valor_unitario: number; valor: number; creado_por: string; creado_en: Date; anulado: boolean }>(
+    `SELECT c.id, c.tipo, c.concepto, c.cantidad, c.valor_unitario, c.valor, u.usuario AS creado_por, c.creado_en, c.anulado_en IS NOT NULL AS anulado
+       FROM cargos c JOIN usuarios u ON u.id = c.creado_por WHERE c.estadia_id = $1 ORDER BY c.creado_en, (c.tipo = 'DESCUENTO')`, [id]);
+  const pagos = await bd.consultar<{ id: string; turno_id: string; medio: string; valor: number; estado: string; registrado_por: string; registrado_en: Date; verificado_por: string | null; verificado_en: Date | null; anulado: boolean }>(
+    `SELECT p.id, p.turno_id, p.medio, p.valor, p.estado, r.usuario AS registrado_por, p.registrado_en,
+            v.usuario AS verificado_por, p.verificado_en, p.anulado_en IS NOT NULL AS anulado
+       FROM pagos p JOIN usuarios r ON r.id = p.registrado_por LEFT JOIN usuarios v ON v.id = p.verificado_por
+      WHERE p.estadia_id = $1 ORDER BY p.registrado_en`, [id]);
+
+  const vigentes = (x: { anulado: boolean }) => !x.anulado;
+  const suma = (xs: Array<{ valor: number }>) => xs.reduce((s, x) => s + x.valor, 0);
+  const totalCargos = suma(cargos.filter(vigentes));
+  const pagado = suma(pagos.filter((p) => vigentes(p) && (p.estado === 'EN_CAJA' || p.estado === 'VERIFICADO')));
+  const porVerificar = suma(pagos.filter((p) => vigentes(p) && p.estado === 'POR_VERIFICAR'));
+  const anonimizado = !!f.anonimizado_en;
+
+  return {
+    id: f.id, habitacion_numero: f.habitacion_numero,
+    huesped: {
+      id: f.huesped_id, nombre_mostrado: anonimizado || !f.nombre ? 'Huésped anonimizado' : f.nombre,
+      tipo_documento: f.tipo_documento, documento_enmascarado: enmascarar(f.numero_documento), nacionalidad: f.nacionalidad, anonimizado,
+    },
+    modalidad: f.modalidad, personas: f.personas, noches: f.noches,
+    entrada_en: aBogota(new Date(f.entrada_en)), salida_prevista_en: aBogota(new Date(f.salida_prevista_en)),
+    salida_real_en: f.salida_real_en ? aBogota(new Date(f.salida_real_en)) : null,
+    estado: f.estado, forma_cobro: f.forma_cobro,
+    cargos: cargos.map((c) => ({ ...c, creado_en: aBogota(new Date(c.creado_en)) })),
+    pagos: pagos.map((p) => ({
+      id: p.id, estadia_id: f.id, habitacion_numero: f.habitacion_numero, turno_id: p.turno_id, medio: p.medio, valor: p.valor,
+      estado: p.estado, registrado_por: p.registrado_por, registrado_en: aBogota(new Date(p.registrado_en)),
+      verificado_por: p.verificado_por, verificado_en: p.verificado_en ? aBogota(new Date(p.verificado_en)) : null, anulado: p.anulado,
+    })),
+    cuenta: {
+      total_cargos: totalCargos, pagado, por_verificar: porVerificar,
+      saldo: Math.max(0, totalCargos - pagado - porVerificar), a_favor: Math.max(0, pagado + porVerificar - totalCargos),
+    },
+  };
+}
+
+// ---------- Registro de la entrada ----------
+
+interface Cuerpo {
+  habitacion_numero: string; modalidad: ModalidadCotizable; personas: number; noches?: number; aplicar_descuento?: boolean;
+  registro_tardio?: boolean; entrada_en?: string;
+  huesped: { nombre: string; tipo_documento?: string; numero_documento?: string; nacionalidad: string; telefono?: string; es_menor: boolean; acompanante_verificado?: boolean };
+  autorizacion: { otorgada: boolean; version_aviso: string };
+  pago: { forma: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' | 'AL_SALIR'; valor_recibido?: number };
+}
+
+const esquemaCuerpo = {
+  type: 'object', additionalProperties: false, required: ['habitacion_numero', 'modalidad', 'personas', 'huesped', 'autorizacion', 'pago'],
+  properties: {
+    habitacion_numero: { type: 'string', enum: HABITACIONES },
+    modalidad: { type: 'string', enum: ['NOCHE', 'TRES_HORAS'] },
+    personas: { type: 'integer', minimum: 1, maximum: 3 },
+    noches: { type: 'integer', minimum: 1, maximum: 30, default: 1 },
+    aplicar_descuento: { type: 'boolean', default: false },
+    registro_tardio: { type: 'boolean', default: false },
+    entrada_en: { type: 'string', format: 'date-time' },
+    huesped: {
+      type: 'object', additionalProperties: false, required: ['nombre', 'nacionalidad', 'es_menor'],
+      properties: {
+        nombre: { type: 'string', minLength: 3, maxLength: 120 },
+        tipo_documento: { type: 'string', enum: ['CC', 'CE', 'TI', 'RC', 'PASAPORTE', 'PPT'] },
+        numero_documento: { type: 'string', pattern: '^[A-Za-z0-9-]{4,20}$' },
+        nacionalidad: { type: 'string', minLength: 2, maxLength: 60 },
+        telefono: { type: 'string', pattern: '^\\+57[0-9]{10}$' },
+        es_menor: { type: 'boolean' },
+        acompanante_verificado: { type: 'boolean' },
+      },
+      // Un número de documento necesita su tipo.
+      dependencies: { numero_documento: ['tipo_documento'] },
+      // RN-16: un menor solo entra con acompañante verificado.
+      if: { properties: { es_menor: { const: true } } },
+      then: { required: ['acompanante_verificado'], properties: { acompanante_verificado: { const: true } } },
+    },
+    autorizacion: {
+      type: 'object', additionalProperties: false, required: ['otorgada', 'version_aviso'],
+      properties: { otorgada: { type: 'boolean' }, version_aviso: { type: 'string', pattern: '^AV-[0-9]{4}-[0-9]{2}$' } },
+    },
+    pago: {
+      type: 'object', additionalProperties: false, required: ['forma'],
+      properties: {
+        forma: { type: 'string', enum: ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA', 'AL_SALIR'] },
+        valor_recibido: { type: 'integer', minimum: 0, maximum: 100000000 },
+      },
+    },
+  },
+} as const;
+
+function conceptoAlojamiento(modalidad: ModalidadCotizable, tipo: TipoHabitacion, personas: number, noches: number) {
+  const hab = tipo === 'AIRE' ? 'aire' : 'ventilador';
+  if (modalidad === 'TRES_HORAS') return `Tres horas · ${hab}`;
+  return `${noches === 1 ? 'Noche' : `${noches} noches`} · ${hab}, ${personas} ${personas === 1 ? 'persona' : 'personas'}`;
+}
+
+async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuario: string }, momento: Date) {
+  const turnoId = await turnoAbiertoId(tx);
+  if (!b.autorizacion.otorgada) {
+    throw new ErrorApi(422, 'AUTORIZACION_REQUERIDA', 'Sin la autorización del huésped para el tratamiento de sus datos no se puede registrar la entrada.');
+  }
+
+  // Bloqueo de fila: si dos personas eligen la misma habitación, la segunda espera y la encuentra ocupada.
+  const [h] = await tx.consultar<{ tipo: TipoHabitacion; estado: string }>(
+    'SELECT tipo, estado FROM habitaciones WHERE numero = $1 FOR UPDATE', [b.habitacion_numero]);
+  if (h.estado !== 'DISPONIBLE') {
+    throw new ErrorApi(409, 'HABITACION_NO_DISPONIBLE', `La habitación ${b.habitacion_numero} no está disponible.`);
+  }
+
+  // El precio y la salida se recalculan aquí; no se confía en lo que muestre el cliente.
+  const noches = b.modalidad === 'NOCHE' ? b.noches ?? 1 : 1;
+  const c = cotizar({
+    tarifas: await tarifasVigentes(tx, momento), descuentoNoche: await regla(tx, 'descuento_noche'), tipo: h.tipo,
+    modalidad: b.modalidad, personas: b.personas, noches, aplicarDescuento: b.aplicar_descuento ?? false, entrada: momento,
+  });
+  const alSalir = b.pago.forma === 'AL_SALIR';
+  if (alSalir && !c.permitePagoAlSalir) {
+    throw new ErrorApi(422, 'PAGO_AL_SALIR_NO_PERMITIDO', 'Solo una noche se puede pagar al salir. Varias noches o tres horas se cobran por adelantado.');
+  }
+
+  const hu = b.huesped;
+  const [huesped] = await tx.consultar<{ id: string }>(
+    `INSERT INTO huespedes (nombre, tipo_documento, numero_documento, nacionalidad, telefono, es_menor, acompanante_verificado)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+    [hu.nombre.trim(), hu.tipo_documento ?? null, hu.numero_documento ?? null, hu.nacionalidad.trim(), hu.telefono ?? null, hu.es_menor, hu.acompanante_verificado ?? false]);
+  await tx.consultar('INSERT INTO autorizaciones_datos (huesped_id, version_aviso, otorgada_en, registrada_por) VALUES ($1, $2, $3, $4)',
+    [huesped.id, b.autorizacion.version_aviso, momento, usuario.id]);
+
+  let estadiaId: string;
+  try {
+    [{ id: estadiaId }] = await tx.consultar<{ id: string }>(
+      `INSERT INTO estadias (habitacion_numero, huesped_id, turno_id, modalidad, personas, noches, entrada_en, salida_prevista_en,
+                             forma_cobro, creada_por, creada_en)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $7) RETURNING id`,
+      [b.habitacion_numero, huesped.id, turnoId, b.modalidad, b.personas, noches, momento, c.salida, alSalir ? 'AL_SALIR' : 'ANTICIPADO', usuario.id]);
+  } catch (error) {
+    if ((error as { code?: string }).code === UNICO_VIOLADO) {
+      throw new ErrorApi(409, 'HABITACION_NO_DISPONIBLE', `La habitación ${b.habitacion_numero} ya tiene una estadía activa.`);
+    }
+    throw error;
+  }
+
+  const cargo = (tipo: string, concepto: string, cantidad: number, unitario: number) => tx.consultar(
+    `INSERT INTO cargos (estadia_id, tipo, concepto, cantidad, valor_unitario, valor, creado_por, creado_en)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [estadiaId, tipo, concepto, cantidad, unitario, unitario * cantidad, usuario.id, momento]);
+  await cargo('ALOJAMIENTO', conceptoAlojamiento(b.modalidad, h.tipo, b.personas, noches), noches, c.tarifa / noches);
+  // RN-05: el descuento queda aparte, con quién lo dio.
+  if (c.descuento > 0) await cargo('DESCUENTO', 'Descuento por noche (lo pidió el cliente)', noches, -c.descuento / noches);
+
+  if (!alSalir) {
+    const efectivo = b.pago.forma === 'EFECTIVO';
+    // Efectivo: si recibió más, la diferencia son vueltas; si recibió menos, queda como abono.
+    const valor = efectivo ? Math.min(b.pago.valor_recibido ?? c.total, c.total) : c.total;
+    if (valor > 0) {
+      const [p] = await tx.consultar<{ id: string }>(
+        `INSERT INTO pagos (estadia_id, turno_id, medio, valor, estado, registrado_por, registrado_en)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [estadiaId, turnoId, b.pago.forma, valor, efectivo ? 'EN_CAJA' : 'POR_VERIFICAR', usuario.id, momento]);
+      if (!efectivo) {
+        // RN-12: la transferencia espera la confirmación de la administración (verificación y aviso en vivo: TICKET-05).
+        await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)',
+          ['pago.por_verificar', JSON.stringify({ entidad_id: p.id, habitacion_numero: b.habitacion_numero, valor }), momento]);
+      }
+    }
+  }
+
+  await tx.consultar('UPDATE habitaciones SET estado = $2, actualizado_en = $3 WHERE numero = $1', [b.habitacion_numero, 'OCUPADA', momento]);
+  // Auditoría sin datos personales (FR-20, ADR-006).
+  await auditar(tx, {
+    usuarioId: usuario.id, accion: 'CREAR', entidad: 'estadias', entidadId: estadiaId,
+    detalle: { habitacion: b.habitacion_numero, modalidad: b.modalidad, total: String(c.total), pago: b.pago.forma }, ocurrido: momento,
+  });
+  for (const [tipo, payload] of [
+    ['estadia.creada', { entidad_id: estadiaId, habitacion_numero: b.habitacion_numero }],
+    ['habitacion.actualizada', { numero: b.habitacion_numero, estado: 'OCUPADA' }],
+  ] as const) {
+    await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
+  }
+  return estadiaId;
+}
+
+export function rutasEstadias(app: FastifyInstance, bd: Bd, ahora: () => Date) {
+  const sesion = requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']);
+
+  app.post<{ Body: Cuerpo; Headers: { 'idempotency-key'?: string } }>('/estadias', {
+    preHandler: sesion,
+    schema: {
+      body: esquemaCuerpo,
+      headers: { type: 'object', properties: { 'idempotency-key': { type: 'string', format: 'uuid' } } },
+    },
+  }, async (req, rep) => {
+    const b = req.body;
+    if (b.registro_tardio || b.entrada_en) {
+      throw new ErrorApi(400, 'INVALID_PAYLOAD', 'El registro tardío de lo anotado en el talonario llega en una entrega siguiente.');
+    }
+    if (b.pago.valor_recibido !== undefined && b.pago.forma !== 'EFECTIVO') {
+      throw new ErrorApi(400, 'INVALID_PAYLOAD', 'El valor recibido solo aplica a pagos en efectivo.');
+    }
+    const u = req.usuario!;
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'crearEstadia', async (tx) => {
+      const id = await registrarEntrada(tx, b, u, ahora());
+      return { estado: 201, cuerpo: await leerEstadia(tx, id) };
+    });
+    return rep.code(r.estado).send(r.cuerpo);
+  });
+
+  app.get<{ Querystring: { estado?: string; limite: number; desplazamiento: number } }>('/estadias', {
+    preHandler: sesion,
+    schema: {
+      querystring: {
+        type: 'object', additionalProperties: false,
+        properties: {
+          estado: { type: 'string', enum: ['ACTIVA', 'CERRADA', 'DESISTIDA'] },
+          limite: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          desplazamiento: { type: 'integer', minimum: 0, default: 0 },
+        },
+      },
+    },
+  }, async (req) => {
+    const { estado = null, limite, desplazamiento } = req.query;
+    const [{ total }] = await bd.consultar<{ total: number }>(
+      'SELECT count(*)::int AS total FROM estadias WHERE ($1::text IS NULL OR estado = $1)', [estado]);
+    const ids = await bd.consultar<{ id: string }>(
+      `SELECT id FROM estadias WHERE ($1::text IS NULL OR estado = $1) ORDER BY entrada_en DESC, id LIMIT $2 OFFSET $3`,
+      [estado, limite, desplazamiento]);
+    const items = [];
+    for (const { id } of ids) items.push(await leerEstadia(bd, id));
+    return { items, total };
+  });
+
+  app.get<{ Params: { id: string } }>('/estadias/:id', {
+    preHandler: sesion,
+    schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } } },
+  }, async (req) => {
+    const est = await leerEstadia(bd, req.params.id);
+    if (!est) throw new ErrorApi(404, 'NO_ENCONTRADO', 'La estadía no existe.');
+    return est;
+  });
+}

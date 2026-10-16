@@ -10,11 +10,11 @@ function Cuarto({ h, alElegir }: { h: Habitacion; alElegir?: (h: Habitacion) => 
   const detalle = e
     ? `Sale ${diaRelativo(e.salida_prevista_en, hoyBogota())} ${horaBogota(e.salida_prevista_en)}${e.saldo ? ' · debe ' + pesos(e.saldo) : e.por_verificar ? ' · por verificar' : ''}`
     : '';
-  // Las disponibles se pueden tocar para cotizar (TICKET-02); las demás tendrán su panel en próximos tickets.
+  // Las disponibles se tocan para registrar una entrada (TICKET-04); las demás tendrán su panel en próximos tickets.
   const Etiqueta = h.estado === 'DISPONIBLE' && alElegir ? 'button' : 'div';
   return (
     <Etiqueta type={Etiqueta === 'button' ? 'button' : undefined} onClick={Etiqueta === 'button' ? () => alElegir!(h) : undefined}
-      class={`cuarto cuarto--${claseEstado(h.estado)}`} aria-label={`Habitación ${h.numero}, ${textoEstado(h.estado)}${Etiqueta === 'button' ? ', tocar para cotizar' : ''}`}>
+      class={`cuarto cuarto--${claseEstado(h.estado)}`} aria-label={`Habitación ${h.numero}, ${textoEstado(h.estado)}${Etiqueta === 'button' ? ', tocar para registrar una entrada' : ''}`}>
       <span class="cuarto__num">{h.numero}</span>
       <Ico id={ICONO[h.estado] ?? 'habitaciones'} clase="cuarto__ico" />
       <span class="cuarto__estado">{textoEstado(h.estado)}{e?.vencida ? ' · salida vencida' : ''}</span>
@@ -29,7 +29,7 @@ export function Mapa({ habitaciones, alElegir }: { habitaciones: Habitacion[]; a
   const c = contarEstados(habitaciones);
   return (
     <>
-      <div class="titulo-vista"><div><h1>Habitaciones</h1><p>Toque una habitación disponible para ver precio y salida</p></div></div>
+      <div class="titulo-vista"><div><h1>Habitaciones</h1><p>Toque una habitación disponible para registrar una entrada</p></div></div>
       <div class="stats" style="margin:0 0 16px">
         <div class="stat stat--libre"><span class="stat__ico"><Ico id="habitaciones" clase="ico--l" /></span><span><strong>{c.disponibles}</strong><span>Disponibles</span></span></div>
         <div class="stat stat--ocupada"><span class="stat__ico"><Ico id="habitaciones" clase="ico--l" /></span><span><strong>{c.ocupadas}</strong><span>Ocupadas</span></span></div>

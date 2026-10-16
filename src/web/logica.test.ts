@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -73,5 +73,45 @@ describe('TICKET-03 · recibir el turno y caja', () => {
   it('nombra el turno y su horario (RN-09)', () => {
     assert.equal(nombreTurno('DIA'), 'de día · 6:30 a. m. a 6:30 p. m.');
     assert.equal(nombreTurno('NOCHE'), 'de noche · 6:30 p. m. a 6:30 a. m.');
+  });
+});
+
+describe('TICKET-04 · asistente de entrada', () => {
+  const base = { ...HUESPED_VACIO, nombre: 'Huésped Prueba 40', autorizo: true };
+  it('pide nombre, autorización y, para un menor, el acompañante verificado', () => {
+    assert.deepEqual(erroresHuesped(base), {});
+    assert.deepEqual(Object.keys(erroresHuesped({ ...HUESPED_VACIO })).sort(), ['autorizo', 'nombre']);
+    assert.ok(erroresHuesped({ ...base, esMenor: true }).acompanante);
+    assert.deepEqual(erroresHuesped({ ...base, esMenor: true, acompanante: true }), {});
+  });
+  it('valida el número de documento y el teléfono de 10 dígitos', () => {
+    assert.ok(erroresHuesped({ ...base, tipoDocumento: 'CC', numeroDocumento: '12' }).numeroDocumento);
+    assert.ok(erroresHuesped({ ...base, tipoDocumento: 'CC', numeroDocumento: '' }).numeroDocumento);
+    assert.ok(erroresHuesped({ ...base, telefono: '300 12' }).telefono);
+    assert.deepEqual(erroresHuesped({ ...base, telefono: '300 123 4567' }), {});
+  });
+  it('arma el huésped para la API: sin documento si no lo dio, teléfono con +57 y documento sin puntos', () => {
+    assert.deepEqual(aHuespedInput(base), { nombre: 'Huésped Prueba 40', nacionalidad: 'Colombia', es_menor: false });
+    assert.deepEqual(aHuespedInput({ ...base, tipoDocumento: 'CC', numeroDocumento: '98.765.432', telefono: '300 123 4567', esMenor: true, acompanante: true }), {
+      nombre: 'Huésped Prueba 40', nacionalidad: 'Colombia', es_menor: true, acompanante_verificado: true,
+      tipo_documento: 'CC', numero_documento: '98765432', telefono: '+573001234567',
+    });
+  });
+  it('calcula vueltas o abono con el efectivo recibido', () => {
+    assert.deepEqual(cambioEfectivo(55000, 60000), { tipo: 'vueltas', valor: 5000 });
+    assert.deepEqual(cambioEfectivo(55000, 55000), { tipo: 'exacto', valor: 0 });
+    assert.deepEqual(cambioEfectivo(55000, 20000), { tipo: 'abono', valor: 35000 });
+  });
+  it('enmascara el documento: ••••432', () => {
+    assert.equal(enmascarar('98.765.432'), '••••432');
+    assert.equal(enmascarar(''), '');
+  });
+});
+
+describe('TICKET-04 · clave de idempotencia', () => {
+  it('genera un UUID v4 aunque la conexión no sea segura (sin randomUUID)', () => {
+    const k = nuevaClave({ getRandomValues: (a) => crypto.getRandomValues(a) });
+    assert.match(k, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    assert.notEqual(nuevaClave(), nuevaClave());
   });
 });

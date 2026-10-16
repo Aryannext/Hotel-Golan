@@ -67,3 +67,61 @@ export function diferenciaConteo(contado: number, entregado: number): { tono: 'e
 
 export const nombreTurno = (tipo: 'DIA' | 'NOCHE') =>
   tipo === 'DIA' ? 'de día · 6:30 a. m. a 6:30 p. m.' : 'de noche · 6:30 p. m. a 6:30 a. m.';
+
+// TICKET-04 · asistente de entrada.
+/** Versión vigente del aviso de privacidad que el huésped autoriza (la aprueba la administradora) [P/V]. */
+export const AVISO_VERSION = 'AV-2026-10';
+export const TIPOS_DOCUMENTO = [['CC', 'Cédula'], ['CE', 'Cédula de extranjería'], ['PASAPORTE', 'Pasaporte'], ['PPT', 'Permiso (PPT)'], ['TI', 'Tarjeta de identidad'], ['RC', 'Registro civil']] as const;
+
+export interface FormHuesped {
+  nombre: string; tipoDocumento: string; numeroDocumento: string; nacionalidad: string; telefono: string;
+  esMenor: boolean; acompanante: boolean; autorizo: boolean;
+}
+export const HUESPED_VACIO: FormHuesped = {
+  nombre: '', tipoDocumento: '', numeroDocumento: '', nacionalidad: 'Colombia', telefono: '', esMenor: false, acompanante: false, autorizo: false,
+};
+
+const soloDocumento = (s: string) => s.replace(/[.\s]/g, '');
+const digitos = (s: string) => s.replace(/\D/g, '');
+
+export function erroresHuesped(h: FormHuesped): Partial<Record<keyof FormHuesped, string>> {
+  const e: Partial<Record<keyof FormHuesped, string>> = {};
+  if (h.nombre.trim().length < 3) e.nombre = 'Escriba el nombre del titular.';
+  if (h.tipoDocumento && !/^[A-Za-z0-9-]{4,20}$/.test(soloDocumento(h.numeroDocumento))) e.numeroDocumento = 'Escriba el número del documento (mínimo 4 caracteres).';
+  if (h.nacionalidad.trim().length < 2) e.nacionalidad = 'Escriba la nacionalidad.';
+  if (h.telefono.trim() && !/^3\d{9}$/.test(digitos(h.telefono))) e.telefono = 'El celular tiene 10 números y empieza por 3.';
+  if (h.esMenor && !h.acompanante) e.acompanante = 'Un menor solo entra con su acompañante verificado.';
+  if (!h.autorizo) e.autorizo = 'Sin la autorización del huésped no se puede registrar la entrada.';
+  return e;
+}
+
+export function aHuespedInput(h: FormHuesped) {
+  return {
+    nombre: h.nombre.trim(), nacionalidad: h.nacionalidad.trim(), es_menor: h.esMenor,
+    ...(h.esMenor ? { acompanante_verificado: h.acompanante } : {}),
+    ...(h.tipoDocumento ? { tipo_documento: h.tipoDocumento, numero_documento: soloDocumento(h.numeroDocumento) } : {}),
+    ...(h.telefono.trim() ? { telefono: '+57' + digitos(h.telefono) } : {}),
+  };
+}
+
+/** Con el efectivo recibido: vueltas si sobra, abono si falta. */
+export function cambioEfectivo(total: number, recibido: number): { tipo: 'vueltas' | 'exacto' | 'abono'; valor: number } {
+  if (recibido > total) return { tipo: 'vueltas', valor: recibido - total };
+  if (recibido < total) return { tipo: 'abono', valor: total - recibido };
+  return { tipo: 'exacto', valor: 0 };
+}
+
+export const enmascarar = (doc: string) => {
+  const d = soloDocumento(doc);
+  return d ? '••••' + d.slice(-3) : '';
+};
+
+/** UUID v4 para la Idempotency-Key. `crypto.randomUUID` solo existe en conexiones seguras; si no, se arma con getRandomValues. */
+export function nuevaClave(c: Pick<Crypto, 'getRandomValues'> & { randomUUID?: () => string } = crypto): string {
+  if (typeof c.randomUUID === 'function') return c.randomUUID();
+  const b = c.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
