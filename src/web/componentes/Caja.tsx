@@ -4,14 +4,15 @@ import { api, ErrorApi, type Turno } from '../api.ts';
 import { nombreTurno, pesos } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 
-export function Caja() {
+/** `recarga` cambia con cada evento en vivo: la caja se vuelve a pedir sin recargar la página. */
+export function Caja({ recarga = 0 }: { recarga?: number }) {
   const [turno, setTurno] = useState<Turno | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     api.turnoActual().then(setTurno).catch((e) =>
       setError(e instanceof ErrorApi && e.estado === 404 ? 'No hay un turno activo en este momento.' : e.message));
-  }, []);
+  }, [recarga]);
 
   if (error) return <div class="nota" role="alert"><Ico id="info" clase="ico--s" /><p>{error}</p></div>;
   if (!turno) return null;

@@ -25,6 +25,8 @@ export function diaRelativo(iso: string, hoy: string): string {
   if (fecha === hoy) return 'hoy';
   const manana = new Date(Date.parse(hoy + 'T00:00:00Z') + 86_400_000).toISOString().slice(0, 10);
   if (fecha === manana) return 'mañana';
+  const ayer = new Date(Date.parse(hoy + 'T00:00:00Z') - 86_400_000).toISOString().slice(0, 10);
+  if (fecha === ayer) return 'ayer';
   return `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
 }
 
@@ -124,4 +126,18 @@ export function nuevaClave(c: Pick<Crypto, 'getRandomValues'> & { randomUUID?: (
   b[8] = (b[8] & 0x3f) | 0x80;
   const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+// TICKET-05 · pagos por confirmar y avisos en vivo.
+export const textoMedio = (m: string) => ({ EFECTIVO: 'Efectivo', NEQUI: 'Nequi', BANCOLOMBIA: 'Bancolombia' } as Record<string, string>)[m] ?? m;
+
+export interface EventoVivo { id: string; tipo: string; ocurrido_en: string; habitacion_numero: string | null; entidad_id: string | null; valor: number | null }
+
+/** Aviso en palabras para los eventos de transferencias; los demás solo refrescan la pantalla. */
+export function avisoEvento(ev: EventoVivo): { tono: 'exito' | 'alerta' | 'info'; texto: string } | null {
+  const valor = pesos(ev.valor ?? 0), hab = ev.habitacion_numero ?? '';
+  if (ev.tipo === 'pago.verificado') return { tono: 'exito', texto: `Llegó la transferencia de ${valor} de la habitación ${hab}.` };
+  if (ev.tipo === 'pago.rechazado') return { tono: 'alerta', texto: `La transferencia de ${valor} de la habitación ${hab} NO llegó: cóbrela de nuevo antes de la salida.` };
+  if (ev.tipo === 'pago.por_verificar') return { tono: 'info', texto: `Nueva transferencia por confirmar: ${valor} de la habitación ${hab}.` };
+  return null;
 }

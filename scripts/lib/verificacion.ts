@@ -15,8 +15,9 @@ export interface PagoVerificado {
 
 export async function verificarPago(
   bd: Bd,
-  entrada: { pagoId: string; resultado: ResultadoVerificacion; usuarioId: string; clave: string },
+  entrada: { pagoId: string; resultado: ResultadoVerificacion; usuarioId: string; clave: string; momento?: Date },
 ): Promise<PagoVerificado> {
+  const momento = entrada.momento ?? new Date();
   return bd.transaccion(async (tx) => {
     const [previa] = await tx.consultar<{ respuesta: Omit<PagoVerificado, 'repetida'> }>(
       'SELECT respuesta FROM solicitudes_idempotentes WHERE clave = $1', [entrada.clave]);
@@ -31,15 +32,15 @@ export async function verificarPago(
 
     const estado = entrada.resultado === 'LLEGO' ? 'VERIFICADO' : 'RECHAZADO';
     await tx.consultar(
-      'UPDATE pagos SET estado = $2, verificado_por = $3, verificado_en = now() WHERE id = $1',
-      [pago.id, estado, entrada.usuarioId]);
+      'UPDATE pagos SET estado = $2, verificado_por = $3, verificado_en = $4 WHERE id = $1',
+      [pago.id, estado, entrada.usuarioId, momento]);
     await tx.consultar(
-      `INSERT INTO auditoria (usuario_id, accion, entidad, entidad_id, detalle) VALUES ($1, 'VERIFICAR', 'pagos', $2, $3)`,
-      [entrada.usuarioId, pago.id, JSON.stringify({ resultado: entrada.resultado })]);
+      `INSERT INTO auditoria (usuario_id, accion, entidad, entidad_id, detalle, ocurrido_en) VALUES ($1, 'VERIFICAR', 'pagos', $2, $3, $4)`,
+      [entrada.usuarioId, pago.id, JSON.stringify({ resultado: entrada.resultado }), momento]);
     await tx.consultar(
-      'INSERT INTO eventos_salida (tipo, payload) VALUES ($1, $2)',
+      'INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)',
       [estado === 'VERIFICADO' ? 'pago.verificado' : 'pago.rechazado',
-        JSON.stringify({ entidad_id: pago.id, habitacion_numero: pago.habitacion, valor: pago.valor })]);
+        JSON.stringify({ entidad_id: pago.id, habitacion_numero: pago.habitacion, valor: pago.valor }), momento]);
 
     const respuesta = { id: pago.id, estado, valor: pago.valor } as const;
     await tx.consultar(

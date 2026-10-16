@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -113,5 +113,26 @@ describe('TICKET-04 · clave de idempotencia', () => {
     const k = nuevaClave({ getRandomValues: (a) => crypto.getRandomValues(a) });
     assert.match(k, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     assert.notEqual(nuevaClave(), nuevaClave());
+  });
+});
+
+describe('TICKET-05 · pagos por confirmar y avisos en vivo', () => {
+  it('nombra el medio de pago en palabras', () => {
+    assert.deepEqual(['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'].map(textoMedio), ['Efectivo', 'Nequi', 'Bancolombia']);
+  });
+  it('convierte el evento de verificación en un aviso sencillo para recepción', () => {
+    const base = { id: '9', ocurrido_en: '2026-10-13T06:20:00-05:00', entidad_id: 'x', habitacion_numero: '211', valor: 30000 };
+    assert.deepEqual(avisoEvento({ ...base, tipo: 'pago.verificado' }), { tono: 'exito', texto: 'Llegó la transferencia de $30.000 de la habitación 211.' });
+    assert.deepEqual(avisoEvento({ ...base, tipo: 'pago.rechazado' }),
+      { tono: 'alerta', texto: 'La transferencia de $30.000 de la habitación 211 NO llegó: cóbrela de nuevo antes de la salida.' });
+    assert.deepEqual(avisoEvento({ ...base, tipo: 'pago.por_verificar' }), { tono: 'info', texto: 'Nueva transferencia por confirmar: $30.000 de la habitación 211.' });
+    assert.equal(avisoEvento({ ...base, tipo: 'habitacion.actualizada' }), null);
+  });
+});
+
+describe('TICKET-05 · fechas relativas', () => {
+  it('dice «ayer» para el día anterior', () => {
+    assert.equal(diaRelativo('2026-10-12T20:12:00-05:00', '2026-10-13'), 'ayer');
+    assert.equal(diaRelativo('2026-10-11T20:12:00-05:00', '2026-10-13'), '11/10');
   });
 });

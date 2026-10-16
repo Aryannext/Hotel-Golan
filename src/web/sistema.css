@@ -30,3 +30,25 @@
 
 /* Tipo de documento: que «Sin documento» se lea completo también en celular. */
 .doble { grid-template-columns: 150px minmax(0, 1fr); }
+
+/* Avisos en vivo (TICKET-05). */
+.nota--exito { background: var(--verde-bg); color: var(--verde); }
+.nota--alerta { background: var(--rojo-bg); color: var(--rojo); }
+.nota p { flex: 1; }
+.nota__cerrar { margin-left: auto; padding: 2px; color: inherit; }
+.pestana__cuenta { display: inline-block; min-width: 20px; height: 20px; margin-left: 6px; padding: 0 6px; border-radius: 10px;
+  background: var(--oro, #C9A45C); color: var(--puerta, #2B2118); font: 700 11px/20px var(--f-ui); text-align: center; }
+
+/* Pagos por confirmar: botones grandes para el celular (360 px). */
+.confirmar { display: flex; flex-direction: column; gap: 10px; }
+.confirmar__cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.confirmar__valor { font: 700 26px/1.1 var(--f-ui); font-variant-numeric: tabular-nums; }
+.confirmar__botones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.confirmar__pregunta { grid-column: 1 / -1; margin: 0; font: 600 13.5px/1.4 var(--f-ui); color: var(--rojo); }
+
+/* Celular angosto: las pestañas caben en una línea (sin ícono). */
+@media (max-width: 420px) {
+  .pestanas { flex-wrap: nowrap; }
+  .pestana { padding: 10px 9px; font-size: 13px; white-space: nowrap; }
+  .pestana > .ico { display: none; }
+}

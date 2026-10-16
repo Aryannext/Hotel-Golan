@@ -7,7 +7,7 @@
 
 **Blocked by:** TICKET-04 (Registrar una entrada pagada en efectivo)
 
-**Status:** ready-for-agent
+**Status:** done (16-10-2026)
 
 ## Invariantes de negocio
 - El efectivo siempre es EN_CAJA; una transferencia empieza POR_VERIFICAR (CHECK ya en el esquema).
@@ -21,9 +21,9 @@
 - Reglas de negocio evaluadas en America/Bogota; la base guarda timestamptz.
 
 ## Criterios de aceptación
-- [ ] GET /pagos, POST /pagos/{id}/verificacion y GET /eventos cumplen el contrato.
-- [ ] Pasan los escenarios de la regla «RN-12, FR-15»: el evento llega a recepción en menos de 5 s.
-- [ ] En la PWA de la administración, la tarjeta «Pagos por confirmar» funciona desde un celular de 360 px.
+- [x] GET /pagos, POST /pagos/{id}/verificacion y GET /eventos cumplen el contrato.
+- [x] Pasan los escenarios de la regla «RN-12, FR-15»: el evento llega a recepción en menos de 5 s.
+- [x] En la PWA de la administración, la tarjeta «Pagos por confirmar» funciona desde un celular de 360 px.
 
 ## Módulos a tocar
 cobros (verificación), tiempo_real (publicador del outbox + SSE), PWA (inicio de administración y actualización en vivo).
@@ -35,3 +35,10 @@ cobros (verificación), tiempo_real (publicador del outbox + SSE), PWA (inicio d
 - TDD: primero la prueba que falla por falta de la funcionalidad, luego el código y por último la prueba en verde.
 - Circuit breaker: si una prueba falla 3 veces seguidas con hipótesis distintas, se detiene el ticket, se guarda la evidencia y se marca BLOCKED.
 - Prohibido debilitar o borrar una prueba para que pase.
+
+## Evidencia de cierre (16-10-2026)
+- `cobros/pagos.ts`: `GET /pagos` (filtros por estado y turno) y `POST /pagos/{id}/verificacion` (solo administración), que reutiliza `scripts/lib/verificacion.ts` (Inbox/Outbox). A la regla se le agregó el reloj inyectable. 8 pruebas: contrato Pago, filtros, «Llegó» → VERIFICADO con `verificado_por` admin y la caja no cambia, «No llegó» → RECHAZADO y el saldo de la 211 sube 30.000, 403 para recepción, 409 (ya verificado o en efectivo), 404, 400 e Idempotency-Key.
+- `tiempo_real/eventos.ts`: publicador del outbox (se despierta tras cada cambio y revisa cada segundo de respaldo) y `GET /eventos` por SSE con `Last-Event-ID`. `turno.diferencia` solo llega a la administración y los eventos no llevan datos personales. 4 pruebas con servidor real: 401, `pago.verificado` en menos de 5 s, filtro por rol y reconexión sin perder eventos. Al apagar el servidor se cierran las conexiones abiertas.
+- PWA: pestaña «Por confirmar» con contador (inicio de la administración), botones grandes «Llegó» y «No llegó» (este último pide confirmar) y clave de idempotencia por pago. `EventSource` con consulta de respaldo cada 30 s; mapa, caja y lista se refrescan solos. Avisos: «nueva transferencia» para la administración y «llegó / NO llegó» para recepción. Lógica de presentación probada (3 pruebas, incluida «ayer»).
+- Probado con dos sesiones (recepción en localhost y administradora en 127.0.0.1, celular de 360 px): «No llegó» en la 211 → recepción vio el aviso a los 59 ms y «debe $58.000» sin recargar; una entrada por Nequi en la 209 apareció sola en «Por confirmar» y «Llegó» avisó a recepción. Datos sintéticos restaurados con `npm run db:reiniciar`.
+- `npm test`: 147 pruebas en verde (132 anteriores + 8 de pagos + 4 de SSE + 3 de presentación); tipos limpios.

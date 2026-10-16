@@ -10,6 +10,8 @@ import { rutasHabitaciones } from './habitaciones/rutas.ts';
 import { rutasCotizaciones } from './estadias/cotizaciones.ts';
 import { rutasTurnos } from './caja/turnos.ts';
 import { rutasEstadias } from './estadias/estadias.ts';
+import { rutasPagos } from './cobros/pagos.ts';
+import { Publicador, rutasEventos } from './tiempo_real/eventos.ts';
 import { ErrorRegla } from './reglas/reglas.ts';
 
 export type App = FastifyInstance;
@@ -47,12 +49,24 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     return rep.code(500).send({ codigo: 'ERROR_INTERNO', mensaje: 'Ocurrió un error inesperado. Intente de nuevo.' });
   });
 
+  // Tiempo real (ADR-005): después de cada cambio se publica lo que quedó en la bandeja de salida.
+  const publicador = new Publicador(o.bd, (e) => app.log.error(e));
+  const conexionesVivas = new Set<() => void>();
+  app.addHook('onResponse', async (req) => { if (req.method !== 'GET') publicador.despertar(); });
+  // Las conexiones SSE no terminan solas: se cierran antes de apagar el servidor.
+  app.addHook('preClose', async () => {
+    for (const cerrar of [...conexionesVivas]) cerrar();
+    publicador.cerrar();
+  });
+
   await app.register(async (api) => {
     rutasIdentidad(api, o.bd, ahora);
     rutasHabitaciones(api, o.bd, ahora);
     rutasCotizaciones(api, o.bd, ahora);
     rutasTurnos(api, o.bd, ahora);
     rutasEstadias(api, o.bd, ahora);
+    rutasPagos(api, o.bd, ahora);
+    rutasEventos(api, o.bd, ahora, publicador, conexionesVivas);
   }, { prefix: '/api/v1' });
 
   const conWeb = !!o.dirWeb && existsSync(o.dirWeb);
