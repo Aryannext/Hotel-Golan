@@ -205,3 +205,13 @@ export function lineasDelTurno(pagos: PagoTurno[], salidas: SalidaTurno[]): Line
     ...salidas.map((m) => ({ id: m.id, hora: m.registrado_en, concepto: `${TEXTO_SALIDA[m.tipo] ?? m.tipo} · ${m.detalle}${m.habitacion_numero ? ` · Hab. ${m.habitacion_numero}` : ''}`, valor: -m.valor, enCaja: true, estado: 'SALIDA', por: m.registrado_por, anulado: m.anulado })),
   ].sort((a, b) => a.hora.localeCompare(b.hora));
 }
+
+// TICKET-11 · entregar el turno (FR-13; RN-11).
+export const debeDejar = (debeHaber: number, pagoTurno: number, pagoTomado: boolean) => debeHaber - (pagoTomado ? pagoTurno : 0);
+
+/** Aviso (no bloquea) si se entrega más de 60 minutos antes del fin programado: 6:30 a. m. o 6:30 p. m. */
+export function avisoTemprano(finIso: string, ahora = Date.now()): string | null {
+  if (Date.parse(finIso) - ahora <= 60 * 60_000) return null;
+  // La hora ya termina en punto («a. m.»): no se agrega otro.
+  return `Su turno termina ${diaRelativo(finIso, hoyBogota(ahora))} a las ${horaBogota(finIso)} Entregue solo cuando llegue quien lo recibe.`;
+}

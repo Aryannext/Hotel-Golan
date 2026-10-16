@@ -1,7 +1,7 @@
-// Caja por turno (FR-11, FR-14; RN-09, RN-10, RN-11): ver el turno activo y recibirlo confirmando lo contado.
+// Caja por turno (FR-11, FR-13, FR-14; RN-09, RN-10, RN-11): ver el turno activo, entregarlo con conteo y recibirlo confirmando lo contado.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
-import { requiere } from '../identidad/sesiones.ts';
+import { COOKIE, cerrarSesion, requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
@@ -12,11 +12,12 @@ type TipoTurno = 'DIA' | 'NOCHE';
 interface FilaTurno {
   id: string; tipo: TipoTurno; estado: 'POR_RECIBIR' | 'ABIERTO' | 'CERRADO'; responsable: string | null; recibido_de: string | null;
   inicio_en: Date; fin_en: Date | null; base_entregada: number; base_recibida: number | null; pago_turno: number | null;
+  pago_tomado: boolean | null; efectivo_esperado: number | null; efectivo_contado: number | null; motivo_diferencia: string | null;
 }
 
 const SELECT_TURNO = `
   SELECT t.id, t.tipo, t.estado, r.usuario AS responsable, d.usuario AS recibido_de, t.inicio_en, t.fin_en,
-         t.base_entregada, t.base_recibida, t.pago_turno
+         t.base_entregada, t.base_recibida, t.pago_turno, t.pago_tomado, t.efectivo_esperado, t.efectivo_contado, t.motivo_diferencia
     FROM turnos t LEFT JOIN usuarios r ON r.id = t.responsable_id LEFT JOIN usuarios d ON d.id = t.recibido_de_id`;
 
 async function turnoActivo(bd: Bd): Promise<FilaTurno | undefined> {
@@ -45,7 +46,7 @@ async function resumenCaja(bd: Bd, t: FilaTurno) {
   return {
     base_recibida: base, efectivo: p.efectivo, salidas: m.salidas, debe_haber: base + p.efectivo - m.salidas,
     transferencias: p.transferencias, por_verificar_cantidad: p.por_verificar,
-    pago_turno: t.pago_turno ?? await regla(bd, t.tipo === 'DIA' ? 'pago_turno_dia' : 'pago_turno_noche'),
+    pago_turno: await pagoDelTurno(bd, t),
   };
 }
 
@@ -57,16 +58,83 @@ async function respuestaTurno(bd: Bd, t: FilaTurno) {
     fin_programado_en: aBogota(finProgramadoTurno(t.tipo, inicio)),
     base_entregada: t.base_entregada, base_recibida: t.base_recibida,
     caja: await resumenCaja(bd, t),
-    cierre: null, // El cierre llega con la entrega del turno (TICKET-11).
+    cierre: t.estado === 'CERRADO' ? {
+      pago_tomado: t.pago_tomado, efectivo_esperado: t.efectivo_esperado, efectivo_contado: t.efectivo_contado,
+      diferencia: (t.efectivo_contado ?? 0) - (t.efectivo_esperado ?? 0), motivo_diferencia: t.motivo_diferencia, entregado_por: t.responsable,
+    } : null,
   };
 }
 
 interface CuerpoRecepcion { base_contada: number; motivo_diferencia?: string }
+interface CuerpoEntrega { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string }
+
+const pagoDelTurno = async (bd: Bd, t: FilaTurno) => t.pago_turno ?? regla(bd, t.tipo === 'DIA' ? 'pago_turno_dia' : 'pago_turno_noche');
 
 export function rutasTurnos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
   app.get('/turnos/actual', { preHandler: requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']) }, async () => {
     const t = await turnoActivo(bd);
     if (!t) throw new ErrorApi(404, 'NO_ENCONTRADO', 'No hay un turno activo.');
+    return respuestaTurno(bd, t);
+  });
+
+  // Entregar el turno (FR-13; RN-11): conteo obligatorio y motivo si no cuadra. Cierra el turno, deja el siguiente
+  // «por recibir» con lo contado y cierra la sesión de quien entrega. El sistema no descuenta nada de nómina.
+  app.post<{ Body: CuerpoEntrega }>('/turnos/actual/entrega', {
+    preHandler: requiere(bd, ahora, ['RECEPCION']),
+    schema: {
+      body: {
+        type: 'object', additionalProperties: false, required: ['pago_tomado', 'efectivo_contado'],
+        properties: {
+          pago_tomado: { type: 'boolean' },
+          efectivo_contado: { type: 'integer', minimum: 0, maximum: 100000000 },
+          motivo_diferencia: { type: 'string', minLength: 5, maxLength: 300 },
+        },
+      },
+    },
+  }, async (req, rep) => {
+    const u = req.usuario!;
+    const { pago_tomado: pagoTomado, efectivo_contado: contado } = req.body;
+    const motivo = req.body.motivo_diferencia?.trim() || null;
+    const momento = ahora();
+    const id = await bd.transaccion(async (tx) => {
+      const [t] = await tx.consultar<FilaTurno & { responsable_id: string }>(
+        `${SELECT_TURNO.replace('SELECT t.id,', 'SELECT t.id, t.responsable_id,')} WHERE t.estado = 'ABIERTO' FOR UPDATE OF t`);
+      if (!t) throw new ErrorApi(409, 'SIN_TURNO_ABIERTO', 'No hay un turno abierto para entregar.');
+      if (t.responsable_id !== u.id) throw new ErrorApi(403, 'SIN_PERMISO', 'Solo quien tiene el turno lo puede entregar.');
+
+      const pago = await pagoDelTurno(tx, t);
+      const esperado = (await resumenCaja(tx, t)).debe_haber - (pagoTomado ? pago : 0);
+      const diferencia = contado - esperado;
+      if (diferencia !== 0 && !motivo) {
+        throw new ErrorApi(422, 'MOTIVO_REQUERIDO', 'Lo que contó no coincide con lo que debería haber. Escriba el motivo de la diferencia.');
+      }
+      await tx.consultar(
+        `UPDATE turnos SET estado = 'CERRADO', fin_en = $2, pago_turno = $3, pago_tomado = $4, efectivo_esperado = $5,
+                efectivo_contado = $6, motivo_diferencia = $7 WHERE id = $1`,
+        [t.id, momento, pago, pagoTomado, esperado, contado, diferencia === 0 ? null : motivo]);
+      // El siguiente turno (día ↔ noche) queda esperando a quien lo reciba, con lo que se contó.
+      const siguiente = t.tipo === 'NOCHE' ? 'DIA' : 'NOCHE';
+      const [nuevo] = await tx.consultar<{ id: string }>(
+        `INSERT INTO turnos (tipo, estado, recibido_de_id, inicio_en, base_entregada, pago_turno)
+         VALUES ($1, 'POR_RECIBIR', $2, $3, $4, $5) RETURNING id`,
+        [siguiente, u.id, momento, contado, await regla(tx, siguiente === 'DIA' ? 'pago_turno_dia' : 'pago_turno_noche')]);
+
+      await auditar(tx, {
+        usuarioId: u.id, accion: 'ENTREGAR_TURNO', entidad: 'turnos', entidadId: t.id, ocurrido: momento,
+        detalle: { esperado: String(esperado), contado: String(contado), diferencia: String(diferencia), pago_tomado: pagoTomado ? 'si' : 'no' },
+      });
+      const eventos: Array<[string, Record<string, unknown>]> = [['turno.entregado', { turno_id: t.id, siguiente_id: nuevo.id, entregado_por: u.usuario }]];
+      if (diferencia !== 0) {
+        eventos.push(['turno.diferencia', { turno_id: t.id, momento: 'ENTREGA', esperado, contado, diferencia, entregado_por: u.usuario }]);
+      }
+      for (const [tipo, payload] of eventos) {
+        await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
+      }
+      await cerrarSesion(tx, momento, u);
+      return t.id;
+    });
+    rep.clearCookie(COOKIE, { path: '/' });
+    const [t] = await bd.consultar<FilaTurno>(`${SELECT_TURNO} WHERE t.id = $1`, [id]);
     return respuestaTurno(bd, t);
   });
 

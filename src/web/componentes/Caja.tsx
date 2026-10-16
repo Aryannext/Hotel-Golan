@@ -1,17 +1,21 @@
 // Caja del turno (TICKET-03, FR-11): el número que importa es cuánta plata debe haber ahora en la caja (RN-10).
-// TICKET-10: «Salió plata» y «Lo de este turno» (cobros y salidas por hora).
+// TICKET-10: «Salió plata» y «Lo de este turno» (cobros y salidas por hora). TICKET-11: «Entregar turno».
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Turno } from '../api.ts';
 import { horaBogota, lineasDelTurno, nombreTurno, pesos, type LineaTurno } from '../logica.ts';
 import { SalidaDinero } from './SalidaDinero.tsx';
+import { EntregarTurno } from './EntregarTurno.tsx';
 import { Ico } from './Ico.tsx';
 
 /** `recarga` cambia con cada evento en vivo: la caja se vuelve a pedir sin recargar la página. */
-export function Caja({ recarga = 0, alAvisar }: { recarga?: number; alAvisar?: (texto: string) => void }) {
+export function Caja({ recarga = 0, usuario, alAvisar, alEntregar }: {
+  recarga?: number; usuario?: string; alAvisar?: (texto: string) => void; alEntregar?: (texto: string) => void;
+}) {
   const [turno, setTurno] = useState<Turno | null>(null);
   const [lineas, setLineas] = useState<LineaTurno[]>([]);
   const [error, setError] = useState('');
   const [saliendo, setSaliendo] = useState(false);
+  const [entregando, setEntregando] = useState(false);
   const [propia, setPropia] = useState(0);
 
   useEffect(() => {
@@ -63,10 +67,14 @@ export function Caja({ recarga = 0, alAvisar }: { recarga?: number; alAvisar?: (
           </div>
         ))}
       </section>}
-      <p class="ayuda" style="text-align:center">Entregar el turno con el conteo llega en la siguiente entrega.</p>
+      {turno.estado === 'ABIERTO' && turno.responsable === usuario && <>
+        <button type="button" class="btn btn--primario btn--l btn--bloque" onClick={() => setEntregando(true)}><Ico id="check" clase="ico--s" />Entregar turno</button>
+        <p class="ayuda" style="text-align:center">Entregue al terminar su horario, cuando llegue quien lo recibe.</p>
+      </>}
 
       {saliendo && <SalidaDinero debeHaber={c.debe_haber} alCerrar={() => setSaliendo(false)}
         alRegistrar={(texto) => { setSaliendo(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
+      {entregando && <EntregarTurno turno={turno} alCerrar={() => setEntregando(false)} alEntregar={(texto) => { setEntregando(false); alEntregar?.(texto); }} />}
     </div>
   );
 }

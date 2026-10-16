@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA, debeDejar, avisoTemprano } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -194,5 +194,18 @@ describe('TICKET-10 · salidas de dinero y «Lo de este turno»', () => {
       ['p1', 'Cobro · Hab. 211 · Efectivo', 22000, true],
       ['m1', 'Compra para el hotel · 2 jabones', -10000, true],
     ]);
+  });
+});
+
+describe('TICKET-11 · entregar el turno', () => {
+  it('debe dejar el «debe haber» menos el pago del turno si lo tomó', () => {
+    assert.equal(debeDejar(234500, 50000, true), 184500);
+    assert.equal(debeDejar(234500, 50000, false), 234500);
+  });
+  it('avisa si entrega más de 60 minutos antes del fin programado', () => {
+    const fin = '2026-10-13T06:30:00-05:00';
+    assert.equal(avisoTemprano(fin, Date.parse('2026-10-13T06:20:00-05:00')), null);
+    assert.equal(avisoTemprano(fin, Date.parse('2026-10-13T05:30:00-05:00')), null);
+    assert.equal(avisoTemprano(fin, Date.parse('2026-10-13T05:29:00-05:00')), 'Su turno termina hoy a las 6:30 a. m. Entregue solo cuando llegue quien lo recibe.');
   });
 });
