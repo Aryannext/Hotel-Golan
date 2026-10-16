@@ -16,7 +16,7 @@ Fase 2 del pipeline AI-SDLC (16-10-2026). Aprobados por el usuario. Se trabaja l
 | [TICKET-10](10-salidas-de-dinero.md) | Salidas de dinero de la caja | 03 | **done** |
 | [TICKET-11](11-entregar-turno.md) | Entregar el turno con conteo | 10 | **done** |
 | [TICKET-12](12-anulaciones.md) | Anulaciones (administración) | 06, 10 | **done** |
-| [TICKET-13](13-historial-y-dia-del-hotel.md) | Historial de turnos y resumen por día del hotel | 11 | ready-for-agent |
+| [TICKET-13](13-historial-y-dia-del-hotel.md) | Historial de turnos y resumen por día del hotel | 11 | **done** |
 | [TICKET-14](14-usuarios-pin-y-auditoria.md) | Usuarios, PIN y auditoría (administración) | 01 | ready-for-agent |
 | [TICKET-15](15-configuracion-tarifas-y-catalogo.md) | Configuración: tarifas, reglas y catálogo | 02, 06 | ready-for-agent |
 | [TICKET-16](16-avisos.md) | Avisos en pantalla | 05, 08 | ready-for-agent |
