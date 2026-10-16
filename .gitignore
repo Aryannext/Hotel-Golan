@@ -1,0 +1,17 @@
+# Secretos y datos
+.env
+*.age
+copias/
+*.dump
+*.sql.gz
+
+# Dependencias y compilados
+node_modules/
+dist/
+coverage/
+.pglite/
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+*.log

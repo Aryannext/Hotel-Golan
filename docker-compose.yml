@@ -1,0 +1,41 @@
+# Hotel Golán · infraestructura mínima (Fase 1.5 del pipeline AI-SDLC).
+# Por ahora levanta solo PostgreSQL 16 para desarrollo y pruebas con datos sintéticos (ADR-004).
+# La API, Tailscale (ADR-002) y las copias cifradas (ADR-007) se agregan en las fases 3 y 4.
+#
+# Uso:
+#   cp .env.example .env      (y cambie las contraseñas)
+#   docker compose up -d db
+#   npm run db:migrar && npm run db:sembrar
+
+name: hotel-golan
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Defina POSTGRES_USER en .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${POSTGRES_DB:-hotel_golan}
+      # La base guarda en UTC (timestamptz). La API convierte a America/Bogota (ARQUITECTURA §7).
+      TZ: UTC
+      PGTZ: UTC
+    # Solo escucha en este equipo; nunca se expone a internet (ADR-002).
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - datos_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - hotel_golan
+
+volumes:
+  datos_postgres:
+
+networks:
+  hotel_golan:
+    name: hotel_golan
