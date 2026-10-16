@@ -196,13 +196,16 @@ const TEXTO_SALIDA: Record<string, string> = { ...Object.fromEntries(TIPOS_SALID
 
 export interface PagoTurno { id: string; habitacion_numero: string; medio: string; valor: number; estado: string; registrado_en: string; registrado_por: string; anulado: boolean }
 export interface SalidaTurno { id: string; tipo: string; detalle: string; valor: number; habitacion_numero: string | null; registrado_en: string; registrado_por: string; anulado: boolean }
-export interface LineaTurno { id: string; hora: string; concepto: string; valor: number; enCaja: boolean; estado: string; por: string; anulado: boolean }
+export interface LineaTurno {
+  id: string; hora: string; concepto: string; valor: number; enCaja: boolean; estado: string; por: string; anulado: boolean;
+  origen: 'PAGO' | 'SALIDA'; devolucion: boolean;
+}
 
 /** Cobros (suman) y salidas (restan) del turno, por hora. Solo el efectivo y las salidas mueven la caja. */
 export function lineasDelTurno(pagos: PagoTurno[], salidas: SalidaTurno[]): LineaTurno[] {
   return [
-    ...pagos.map((p) => ({ id: p.id, hora: p.registrado_en, concepto: `Cobro · Hab. ${p.habitacion_numero} · ${textoMedio(p.medio)}`, valor: p.valor, enCaja: p.medio === 'EFECTIVO', estado: p.estado, por: p.registrado_por, anulado: p.anulado })),
-    ...salidas.map((m) => ({ id: m.id, hora: m.registrado_en, concepto: `${TEXTO_SALIDA[m.tipo] ?? m.tipo} · ${m.detalle}${m.habitacion_numero ? ` · Hab. ${m.habitacion_numero}` : ''}`, valor: -m.valor, enCaja: true, estado: 'SALIDA', por: m.registrado_por, anulado: m.anulado })),
+    ...pagos.map((p) => ({ id: p.id, hora: p.registrado_en, concepto: `Cobro · Hab. ${p.habitacion_numero} · ${textoMedio(p.medio)}`, valor: p.valor, enCaja: p.medio === 'EFECTIVO', estado: p.estado, por: p.registrado_por, anulado: p.anulado, origen: 'PAGO' as const, devolucion: false })),
+    ...salidas.map((m) => ({ id: m.id, hora: m.registrado_en, concepto: `${TEXTO_SALIDA[m.tipo] ?? m.tipo} · ${m.detalle}${m.habitacion_numero ? ` · Hab. ${m.habitacion_numero}` : ''}`, valor: -m.valor, enCaja: true, estado: 'SALIDA', por: m.registrado_por, anulado: m.anulado, origen: 'SALIDA' as const, devolucion: m.tipo === 'DEVOLUCION' })),
   ].sort((a, b) => a.hora.localeCompare(b.hora));
 }
 
@@ -234,3 +237,6 @@ export function devolucionPosible(pagos: Array<{ medio: string; valor: number; e
   if (transferencias > 0 && !esAdmin) return { valor: efectivo + transferencias, bloqueo: 'Pagó por transferencia: la devolución la decide la administración.' };
   return { valor: efectivo + transferencias, bloqueo: null };
 }
+
+// TICKET-12 · anulaciones (FR-17): solo la administración, sobre lo vigente; una devolución va ligada a su estadía.
+export const puedeAnular = (l: { anulado: boolean; devolucion?: boolean }, esAdmin: boolean) => esAdmin && !l.anulado && !l.devolucion;

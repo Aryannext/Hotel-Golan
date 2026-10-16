@@ -94,6 +94,8 @@ export const api = {
     pedir<Estadia>('POST', `/estadias/${id}/extensiones`, cuerpo, { 'idempotency-key': clave }),
   desistir: (id: string, cuerpo: { motivo: 'SOLO_MIRO' | 'YA_USO'; medio: 'EFECTIVO' | 'TRANSFERENCIA' }, clave: string) =>
     pedir<{ id: string; valor: number; medio: string; movimiento_caja_id: string | null }>('POST', `/estadias/${id}/devoluciones`, cuerpo, { 'idempotency-key': clave }),
+  anularPago: (id: string, motivo: string) => pedir<Pago>('POST', `/pagos/${id}/anulacion`, { motivo }),
+  anularSalida: (id: string, motivo: string) => pedir<SalidaTurno>('POST', `/movimientos_caja/${id}/anulacion`, { motivo }),
   turnoActual: () => pedir<Turno>('GET', '/turnos/actual'),
   recibirTurno: (base_contada: number, motivo_diferencia?: string) =>
     pedir<Turno>('POST', '/turnos/actual/recepcion', motivo_diferencia ? { base_contada, motivo_diferencia } : { base_contada }),

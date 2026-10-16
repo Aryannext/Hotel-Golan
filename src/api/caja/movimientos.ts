@@ -15,7 +15,7 @@ interface Fila {
   registrado_por: string; registrado_en: Date; anulado: boolean;
 }
 
-async function leerMovimientos(bd: Bd, filtro: { id?: string; turnoId?: string }) {
+export async function leerMovimientos(bd: Bd, filtro: { id?: string; turnoId?: string }) {
   const filas = await bd.consultar<Fila>(
     `SELECT m.id, m.turno_id, m.tipo, m.detalle, m.valor, m.habitacion_numero, u.usuario AS registrado_por, m.registrado_en,
             m.anulado_en IS NOT NULL AS anulado

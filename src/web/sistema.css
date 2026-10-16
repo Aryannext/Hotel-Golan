@@ -61,3 +61,7 @@
 .caja-grande__botones--uno { grid-template-columns: 1fr; }
 .segmentado--columna { display: grid; grid-template-columns: 1fr 1fr; }
 @media (max-width: 420px) { .segmentado--columna { grid-template-columns: 1fr; } }
+
+/* Anular (TICKET-12): el panel de anular se abre encima de la ficha de la habitación. */
+.capa-panel--encima .velo { z-index: 60; }
+.capa-panel--encima .panel { z-index: 65; }

@@ -2,20 +2,22 @@
 // TICKET-10: «Salió plata» y «Lo de este turno» (cobros y salidas por hora). TICKET-11: «Entregar turno».
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Turno } from '../api.ts';
-import { horaBogota, lineasDelTurno, nombreTurno, pesos, type LineaTurno } from '../logica.ts';
+import { horaBogota, lineasDelTurno, nombreTurno, pesos, puedeAnular, type LineaTurno } from '../logica.ts';
 import { SalidaDinero } from './SalidaDinero.tsx';
 import { EntregarTurno } from './EntregarTurno.tsx';
+import { Anular, type QueAnular } from './Anular.tsx';
 import { Ico } from './Ico.tsx';
 
 /** `recarga` cambia con cada evento en vivo: la caja se vuelve a pedir sin recargar la página. */
-export function Caja({ recarga = 0, usuario, alAvisar, alEntregar }: {
-  recarga?: number; usuario?: string; alAvisar?: (texto: string) => void; alEntregar?: (texto: string) => void;
+export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntregar }: {
+  recarga?: number; usuario?: string; esAdmin?: boolean; alAvisar?: (texto: string) => void; alEntregar?: (texto: string) => void;
 }) {
   const [turno, setTurno] = useState<Turno | null>(null);
   const [lineas, setLineas] = useState<LineaTurno[]>([]);
   const [error, setError] = useState('');
   const [saliendo, setSaliendo] = useState(false);
   const [entregando, setEntregando] = useState(false);
+  const [anulando, setAnulando] = useState<QueAnular | null>(null);
   const [propia, setPropia] = useState(0);
 
   useEffect(() => {
@@ -63,7 +65,10 @@ export function Caja({ recarga = 0, usuario, alAvisar, alEntregar }: {
               <div class="mov__detalle">{horaBogota(l.hora)} · {l.por}{!l.enCaja ? ' · no entra a la caja' : ''}{l.anulado ? ' · anulado' : ''}</div></div>
             <div class="mov__der"><span class={`mov__valor${l.valor < 0 ? ' negativo' : ''}`}>{l.valor < 0 ? '−' : ''}{pesos(Math.abs(l.valor))}</span>
               {l.estado === 'POR_VERIFICAR' && <span class="pill pill--aviso">Por verificar</span>}
-              {l.estado === 'RECHAZADO' && <span class="pill pill--alerta">No llegó</span>}</div>
+              {l.estado === 'RECHAZADO' && <span class="pill pill--alerta">No llegó</span>}
+              {l.anulado && <span class="pill pill--neutro">Anulado</span>}
+              {puedeAnular(l, esAdmin) && <button type="button" class="accion-icono accion-icono--rojo" aria-label={`Anular ${l.concepto}`} title="Anular"
+                onClick={() => setAnulando({ id: l.id, origen: l.origen, concepto: l.concepto, valor: l.valor })}><Ico id="papelera" clase="ico--s" /></button>}</div>
           </div>
         ))}
       </section>}
@@ -74,6 +79,7 @@ export function Caja({ recarga = 0, usuario, alAvisar, alEntregar }: {
 
       {saliendo && <SalidaDinero debeHaber={c.debe_haber} alCerrar={() => setSaliendo(false)}
         alRegistrar={(texto) => { setSaliendo(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
+      {anulando && <Anular que={anulando} alCerrar={() => setAnulando(null)} alAnular={(texto) => { setAnulando(null); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
       {entregando && <EntregarTurno turno={turno} alCerrar={() => setEntregando(false)} alEntregar={(texto) => { setEntregando(false); alEntregar?.(texto); }} />}
     </div>
   );

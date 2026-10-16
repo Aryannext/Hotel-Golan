@@ -7,6 +7,7 @@ import {
   valorPago, type Producto,
 } from '../logica.ts';
 import { Ico } from './Ico.tsx';
+import { Anular, type QueAnular } from './Anular.tsx';
 
 type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion';
 type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
@@ -29,6 +30,7 @@ export function Ficha({ habitacion, recarga, esAdmin = false, alCerrar, alCambia
   const [modExt, setModExt] = useState<ModExt>('POR_HORAS');
   const [horas, setHoras] = useState(1);
   const [cotExt, setCotExt] = useState<CotizacionExtension | null>(null);
+  const [anulando, setAnulando] = useState<QueAnular | null>(null);
   const [motivoDev, setMotivoDev] = useState<'SOLO_MIRO' | 'YA_USO'>('SOLO_MIRO');
   const [medioDev, setMedioDev] = useState<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO');
 
@@ -104,7 +106,10 @@ export function Ficha({ habitacion, recarga, esAdmin = false, alCerrar, alCambia
           <div class="mov__der"><span class="mov__valor">{pesos(p.valor)}</span>
             {p.estado === 'POR_VERIFICAR' && <span class="pill pill--aviso">Por verificar</span>}
             {p.estado === 'RECHAZADO' && <span class="pill pill--alerta">No llegó</span>}
-            {p.estado === 'VERIFICADO' && <span class="pill pill--exito">Llegó</span>}</div>
+            {p.estado === 'VERIFICADO' && <span class="pill pill--exito">Llegó</span>}
+            {p.anulado && <span class="pill pill--neutro">Anulado</span>}
+            {esAdmin && !p.anulado && <button type="button" class="accion-icono accion-icono--rojo" aria-label={`Anular pago de ${pesos(p.valor)}`} title="Anular"
+              onClick={() => setAnulando({ id: p.id, origen: 'PAGO', concepto: `Cobro · Hab. ${habitacion.numero} · ${textoMedio(p.medio)}`, valor: p.valor })}><Ico id="papelera" clase="ico--s" /></button>}</div>
         </div>)}
       </section>
       <div class={`saldo saldo--${s.tono}`}><div><b>{s.titulo}</b><p>{s.detalle}</p></div><strong>{pesos(s.valor)}</strong></div>
@@ -268,6 +273,7 @@ export function Ficha({ habitacion, recarga, esAdmin = false, alCerrar, alCambia
         </div>
         {pie && <div class="panel__pie">{pie}</div>}
       </section>
+      {anulando && <Anular que={anulando} alCerrar={() => setAnulando(null)} alAnular={async () => { setAnulando(null); alCambiar(); setEst(await api.estadia(id)); }} />}
     </div>
   );
 }

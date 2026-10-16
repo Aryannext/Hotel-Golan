@@ -12,6 +12,7 @@ import { rutasTurnos } from './caja/turnos.ts';
 import { rutasMovimientos } from './caja/movimientos.ts';
 import { rutasEstadias } from './estadias/estadias.ts';
 import { rutasPagos } from './cobros/pagos.ts';
+import { rutasAnulaciones } from './cobros/anulaciones.ts';
 import { rutasCargos } from './estadias/cargos.ts';
 import { rutasExtensiones } from './estadias/extensiones.ts';
 import { rutasDevoluciones } from './estadias/devoluciones.ts';
@@ -72,6 +73,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rutasMovimientos(api, o.bd, ahora);
     rutasEstadias(api, o.bd, ahora);
     rutasPagos(api, o.bd, ahora);
+    rutasAnulaciones(api, o.bd, ahora);
     rutasCargos(api, o.bd, ahora);
     rutasExtensiones(api, o.bd, ahora);
     rutasDevoluciones(api, o.bd, ahora);

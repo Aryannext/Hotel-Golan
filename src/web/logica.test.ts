@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA, debeDejar, avisoTemprano, resumenExtension, devolucionPosible } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA, debeDejar, avisoTemprano, resumenExtension, devolucionPosible, puedeAnular } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -238,5 +238,23 @@ describe('TICKET-09 · desistimiento y devolución (RN-08)', () => {
   it('lo rechazado o anulado no se devuelve', () => {
     const pagos = [pago('EFECTIVO', 20000, 'EN_CAJA'), pago('NEQUI', 25000, 'RECHAZADO'), { ...pago('EFECTIVO', 5000, 'EN_CAJA'), anulado: true }];
     assert.equal(devolucionPosible(pagos, 'SOLO_MIRO', false).valor, 20000);
+  });
+});
+
+describe('TICKET-12 · anulaciones (FR-17)', () => {
+  const pagos = [{ id: 'p1', habitacion_numero: '211', medio: 'EFECTIVO', valor: 22000, estado: 'EN_CAJA', registrado_en: '2026-10-12T23:30:00-05:00', registrado_por: 'recepcion2', anulado: false }];
+  const salidas = [
+    { id: 'm1', tipo: 'COMPRA_HOTEL', detalle: '2 jabones', valor: 10000, habitacion_numero: null, registrado_en: '2026-10-13T05:30:00-05:00', registrado_por: 'recepcion2', anulado: false },
+    { id: 'm2', tipo: 'DEVOLUCION', detalle: 'Desistimiento', valor: 45000, habitacion_numero: '206', registrado_en: '2026-10-13T05:40:00-05:00', registrado_por: 'recepcion2', anulado: false },
+    { id: 'm3', tipo: 'OTRO', detalle: 'Pilas', valor: 3000, habitacion_numero: null, registrado_en: '2026-10-13T05:50:00-05:00', registrado_por: 'recepcion2', anulado: true },
+  ];
+  it('solo la administración anula cobros y salidas vigentes; una devolución no se anula por aquí', () => {
+    const lineas = lineasDelTurno(pagos, salidas);
+    assert.deepEqual(lineas.map((l) => [l.id, l.origen, puedeAnular(l, true), puedeAnular(l, false)]), [
+      ['p1', 'PAGO', true, false],
+      ['m1', 'SALIDA', true, false],
+      ['m2', 'SALIDA', false, false],
+      ['m3', 'SALIDA', false, false],
+    ]);
   });
 });
