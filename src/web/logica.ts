@@ -221,3 +221,16 @@ export interface CotizacionExtension { modalidad_cobrada: string; valor: number;
 export function resumenExtension(c: CotizacionExtension, hoy: string): { aviso: string | null; salida: string } {
   return { aviso: c.pasa_de_las_4 ? 'Pasaría de las 4:00 p. m.: se cobra la noche completa.' : null, salida: textoSalida(c.salida_prevista_en, hoy) };
 }
+
+// TICKET-09 · desistimiento y devolución (RN-08). Es la misma regla que aplica el servidor; aquí solo se anticipa.
+export function devolucionPosible(pagos: Array<{ medio: string; valor: number; estado: string; anulado: boolean }>, motivo: 'SOLO_MIRO' | 'YA_USO', esAdmin: boolean) {
+  const vigentes = pagos.filter((p) => !p.anulado);
+  const efectivo = vigentes.filter((p) => p.estado === 'EN_CAJA').reduce((s, p) => s + p.valor, 0);
+  const transferencias = vigentes.filter((p) => p.estado === 'VERIFICADO').reduce((s, p) => s + p.valor, 0);
+  if (motivo === 'YA_USO') return { valor: 0, bloqueo: null };
+  if (vigentes.some((p) => p.estado === 'POR_VERIFICAR')) {
+    return { valor: 0, bloqueo: 'Pagó por transferencia y todavía no se ha confirmado. Espere a que la administración la verifique.' };
+  }
+  if (transferencias > 0 && !esAdmin) return { valor: efectivo + transferencias, bloqueo: 'Pagó por transferencia: la devolución la decide la administración.' };
+  return { valor: efectivo + transferencias, bloqueo: null };
+}

@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA, debeDejar, avisoTemprano, resumenExtension } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA, debeDejar, avisoTemprano, resumenExtension, devolucionPosible } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -216,5 +216,27 @@ describe('TICKET-07 · extender la estadía (RN-04)', () => {
       { aviso: 'Pasaría de las 4:00 p. m.: se cobra la noche completa.', salida: 'mañana a las 12:00 m.' });
     assert.deepEqual(resumenExtension({ modalidad_cobrada: 'POR_HORAS', valor: 32000, salida_prevista_en: '2026-10-12T16:00:00-05:00', pasa_de_las_4: false }, '2026-10-12'),
       { aviso: null, salida: 'hoy a las 4:00 p. m.' });
+  });
+});
+
+describe('TICKET-09 · desistimiento y devolución (RN-08)', () => {
+  const pago = (medio: string, valor: number, estado: string) => ({ medio, valor, estado, anulado: false });
+  it('solo miró: devuelve todo lo pagado en efectivo; ya la usó: nada', () => {
+    const pagos = [pago('EFECTIVO', 45000, 'EN_CAJA')];
+    assert.deepEqual(devolucionPosible(pagos, 'SOLO_MIRO', false), { valor: 45000, bloqueo: null });
+    assert.deepEqual(devolucionPosible(pagos, 'YA_USO', false), { valor: 0, bloqueo: null });
+  });
+  it('con una transferencia por verificar hay que esperar a la administración', () => {
+    assert.equal(devolucionPosible([pago('NEQUI', 55000, 'POR_VERIFICAR')], 'SOLO_MIRO', true).bloqueo,
+      'Pagó por transferencia y todavía no se ha confirmado. Espere a que la administración la verifique.');
+  });
+  it('si pagó por transferencia, la devolución la decide la administración', () => {
+    const pagos = [pago('BANCOLOMBIA', 45000, 'VERIFICADO')];
+    assert.equal(devolucionPosible(pagos, 'SOLO_MIRO', false).bloqueo, 'Pagó por transferencia: la devolución la decide la administración.');
+    assert.deepEqual(devolucionPosible(pagos, 'SOLO_MIRO', true), { valor: 45000, bloqueo: null });
+  });
+  it('lo rechazado o anulado no se devuelve', () => {
+    const pagos = [pago('EFECTIVO', 20000, 'EN_CAJA'), pago('NEQUI', 25000, 'RECHAZADO'), { ...pago('EFECTIVO', 5000, 'EN_CAJA'), anulado: true }];
+    assert.equal(devolucionPosible(pagos, 'SOLO_MIRO', false).valor, 20000);
   });
 });

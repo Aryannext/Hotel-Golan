@@ -112,7 +112,7 @@ export function App() {
                   setAviso({ tono: 'exito', texto: `Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.` });
                 }} />
                 : <Mapa habitaciones={habitaciones} alElegir={(hab) => { setAviso(null); setCotizando(hab); }} alAbrir={setFicha} alRevisar={setRevisando} />}
-              {ficha && <Ficha habitacion={ficha} recarga={recarga} alCerrar={() => setFicha(null)} alCambiar={() => setRecarga((n) => n + 1)}
+              {ficha && <Ficha habitacion={ficha} recarga={recarga} esAdmin={esAdmin} alCerrar={() => setFicha(null)} alCambiar={() => setRecarga((n) => n + 1)}
                 alSalir={(texto) => { setFicha(null); setRecarga((n) => n + 1); setAviso({ tono: 'exito', texto }); }} />}
               {revisando && <PanelEstado habitacion={revisando} alCerrar={() => setRevisando(null)}
                 alCambiar={(texto) => { setRevisando(null); setRecarga((n) => n + 1); setAviso({ tono: texto.includes('Recuerde') ? 'info' : 'exito', texto }); }} />}

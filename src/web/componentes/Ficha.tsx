@@ -3,17 +3,17 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Estadia, type Habitacion } from '../api.ts';
 import {
-  agruparCatalogo, cambioEfectivo, resumenExtension, type CotizacionExtension, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
+  agruparCatalogo, cambioEfectivo, resumenExtension, devolucionPosible, type CotizacionExtension, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
   valorPago, type Producto,
 } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 
-type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender';
+type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion';
 type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 
-export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
-  habitacion: Habitacion; recarga: number; alCerrar: () => void; alCambiar: () => void; alSalir: (texto: string) => void;
+export function Ficha({ habitacion, recarga, esAdmin = false, alCerrar, alCambiar, alSalir }: {
+  habitacion: Habitacion; recarga: number; esAdmin?: boolean; alCerrar: () => void; alCambiar: () => void; alSalir: (texto: string) => void;
 }) {
   const id = habitacion.estadia_activa!.id;
   const [est, setEst] = useState<Estadia | null>(null);
@@ -29,6 +29,8 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
   const [modExt, setModExt] = useState<ModExt>('POR_HORAS');
   const [horas, setHoras] = useState(1);
   const [cotExt, setCotExt] = useState<CotizacionExtension | null>(null);
+  const [motivoDev, setMotivoDev] = useState<'SOLO_MIRO' | 'YA_USO'>('SOLO_MIRO');
+  const [medioDev, setMedioDev] = useState<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO');
 
   useEffect(() => { api.estadia(id).then(setEst).catch((e: Error) => setError(e.message)); }, [id, recarga]);
   useEffect(() => { if (sub === 'cargo' && catalogo.length === 0) api.productos().then((r) => setCatalogo(r.items)).catch((e: Error) => setError(e.message)); }, [sub]);
@@ -56,6 +58,7 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
     if (s === 'cargo') setCantidades({});
     if (s === 'pago') { setMedio('EFECTIVO'); setValor(''); }
     if (s === 'extender') { setModExt('POR_HORAS'); setHoras(1); }
+    if (s === 'devolucion') { setMotivoDev('SOLO_MIRO'); setMedioDev('EFECTIVO'); }
   }
 
   async function enviar(accion: () => Promise<unknown>) {
@@ -107,6 +110,7 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
       <div class={`saldo saldo--${s.tono}`}><div><b>{s.titulo}</b><p>{s.detalle}</p></div><strong>{pesos(s.valor)}</strong></div>
       <div class="acciones">
         <button type="button" class="btn btn--secundario" onClick={() => ir('extender')}><Ico id="reloj" clase="ico--s" />Extender</button>
+        <button type="button" class="btn btn--secundario" onClick={() => ir('devolucion')}><Ico id="devolver" clase="ico--s" />Desiste</button>
         <button type="button" class="btn btn--secundario" onClick={() => ir('salida')}><Ico id="salida" clase="ico--s" />Dar salida</button>
       </div>
     </>;
@@ -209,7 +213,46 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
       <Ico id="reloj" clase="ico--s" />{cotExt ? `Extender · ${pesos(cotExt.valor)}` : 'Calculando…'}</button>;
   }
 
-  const titulo = sub === 'extender' ? 'Extender estadía' : sub === 'cargo' ? 'Agregar cargos' : sub === 'pago' ? 'Registrar pago' : sub === 'salida' ? 'Dar salida' : `Hab. ${habitacion.numero}`;
+  if (e && sub === 'devolucion') {
+    const d = devolucionPosible(e.pagos, motivoDev, esAdmin);
+    cuerpo = <>
+      <div class="nota nota--info"><Ico id="info" clase="ico--s" /><p>Si solo miró la habitación, se devuelve todo. Si ya la usó (se instaló o se acostó), no se devuelve nada. Si pagó por transferencia sin confirmar, espere a la administración.</p></div>
+      <section class="tarjeta"><div class="tarjeta__cab"><h3>Motivo</h3></div>
+        <div class="segmentado">
+          <button type="button" class="opcion" aria-pressed={motivoDev === 'SOLO_MIRO'} onClick={() => setMotivoDev('SOLO_MIRO')}>Solo la miró</button>
+          <button type="button" class="opcion" aria-pressed={motivoDev === 'YA_USO'} onClick={() => setMotivoDev('YA_USO')}>Ya la usó</button>
+        </div>
+        {esAdmin && d.valor > 0 && <div class="campo"><span>¿Cómo se devuelve?</span>
+          <div class="segmentado">
+            <button type="button" class="opcion" aria-pressed={medioDev === 'EFECTIVO'} onClick={() => setMedioDev('EFECTIVO')}>En efectivo (sale de la caja)</button>
+            <button type="button" class="opcion" aria-pressed={medioDev === 'TRANSFERENCIA'} onClick={() => setMedioDev('TRANSFERENCIA')}>Por transferencia</button>
+          </div></div>}
+      </section>
+      {d.bloqueo
+        ? <div class="saldo saldo--aviso"><div><b>Todavía no se puede devolver</b><p>{d.bloqueo}</p></div></div>
+        : <div class={`saldo ${d.valor ? 'saldo--alerta' : 'saldo--ok'}`}><div>
+          <b>{d.valor ? 'Se le devuelve' : 'No se devuelve nada'}</b>
+          <p>{d.valor ? (medioDev === 'EFECTIVO' ? 'Sale de la caja del turno; no cuenta como venta.' : 'La administración hace la transferencia.') : 'La estadía se cierra y la habitación pasa a revisión.'}</p>
+        </div><strong>{pesos(d.valor)}</strong></div>}
+      <p class="ayuda">La devolución queda unida a esta estadía para que no se cuente como ingreso ni se devuelva dos veces.</p>
+    </>;
+    pie = <button type="button" class="btn btn--peligro btn--l btn--bloque" disabled={!!d.bloqueo || enviando} onClick={async () => {
+      setEnviando(true);
+      setError('');
+      try {
+        const r = await api.desistir(id, { motivo: motivoDev, medio: medioDev }, clave);
+        alSalir(r.valor
+          ? `Desistimiento registrado en la ${habitacion.numero}: se devolvieron ${pesos(r.valor)}${r.medio === 'EFECTIVO' ? ' de la caja' : ' por transferencia'}. La habitación queda por revisar.`
+          : `Desistimiento registrado en la ${habitacion.numero}, sin devolución. La habitación queda por revisar.`);
+      } catch (err) {
+        setError(err instanceof ErrorApi ? err.message : 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.');
+      } finally {
+        setEnviando(false);
+      }
+    }}><Ico id="devolver" clase="ico--s" />{d.valor && !d.bloqueo ? `Registrar devolución de ${pesos(d.valor)}` : 'Registrar desistimiento'}</button>;
+  }
+
+  const titulo = sub === 'devolucion' ? 'Devolución por desistimiento' : sub === 'extender' ? 'Extender estadía' : sub === 'cargo' ? 'Agregar cargos' : sub === 'pago' ? 'Registrar pago' : sub === 'salida' ? 'Dar salida' : `Hab. ${habitacion.numero}`;
   return (
     <div class="capa-panel">
       <div class="velo velo--visible" onClick={alCerrar} />

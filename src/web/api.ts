@@ -92,6 +92,8 @@ export const api = {
     pedir<CotizacionExtension>('POST', `/estadias/${id}/extensiones/cotizacion`, cuerpo),
   extender: (id: string, cuerpo: { modalidad: string; horas?: number }, clave: string) =>
     pedir<Estadia>('POST', `/estadias/${id}/extensiones`, cuerpo, { 'idempotency-key': clave }),
+  desistir: (id: string, cuerpo: { motivo: 'SOLO_MIRO' | 'YA_USO'; medio: 'EFECTIVO' | 'TRANSFERENCIA' }, clave: string) =>
+    pedir<{ id: string; valor: number; medio: string; movimiento_caja_id: string | null }>('POST', `/estadias/${id}/devoluciones`, cuerpo, { 'idempotency-key': clave }),
   turnoActual: () => pedir<Turno>('GET', '/turnos/actual'),
   recibirTurno: (base_contada: number, motivo_diferencia?: string) =>
     pedir<Turno>('POST', '/turnos/actual/recepcion', motivo_diferencia ? { base_contada, motivo_diferencia } : { base_contada }),
