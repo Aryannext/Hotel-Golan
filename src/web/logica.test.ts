@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA, debeDejar, avisoTemprano } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA, debeDejar, avisoTemprano, resumenExtension } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -207,5 +207,14 @@ describe('TICKET-11 · entregar el turno', () => {
     assert.equal(avisoTemprano(fin, Date.parse('2026-10-13T06:20:00-05:00')), null);
     assert.equal(avisoTemprano(fin, Date.parse('2026-10-13T05:30:00-05:00')), null);
     assert.equal(avisoTemprano(fin, Date.parse('2026-10-13T05:29:00-05:00')), 'Su turno termina hoy a las 6:30 a. m. Entregue solo cuando llegue quien lo recibe.');
+  });
+});
+
+describe('TICKET-07 · extender la estadía (RN-04)', () => {
+  it('advierte cuando las horas pasan de las 4:00 p. m. y dice la nueva salida en palabras', () => {
+    assert.deepEqual(resumenExtension({ modalidad_cobrada: 'NOCHE', valor: 60000, salida_prevista_en: '2026-10-13T12:00:00-05:00', pasa_de_las_4: true }, '2026-10-12'),
+      { aviso: 'Pasaría de las 4:00 p. m.: se cobra la noche completa.', salida: 'mañana a las 12:00 m.' });
+    assert.deepEqual(resumenExtension({ modalidad_cobrada: 'POR_HORAS', valor: 32000, salida_prevista_en: '2026-10-12T16:00:00-05:00', pasa_de_las_4: false }, '2026-10-12'),
+      { aviso: null, salida: 'hoy a las 4:00 p. m.' });
   });
 });

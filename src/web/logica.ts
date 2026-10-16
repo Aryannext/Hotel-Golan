@@ -215,3 +215,9 @@ export function avisoTemprano(finIso: string, ahora = Date.now()): string | null
   // La hora ya termina en punto («a. m.»): no se agrega otro.
   return `Su turno termina ${diaRelativo(finIso, hoyBogota(ahora))} a las ${horaBogota(finIso)} Entregue solo cuando llegue quien lo recibe.`;
 }
+
+// TICKET-07 · extender la estadía (RN-04).
+export interface CotizacionExtension { modalidad_cobrada: string; valor: number; salida_prevista_en: string; pasa_de_las_4: boolean }
+export function resumenExtension(c: CotizacionExtension, hoy: string): { aviso: string | null; salida: string } {
+  return { aviso: c.pasa_de_las_4 ? 'Pasaría de las 4:00 p. m.: se cobra la noche completa.' : null, salida: textoSalida(c.salida_prevista_en, hoy) };
+}

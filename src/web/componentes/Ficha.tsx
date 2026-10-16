@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Estadia, type Habitacion } from '../api.ts';
 import {
-  agruparCatalogo, cambioEfectivo, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
+  agruparCatalogo, cambioEfectivo, resumenExtension, type CotizacionExtension, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
   valorPago, type Producto,
 } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 
-type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida';
+type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender';
+type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 
 export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
@@ -25,9 +26,22 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
   const [enviando, setEnviando] = useState(false);
   // Una clave por operación: si se toca dos veces o se reintenta, no se duplica.
   const [clave, setClave] = useState(nuevaClave);
+  const [modExt, setModExt] = useState<ModExt>('POR_HORAS');
+  const [horas, setHoras] = useState(1);
+  const [cotExt, setCotExt] = useState<CotizacionExtension | null>(null);
 
   useEffect(() => { api.estadia(id).then(setEst).catch((e: Error) => setError(e.message)); }, [id, recarga]);
   useEffect(() => { if (sub === 'cargo' && catalogo.length === 0) api.productos().then((r) => setCatalogo(r.items)).catch((e: Error) => setError(e.message)); }, [sub]);
+  // Cotización de la extensión con la misma regla del servidor (RN-04): valor, nueva salida y aviso de las 4:00 p. m.
+  useEffect(() => {
+    if (sub !== 'extender') return;
+    let vigente = true;
+    setCotExt(null);
+    api.cotizarExtension(id, modExt === 'POR_HORAS' ? { modalidad: modExt, horas } : { modalidad: modExt })
+      .then((c) => { if (vigente) { setCotExt(c); setError(''); } })
+      .catch((e: Error) => { if (vigente) setError(e.message); });
+    return () => { vigente = false; };
+  }, [sub, modExt, horas]);
   useEffect(() => {
     const cerrarConEscape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
     document.addEventListener('keydown', cerrarConEscape);
@@ -41,6 +55,7 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
     setClave(nuevaClave());
     if (s === 'cargo') setCantidades({});
     if (s === 'pago') { setMedio('EFECTIVO'); setValor(''); }
+    if (s === 'extender') { setModExt('POR_HORAS'); setHoras(1); }
   }
 
   async function enviar(accion: () => Promise<unknown>) {
@@ -91,6 +106,7 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
       </section>
       <div class={`saldo saldo--${s.tono}`}><div><b>{s.titulo}</b><p>{s.detalle}</p></div><strong>{pesos(s.valor)}</strong></div>
       <div class="acciones">
+        <button type="button" class="btn btn--secundario" onClick={() => ir('extender')}><Ico id="reloj" clase="ico--s" />Extender</button>
         <button type="button" class="btn btn--secundario" onClick={() => ir('salida')}><Ico id="salida" clase="ico--s" />Dar salida</button>
       </div>
     </>;
@@ -168,7 +184,32 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
     }}><Ico id="salida" clase="ico--s" />{c.saldo > 0 ? 'Primero cobre el saldo' : 'Dar salida'}</button>;
   }
 
-  const titulo = sub === 'cargo' ? 'Agregar cargos' : sub === 'pago' ? 'Registrar pago' : sub === 'salida' ? 'Dar salida' : `Hab. ${habitacion.numero}`;
+  if (e && sub === 'extender') {
+    const r = cotExt && resumenExtension(cotExt, hoyBogota());
+    cuerpo = <>
+      <section class="tarjeta"><div class="tarjeta__cab"><h3>¿Cómo desea continuar?</h3></div>
+        <div class="segmentado">{([['NOCHE', 'Otra noche'], ['TRES_HORAS', '3 horas'], ['POR_HORAS', 'Por horas']] as Array<[ModExt, string]>).map(([m, t]) =>
+          <button type="button" class="opcion" aria-pressed={modExt === m} onClick={() => setModExt(m)}>{t}</button>)}</div>
+        {modExt === 'POR_HORAS' && <div class="campo"><span>Horas</span>
+          <div class="contador">
+            <button type="button" aria-label="Restar hora" disabled={horas <= 1} onClick={() => setHoras(horas - 1)}>−</button>
+            <output>{horas} {horas === 1 ? 'hora' : 'horas'}</output>
+            <button type="button" aria-label="Sumar hora" disabled={horas >= 12} onClick={() => setHoras(horas + 1)}>+</button>
+          </div>
+          <span class="ayuda">$8.000 por hora empezada, solo para extender. Sin descuento.</span></div>}
+      </section>
+      {r?.aviso && <div class="saldo saldo--aviso"><div><b>{r.aviso}</b><p>La noche completa reemplaza las horas.</p></div></div>}
+      {cotExt && <section class="tarjeta tarjeta--crema" aria-live="polite">
+        <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">Valor de la extensión</div></div><div class="fila__valor">{pesos(cotExt.valor)}</div></div>
+        <p class="ayuda" style="margin-top:10px"><b>Nueva salida: {r!.salida}</b></p>
+      </section>}
+    </>;
+    pie = <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={!cotExt || enviando}
+      onClick={() => enviar(() => api.extender(id, modExt === 'POR_HORAS' ? { modalidad: modExt, horas } : { modalidad: modExt }, clave))}>
+      <Ico id="reloj" clase="ico--s" />{cotExt ? `Extender · ${pesos(cotExt.valor)}` : 'Calculando…'}</button>;
+  }
+
+  const titulo = sub === 'extender' ? 'Extender estadía' : sub === 'cargo' ? 'Agregar cargos' : sub === 'pago' ? 'Registrar pago' : sub === 'salida' ? 'Dar salida' : `Hab. ${habitacion.numero}`;
   return (
     <div class="capa-panel">
       <div class="velo velo--visible" onClick={alCerrar} />

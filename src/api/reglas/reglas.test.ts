@@ -1,7 +1,7 @@
 // TICKET-02 · núcleo de reglas puro (ADR-001). Ejemplos de docs/TESTS_ACEPTACION.feature, reglas RN-01, RN-02, RN-03 y RN-05.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { calcularSalida, calcularTarifa, calcularDescuento, cotizar, finProgramadoTurno, ErrorRegla, type Tarifa } from './reglas.ts';
+import { calcularSalida, calcularTarifa, calcularDescuento, cotizar, finProgramadoTurno, calcularExtension, ErrorRegla, type Tarifa } from './reglas.ts';
 import { aBogota } from '../comun/tiempo.ts';
 
 const bogota = (local: string) => new Date(local.replace(' ', 'T') + ':00-05:00');
@@ -110,5 +110,42 @@ describe('Cotización completa', () => {
     const base = { tarifas: TARIFAS, descuentoNoche: 5000, tipo: 'VENTILADOR' as const, personas: 2, noches: 1, aplicarDescuento: false, entrada: bogota('2026-10-12 20:00') };
     assert.equal(cotizar({ ...base, modalidad: 'NOCHE' }).permitePagoAlSalir, true);
     assert.equal(cotizar({ ...base, modalidad: 'TRES_HORAS' }).permitePagoAlSalir, false);
+  });
+});
+
+describe('RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa', () => {
+  const base = { tarifas: TARIFAS, tipo: 'AIRE' as const, personas: 1, valorHora: 8000, horaNocheCompleta: 16 };
+  const casos: Array<[number, number, string, string]> = [
+    [1, 8000, '2026-10-12 13:00', 'POR_HORAS'],
+    [4, 32000, '2026-10-12 16:00', 'POR_HORAS'],
+    [5, 60000, '2026-10-13 12:00', 'NOCHE'],
+  ];
+  for (const [horas, valor, salida, cobrada] of casos) {
+    it(`salida 12 m., son las 11:50 a. m., ${horas} hora(s) → $${valor}, sale ${salida}`, () => {
+      const r = calcularExtension({ ...base, modalidad: 'POR_HORAS', horas, salidaActual: bogota('2026-10-12 12:00'), ahora: bogota('2026-10-12 11:50') });
+      assert.deepEqual([r.valor, aBogota(r.salida), r.modalidadCobrada, r.pasaDeLas4], [valor, aBogota(bogota(salida)), cobrada, cobrada === 'NOCHE']);
+    });
+  }
+  it('con la salida ya vencida, cuenta desde ahora (lo que sea mayor)', () => {
+    const r = calcularExtension({ ...base, modalidad: 'POR_HORAS', horas: 2, salidaActual: bogota('2026-10-12 12:00'), ahora: bogota('2026-10-12 13:20') });
+    assert.deepEqual([r.valor, aBogota(r.salida)], [16000, aBogota(bogota('2026-10-12 15:20'))]);
+  });
+  it('por horas en la noche (después de las 4:00 p. m.) ya es noche completa', () => {
+    const r = calcularExtension({ ...base, modalidad: 'POR_HORAS', horas: 1, salidaActual: bogota('2026-10-12 21:00'), ahora: bogota('2026-10-12 20:50') });
+    assert.deepEqual([r.modalidadCobrada, r.valor, aBogota(r.salida)], ['NOCHE', 60000, aBogota(bogota('2026-10-13 12:00'))]);
+  });
+  it('otra noche suma 24 horas desde la salida actual, con la tarifa por personas', () => {
+    const r = calcularExtension({ ...base, personas: 3, modalidad: 'NOCHE', salidaActual: bogota('2026-10-12 12:00'), ahora: bogota('2026-10-12 11:00') });
+    assert.deepEqual([r.modalidadCobrada, r.valor, aBogota(r.salida), r.pasaDeLas4], ['NOCHE', 95000, aBogota(bogota('2026-10-13 12:00')), false]);
+  });
+  it('otra noche con la salida vencida sigue la regla de salida desde ahora (RN-01): sale mañana a las 12 m., no 24 horas después', () => {
+    const r = calcularExtension({ ...base, modalidad: 'NOCHE', salidaActual: bogota('2026-10-13 12:00'), ahora: bogota('2026-10-16 16:23') });
+    assert.deepEqual([r.valor, aBogota(r.salida)], [60000, aBogota(bogota('2026-10-17 12:00'))]);
+  });
+  it('tres horas más: tarifa de tres horas y máximo 2 personas', () => {
+    const r = calcularExtension({ ...base, tipo: 'VENTILADOR', modalidad: 'TRES_HORAS', salidaActual: bogota('2026-10-12 22:30'), ahora: bogota('2026-10-12 22:00') });
+    assert.deepEqual([r.valor, aBogota(r.salida)], [25000, aBogota(bogota('2026-10-13 01:30'))]);
+    assert.throws(() => calcularExtension({ ...base, personas: 3, modalidad: 'TRES_HORAS', salidaActual: bogota('2026-10-12 22:30'), ahora: bogota('2026-10-12 22:00') }),
+      (e: ErrorRegla) => e.codigo === 'CAPACIDAD_EXCEDIDA');
   });
 });

@@ -68,6 +68,38 @@ export function finProgramadoTurno(tipo: 'DIA' | 'NOCHE', inicio: Date): Date {
   return new Date(hoy > inicio.getTime() ? hoy : hoy + DIA_MS);
 }
 
+export type ModalidadExtension = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
+export interface EntradaExtension {
+  tarifas: Tarifa[]; tipo: TipoHabitacion; personas: number; valorHora: number; horaNocheCompleta: number;
+  modalidad: ModalidadExtension; horas?: number; salidaActual: Date; ahora: Date;
+}
+
+/**
+ * RN-04. Se extiende desde la salida actual o desde ahora, lo que sea mayor.
+ * Por horas: valor por hora empezada; si la nueva salida pasa de las 4:00 p. m. (hora_noche_completa) del día en que
+ * empieza la extensión, se cobra la noche completa, que reemplaza las horas. Sin descuento.
+ * Otra noche sigue la regla de salida (RN-01) desde que empieza: con la salida a las 12 m. son 24 horas más; con la
+ * salida vencida, cuenta como una noche que entra ahora. [P/V: confirmar con la administradora]
+ */
+export function calcularExtension(e: EntradaExtension) {
+  const desde = new Date(Math.max(e.salidaActual.getTime(), e.ahora.getTime()));
+  const noche = () => calcularTarifa(e.tarifas, e.tipo, 'NOCHE', e.personas, 1);
+  if (e.modalidad === 'NOCHE') {
+    return { modalidadCobrada: 'NOCHE' as const, valor: noche(), salida: calcularSalida('NOCHE', desde, 1).salida, pasaDeLas4: false, horas: 0 };
+  }
+  if (e.modalidad === 'TRES_HORAS') {
+    return { modalidadCobrada: 'TRES_HORAS' as const, valor: calcularTarifa(e.tarifas, e.tipo, 'TRES_HORAS', e.personas, 1),
+      salida: new Date(desde.getTime() + 3 * HORA_MS), pasaDeLas4: false, horas: 0 };
+  }
+  const horas = Math.max(1, e.horas ?? 1);
+  const salida = new Date(desde.getTime() + horas * HORA_MS);
+  const limite = mediodiaBogota(desde, 0).getTime() + (e.horaNocheCompleta - 12) * HORA_MS;
+  if (salida.getTime() > limite) {
+    return { modalidadCobrada: 'NOCHE' as const, valor: noche(), salida: calcularSalida('NOCHE', desde, 1).salida, pasaDeLas4: true, horas };
+  }
+  return { modalidadCobrada: 'POR_HORAS' as const, valor: e.valorHora * horas, salida, pasaDeLas4: false, horas };
+}
+
 export interface EntradaCotizacion {
   tarifas: Tarifa[]; descuentoNoche: number; tipo: TipoHabitacion; modalidad: ModalidadCotizable;
   personas: number; noches: number; aplicarDescuento: boolean; entrada: Date;
