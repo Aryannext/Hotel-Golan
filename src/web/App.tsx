@@ -9,6 +9,7 @@ import { RecibirTurno } from './componentes/RecibirTurno.tsx';
 import { Caja } from './componentes/Caja.tsx';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
+import { PanelEstado } from './componentes/PanelEstado.tsx';
 import { Ico } from './componentes/Ico.tsx';
 import { avisoEvento, iniciales } from './logica.ts';
 import { useEnVivo } from './enVivo.ts';
@@ -24,6 +25,7 @@ export function App() {
   const [error, setError] = useState('');
   const [cotizando, setCotizando] = useState<Habitacion | null>(null);
   const [ficha, setFicha] = useState<Habitacion | null>(null);
+  const [revisando, setRevisando] = useState<Habitacion | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const [recarga, setRecarga] = useState(0);
   const [vista, setVista] = useState<Vista>('mapa');
@@ -61,6 +63,7 @@ export function App() {
     setSesion(null);
     setCotizando(null);
     setFicha(null);
+    setRevisando(null);
     setAviso(null);
     setMensaje('Sesión cerrada.');
   }
@@ -107,8 +110,11 @@ export function App() {
                   setRecarga((n) => n + 1);
                   setAviso({ tono: 'exito', texto: `Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.` });
                 }} />
-                : <Mapa habitaciones={habitaciones} alElegir={(hab) => { setAviso(null); setCotizando(hab); }} alAbrir={setFicha} />}
-              {ficha && <Ficha habitacion={ficha} recarga={recarga} alCerrar={() => setFicha(null)} alCambiar={() => setRecarga((n) => n + 1)} />}
+                : <Mapa habitaciones={habitaciones} alElegir={(hab) => { setAviso(null); setCotizando(hab); }} alAbrir={setFicha} alRevisar={setRevisando} />}
+              {ficha && <Ficha habitacion={ficha} recarga={recarga} alCerrar={() => setFicha(null)} alCambiar={() => setRecarga((n) => n + 1)}
+                alSalir={(texto) => { setFicha(null); setRecarga((n) => n + 1); setAviso({ tono: 'exito', texto }); }} />}
+              {revisando && <PanelEstado habitacion={revisando} alCerrar={() => setRevisando(null)}
+                alCambiar={(texto) => { setRevisando(null); setRecarga((n) => n + 1); setAviso({ tono: texto.includes('Recuerde') ? 'info' : 'exito', texto }); }} />}
             </>}
         </main>
       </div>

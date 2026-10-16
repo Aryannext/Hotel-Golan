@@ -79,6 +79,9 @@ export const api = {
     pedir<Estadia>('POST', `/estadias/${id}/cargos`, { items }, { 'idempotency-key': clave }),
   registrarPago: (id: string, medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA', valor: number, clave: string) =>
     pedir<Pago>('POST', `/estadias/${id}/pagos`, { medio, valor }, { 'idempotency-key': clave }),
+  darSalida: (id: string) => pedir<Estadia>('POST', `/estadias/${id}/salida`),
+  cambiarEstado: (numero: string, cuerpo: { estado: string; nota?: string; limpieza_especial?: boolean }) =>
+    pedir<Habitacion>('PUT', `/habitaciones/${numero}/estado`, cuerpo),
   turnoActual: () => pedir<Turno>('GET', '/turnos/actual'),
   recibirTurno: (base_contada: number, motivo_diferencia?: string) =>
     pedir<Turno>('POST', '/turnos/actual/recepcion', motivo_diferencia ? { base_contada, motivo_diferencia } : { base_contada }),

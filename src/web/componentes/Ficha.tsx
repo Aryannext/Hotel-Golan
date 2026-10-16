@@ -8,11 +8,11 @@ import {
 } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 
-type Sub = 'cuenta' | 'cargo' | 'pago';
+type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 
-export function Ficha({ habitacion, recarga, alCerrar, alCambiar }: {
-  habitacion: Habitacion; recarga: number; alCerrar: () => void; alCambiar: () => void;
+export function Ficha({ habitacion, recarga, alCerrar, alCambiar, alSalir }: {
+  habitacion: Habitacion; recarga: number; alCerrar: () => void; alCambiar: () => void; alSalir: (texto: string) => void;
 }) {
   const id = habitacion.estadia_activa!.id;
   const [est, setEst] = useState<Estadia | null>(null);
@@ -90,6 +90,9 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar }: {
         </div>)}
       </section>
       <div class={`saldo saldo--${s.tono}`}><div><b>{s.titulo}</b><p>{s.detalle}</p></div><strong>{pesos(s.valor)}</strong></div>
+      <div class="acciones">
+        <button type="button" class="btn btn--secundario" onClick={() => ir('salida')}><Ico id="salida" clase="ico--s" />Dar salida</button>
+      </div>
     </>;
   } else if (sub === 'cargo') {
     cuerpo = <>
@@ -134,7 +137,38 @@ export function Ficha({ habitacion, recarga, alCerrar, alCambiar }: {
       onClick={() => enviar(() => api.registrarPago(id, medio, pago.valor, clave))}><Ico id="check" clase="ico--s" />Registrar pago de {pesos(pago.valor)}</button>;
   }
 
-  const titulo = sub === 'cargo' ? 'Agregar cargos' : sub === 'pago' ? 'Registrar pago' : `Hab. ${habitacion.numero}`;
+  if (e && sub === 'salida') {
+    // RN-07: nadie sale debiendo. Si queda saldo, se ofrece cobrarlo primero.
+    const c = e.cuenta;
+    cuerpo = <>
+      <section class="tarjeta tarjeta--crema">
+        <div class="fila"><div class="fila__txt"><div class="fila__concepto">Total cargos</div></div><div class="fila__valor">{pesos(c.total_cargos)}</div></div>
+        <div class="fila"><div class="fila__txt"><div class="fila__concepto">Pagado</div></div><div class="fila__valor">{pesos(c.pagado + c.por_verificar)}</div></div>
+        <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">{c.saldo ? 'Falta pagar' : 'Saldo'}</div></div><div class="fila__valor">{pesos(c.saldo)}</div></div>
+      </section>
+      {c.saldo > 0 && <>
+        <div class="saldo saldo--alerta"><div><b>Nadie sale debiendo</b><p>Cobre el saldo antes de dar la salida. Si no paga, avise a la administradora.</p></div><strong>{pesos(c.saldo)}</strong></div>
+        <button type="button" class="btn btn--primario btn--l btn--bloque" onClick={() => ir('pago')}><Ico id="efectivo" clase="ico--s" />Cobrar {pesos(c.saldo)}</button>
+      </>}
+      {c.por_verificar > 0 && <div class="nota"><Ico id="alerta" clase="ico--s" /><p>Hay {pesos(c.por_verificar)} en transferencias por verificar. La habitación se entrega igual; si la administración dice que no llegó, se le avisará.</p></div>}
+      <div class="nota"><Ico id="lupa" clase="ico--s" /><p>La habitación pasa a «Por revisar» antes de volver a ofrecerse.</p></div>
+    </>;
+    pie = <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={c.saldo > 0 || enviando} onClick={async () => {
+      setEnviando(true);
+      setError('');
+      try {
+        await api.darSalida(id);
+        alSalir(`Salida registrada. La habitación ${habitacion.numero} queda por revisar.`);
+      } catch (err) {
+        setError(err instanceof ErrorApi ? err.message : 'No se pudo conectar con el sistema. Intente de nuevo.');
+        setEst(await api.estadia(id).catch(() => e));
+      } finally {
+        setEnviando(false);
+      }
+    }}><Ico id="salida" clase="ico--s" />{c.saldo > 0 ? 'Primero cobre el saldo' : 'Dar salida'}</button>;
+  }
+
+  const titulo = sub === 'cargo' ? 'Agregar cargos' : sub === 'pago' ? 'Registrar pago' : sub === 'salida' ? 'Dar salida' : `Hab. ${habitacion.numero}`;
   return (
     <div class="capa-panel">
       <div class="velo velo--visible" onClick={alCerrar} />

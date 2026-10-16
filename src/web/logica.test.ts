@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -161,5 +161,19 @@ describe('TICKET-06 · ficha de la habitación: cargos y pagos', () => {
     assert.deepEqual(valorPago('EFECTIVO', 28000, 50000), { valor: 28000, vueltas: 22000 });
     assert.deepEqual(valorPago('EFECTIVO', 28000, 10000), { valor: 10000, vueltas: 0 });
     assert.deepEqual(valorPago('NEQUI', 28000, 28000), { valor: 28000, vueltas: 0 });
+  });
+});
+
+describe('TICKET-08 · revisión de la habitación (FR-02)', () => {
+  it('ofrece solo las transiciones permitidas, en palabras sencillas', () => {
+    assert.deepEqual(accionesEstado('POR_REVISAR').map((a) => [a.estado, a.texto, a.especial ?? false, a.pideNota ?? false]), [
+      ['LIMPIEZA', 'Limpieza normal', false, false],
+      ['LIMPIEZA', 'Limpieza especial (fluidos o manchas)', true, false],
+      ['MANTENIMIENTO', 'Daño: mantenimiento', false, true],
+    ]);
+    assert.deepEqual(accionesEstado('LIMPIEZA').map((a) => [a.estado, a.texto]), [['DISPONIBLE', 'Limpia y revisada']]);
+    assert.deepEqual(accionesEstado('MANTENIMIENTO').map((a) => [a.estado, a.texto]), [['POR_REVISAR', 'Ya está arreglada']]);
+    assert.deepEqual(accionesEstado('OCUPADA'), []);
+    assert.deepEqual(accionesEstado('DISPONIBLE'), []);
   });
 });

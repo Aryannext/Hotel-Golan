@@ -170,3 +170,16 @@ export function valorPago(medio: string, saldo: number, escrito: number): { valo
   if (medio !== 'EFECTIVO') return { valor: escrito, vueltas: 0 };
   return { valor: Math.min(escrito, saldo), vueltas: Math.max(0, escrito - saldo) };
 }
+
+// TICKET-08 · revisión de la habitación (FR-02): lo que se puede hacer según el estado.
+export interface AccionEstado { estado: 'DISPONIBLE' | 'POR_REVISAR' | 'LIMPIEZA' | 'MANTENIMIENTO'; texto: string; icono: string; especial?: boolean; pideNota?: boolean }
+export function accionesEstado(estado: string): AccionEstado[] {
+  if (estado === 'POR_REVISAR') return [
+    { estado: 'LIMPIEZA', texto: 'Limpieza normal', icono: 'escoba' },
+    { estado: 'LIMPIEZA', texto: 'Limpieza especial (fluidos o manchas)', icono: 'alerta', especial: true },
+    { estado: 'MANTENIMIENTO', texto: 'Daño: mantenimiento', icono: 'herramienta', pideNota: true },
+  ];
+  if (estado === 'LIMPIEZA') return [{ estado: 'DISPONIBLE', texto: 'Limpia y revisada', icono: 'check' }];
+  if (estado === 'MANTENIMIENTO') return [{ estado: 'POR_REVISAR', texto: 'Ya está arreglada', icono: 'check' }];
+  return [];
+}

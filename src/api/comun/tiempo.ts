@@ -5,3 +5,10 @@ const DESFASE_MS = -5 * 3600_000;
 export function aBogota(fecha: Date): string {
   return new Date(fecha.getTime() + DESFASE_MS).toISOString().slice(0, 19) + '-05:00';
 }
+
+/** Hora en palabras, en Bogotá: «6:20 a. m.», «12:00 m.», «1:30 p. m.» (igual que en la PWA). */
+export function horaTexto(fecha: Date): string {
+  const [hh, mm] = aBogota(fecha).slice(11, 16).split(':').map(Number);
+  if (hh === 12 && mm === 0) return '12:00 m.';
+  return `${hh % 12 || 12}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'a. m.' : 'p. m.'}`;
+}

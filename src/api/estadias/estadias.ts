@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
-import { aBogota } from '../comun/tiempo.ts';
+import { aBogota, horaTexto } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
 import { turnoAbiertoId } from '../caja/turnos.ts';
@@ -260,6 +260,37 @@ export function rutasEstadias(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     const items = [];
     for (const { id } of ids) items.push(await leerEstadia(bd, id));
     return { items, total };
+  });
+
+  // Dar salida (FR-09; RN-07): solo con la cuenta en $0. La habitación pasa a «Por revisar» (FR-02).
+  // Una transferencia por verificar cuenta como pagada: la habitación se entrega igual (RN-12).
+  app.post<{ Params: { id: string } }>('/estadias/:id/salida', {
+    preHandler: sesion,
+    schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } } },
+  }, async (req) => {
+    const u = req.usuario!;
+    const momento = ahora();
+    return bd.transaccion(async (tx) => {
+      const [f] = await tx.consultar<{ estado: string; habitacion_numero: string }>(
+        'SELECT estado, habitacion_numero FROM estadias WHERE id = $1 FOR UPDATE', [req.params.id]);
+      if (!f) throw new ErrorApi(404, 'NO_ENCONTRADO', 'La estadía no existe.');
+      if (f.estado !== 'ACTIVA') throw new ErrorApi(409, 'CONFLICTO', 'Esta estadía ya terminó.');
+      const { cuenta } = (await leerEstadia(tx, req.params.id))!;
+      if (cuenta.saldo > 0) {
+        throw new ErrorApi(409, 'SALDO_PENDIENTE', `Nadie sale debiendo: falta cobrar $${cuenta.saldo.toLocaleString('es-CO')}.`);
+      }
+      await tx.consultar(`UPDATE estadias SET estado = 'CERRADA', salida_real_en = $2 WHERE id = $1`, [req.params.id, momento]);
+      await tx.consultar(`UPDATE habitaciones SET estado = 'POR_REVISAR', nota = $2, actualizado_en = $3 WHERE numero = $1`,
+        [f.habitacion_numero, `Salió a las ${horaTexto(momento)}`, momento]);
+      await auditar(tx, { usuarioId: u.id, accion: 'ACTUALIZAR', entidad: 'estadias', entidadId: req.params.id, detalle: { accion: 'SALIDA' }, ocurrido: momento });
+      for (const [tipo, payload] of [
+        ['estadia.cerrada', { entidad_id: req.params.id, habitacion_numero: f.habitacion_numero }],
+        ['habitacion.actualizada', { numero: f.habitacion_numero, estado: 'POR_REVISAR' }],
+      ] as const) {
+        await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
+      }
+      return leerEstadia(tx, req.params.id);
+    });
   });
 
   app.get<{ Params: { id: string } }>('/estadias/:id', {

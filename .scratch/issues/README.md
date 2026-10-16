@@ -11,7 +11,7 @@ Fase 2 del pipeline AI-SDLC (16-10-2026). Aprobados por el usuario. Se trabaja l
 | [TICKET-05](05-transferencia-y-confirmacion-en-vivo.md) | Transferencia por verificar y confirmación en tiempo real | 04 | **done** |
 | [TICKET-06](06-cargos-y-pagos-en-la-cuenta.md) | Cargos y pagos en la cuenta de la habitación | 04 | **done** |
 | [TICKET-07](07-extender-estadia.md) | Extender la estadía con la regla de las 4 p. m. | 02, 06 | ready-for-agent |
-| [TICKET-08](08-salida-y-revision.md) | Dar salida y revisar la habitación | 06 | ready-for-agent |
+| [TICKET-08](08-salida-y-revision.md) | Dar salida y revisar la habitación | 06 | **done** |
 | [TICKET-09](09-desistimiento-y-devolucion.md) | Desistimiento y devolución | 05 | ready-for-agent |
 | [TICKET-10](10-salidas-de-dinero.md) | Salidas de dinero de la caja | 03 | ready-for-agent |
 | [TICKET-11](11-entregar-turno.md) | Entregar el turno con conteo | 10 | ready-for-agent |
