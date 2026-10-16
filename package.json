@@ -13,16 +13,27 @@
     "db:reiniciar": "node --env-file=.env scripts/sembrar.ts --reiniciar",
     "db:verificar": "node --test scripts/verificar-local.test.ts",
     "simular:verificacion": "node --env-file=.env scripts/simular-verificacion.ts",
-    "tipos": "tsc --noEmit"
+    "tipos": "tsc --noEmit && tsc --noEmit -p src/web",
+    "test": "node --test \"src/**/*.test.ts\" scripts/verificar-local.test.ts",
+    "api:dev": "node --env-file=.env --watch src/api/servidor.ts",
+    "web:dev": "vite --config src/web/vite.config.ts",
+    "web:build": "vite build --config src/web/vite.config.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.3",
+    "@fastify/static": "^10.1.6",
     "@node-rs/argon2": "^2.0.2",
-    "pg": "^8.13.0"
+    "fastify": "^5.12.7",
+    "pg": "^8.13.0",
+    "preact": "^10.29.8"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.2.17",
+    "@preact/preset-vite": "^2.10.6",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.11.10",
-    "typescript": "^5.8.0"
+    "preact-render-to-string": "^6.8.1",
+    "typescript": "^5.8.0",
+    "vite": "^8.3.4"
   }
 }

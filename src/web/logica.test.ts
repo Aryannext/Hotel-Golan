@@ -1,0 +1,41 @@
+// TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales } from './logica.ts';
+
+describe('Presentación del mapa de habitaciones', () => {
+  it('traduce los estados de la API a las clases y textos del prototipo', () => {
+    assert.deepEqual(
+      ['DISPONIBLE', 'OCUPADA', 'POR_REVISAR', 'LIMPIEZA', 'MANTENIMIENTO'].map((e) => [claseEstado(e), textoEstado(e)]),
+      [['libre', 'Disponible'], ['ocupada', 'Ocupada'], ['revisar', 'Por revisar'], ['limpieza', 'Limpieza'], ['fuera', 'Mantenimiento']]);
+  });
+
+  it('formatea pesos colombianos sin centavos', () => {
+    assert.equal(pesos(28000), '$28.000');
+    assert.equal(pesos(234500), '$234.500');
+    assert.equal(pesos(0), '$0');
+  });
+
+  it('muestra la hora de Bogotá tal como la manda la API, sin depender de la zona del equipo', () => {
+    assert.equal(horaBogota('2026-10-13T12:00:00-05:00'), '12:00 m.');
+    assert.equal(horaBogota('2026-10-13T06:30:00-05:00'), '6:30 a. m.');
+    assert.equal(horaBogota('2026-10-13T18:30:00-05:00'), '6:30 p. m.');
+    assert.equal(horaBogota('2026-10-13T00:15:00-05:00'), '12:15 a. m.');
+  });
+
+  it('dice hoy o mañana respecto de la fecha de referencia', () => {
+    assert.equal(diaRelativo('2026-10-13T12:00:00-05:00', '2026-10-13'), 'hoy');
+    assert.equal(diaRelativo('2026-10-14T12:00:00-05:00', '2026-10-13'), 'mañana');
+    assert.equal(diaRelativo('2026-10-16T12:00:00-05:00', '2026-10-13'), '16/10');
+  });
+
+  it('cuenta las habitaciones por estado para los indicadores del inicio', () => {
+    const c = contarEstados([{ estado: 'DISPONIBLE' }, { estado: 'OCUPADA' }, { estado: 'OCUPADA' }, { estado: 'LIMPIEZA' }, { estado: 'POR_REVISAR' }]);
+    assert.deepEqual(c, { disponibles: 1, ocupadas: 2, limpiezaORevision: 2, mantenimiento: 0 });
+  });
+
+  it('saca dos iniciales para el avatar, ignorando números y paréntesis', () => {
+    assert.equal(iniciales('Recepción Prueba 2 (noche entre semana)'), 'RP');
+    assert.equal(iniciales('Administradora'), 'A');
+  });
+});

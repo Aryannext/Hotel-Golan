@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately) — no depende de otro ticket.
 
-**Status:** ready-for-agent
+**Status:** done (16-10-2026)
 
 ## Invariantes de negocio
 - El PIN se compara contra el hash Argon2id; nunca se guarda ni se registra en claro.
@@ -20,11 +20,11 @@
 - Reglas de negocio evaluadas en America/Bogota; la base guarda timestamptz.
 
 ## Criterios de aceptación
-- [ ] POST /sesiones, GET y DELETE /sesiones/actual y GET /habitaciones cumplen CONTRATO_API.yaml.
-- [ ] Pasan los escenarios de la regla «FR-19 — Inicio de sesión» de TESTS_ACEPTACION.feature.
-- [ ] La PWA muestra el mapa con datos de la semilla (205 y 211 ocupadas, 207 por revisar, 301 en mantenimiento).
-- [ ] Los errores responden `{codigo, mensaje}` en español sencillo.
-- [ ] Queda `npm test` (node --test) para la API y una prueba de humo de la PWA.
+- [x] POST /sesiones, GET y DELETE /sesiones/actual y GET /habitaciones cumplen CONTRATO_API.yaml.
+- [x] Pasan los escenarios de la regla «FR-19 — Inicio de sesión» de TESTS_ACEPTACION.feature.
+- [x] La PWA muestra el mapa con datos de la semilla (205 y 211 ocupadas, 207 por revisar, 301 en mantenimiento).
+- [x] Los errores responden `{codigo, mensaje}` en español sencillo.
+- [x] Queda `npm test` (node --test) para la API y una prueba de humo de la PWA.
 
 ## Módulos a tocar
 identidad (usuarios, sesiones), habitaciones (lectura), auditoría, plataforma HTTP (servidor, errores, validación por esquema), PWA (inicio de sesión y mapa).
@@ -36,3 +36,14 @@ identidad (usuarios, sesiones), habitaciones (lectura), auditoría, plataforma H
 - TDD: primero la prueba que falla por falta de la funcionalidad, luego el código y por último la prueba en verde.
 - Circuit breaker: si una prueba falla 3 veces seguidas con hipótesis distintas, se detiene el ticket, se guarda la evidencia y se marca BLOCKED.
 - Prohibido debilitar o borrar una prueba para que pase.
+
+## Evidencia de cierre (16-10-2026)
+- `npm test`: 39 pruebas en verde (identidad 12, habitaciones 9, lógica de la PWA 6 y Fase 1.5 12).
+- `npm run tipos` limpio, para la API y la PWA.
+- `npm run web:build`: 21 KB de JS.
+- Probado en el navegador contra PostgreSQL en Docker:
+  - inicio de sesión;
+  - mapa con los datos de la semilla (la 211 debe $28.000);
+  - cierre de sesión y PIN equivocado;
+  - vista en celular de 375 px.
+- Error encontrado y corregido con TDD: los archivos de una compilación nueva no se servían sin reiniciar el servidor, y un archivo inexistente devolvía la página principal en lugar de un 404.
