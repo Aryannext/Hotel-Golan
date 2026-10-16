@@ -1,4 +1,4 @@
-import type { Producto } from './logica.ts';
+import type { Producto, SalidaTurno, TipoSalida } from './logica.ts';
 
 // Cliente de la API. La sesión viaja en la cookie HttpOnly; el navegador la envía sola (same-origin).
 export interface Usuario { id: string; nombre: string; usuario: string; rol: 'RECEPCION' | 'ADMINISTRACION'; activo: boolean }
@@ -82,6 +82,10 @@ export const api = {
   darSalida: (id: string) => pedir<Estadia>('POST', `/estadias/${id}/salida`),
   cambiarEstado: (numero: string, cuerpo: { estado: string; nota?: string; limpieza_especial?: boolean }) =>
     pedir<Habitacion>('PUT', `/habitaciones/${numero}/estado`, cuerpo),
+  pagosDelTurno: (turnoId: string) => pedir<{ items: Pago[] }>('GET', `/pagos?turno_id=${turnoId}`),
+  salidasDelTurno: (turnoId: string) => pedir<{ items: SalidaTurno[] }>('GET', `/movimientos_caja?turno_id=${turnoId}`),
+  registrarSalida: (cuerpo: { tipo: TipoSalida; detalle: string; valor: number; habitacion_numero?: string }, clave: string) =>
+    pedir<SalidaTurno>('POST', '/movimientos_caja', cuerpo, { 'idempotency-key': clave }),
   turnoActual: () => pedir<Turno>('GET', '/turnos/actual'),
   recibirTurno: (base_contada: number, motivo_diferencia?: string) =>
     pedir<Turno>('POST', '/turnos/actual/recepcion', motivo_diferencia ? { base_contada, motivo_diferencia } : { base_contada }),

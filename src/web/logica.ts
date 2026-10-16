@@ -183,3 +183,25 @@ export function accionesEstado(estado: string): AccionEstado[] {
   if (estado === 'MANTENIMIENTO') return [{ estado: 'POR_REVISAR', texto: 'Ya está arreglada', icono: 'check' }];
   return [];
 }
+
+// TICKET-10 · salidas de dinero (FR-12) y «Lo de este turno».
+export const TIPOS_SALIDA = [
+  { tipo: 'COMPRA_HOTEL', texto: 'Compra para el hotel', ejemplo: 'Ej. 2 jabones y un bombillo', valor: 0 },
+  { tipo: 'RETIRO_ADMINISTRACION', texto: 'Se lo lleva la administración', ejemplo: 'Ej. para pagar servicios', valor: 0 },
+  { tipo: 'RECARGO_ASEO', texto: 'Recargo de aseo a quien limpió', ejemplo: 'Ej. limpieza extrema', valor: 20000 },
+  { tipo: 'OTRO', texto: 'Otro', ejemplo: 'Explique para qué fue', valor: 0 },
+] as const;
+export type TipoSalida = typeof TIPOS_SALIDA[number]['tipo'];
+const TEXTO_SALIDA: Record<string, string> = { ...Object.fromEntries(TIPOS_SALIDA.map((t) => [t.tipo, t.texto])), DEVOLUCION: 'Devolución a un cliente' };
+
+export interface PagoTurno { id: string; habitacion_numero: string; medio: string; valor: number; estado: string; registrado_en: string; registrado_por: string; anulado: boolean }
+export interface SalidaTurno { id: string; tipo: string; detalle: string; valor: number; habitacion_numero: string | null; registrado_en: string; registrado_por: string; anulado: boolean }
+export interface LineaTurno { id: string; hora: string; concepto: string; valor: number; enCaja: boolean; estado: string; por: string; anulado: boolean }
+
+/** Cobros (suman) y salidas (restan) del turno, por hora. Solo el efectivo y las salidas mueven la caja. */
+export function lineasDelTurno(pagos: PagoTurno[], salidas: SalidaTurno[]): LineaTurno[] {
+  return [
+    ...pagos.map((p) => ({ id: p.id, hora: p.registrado_en, concepto: `Cobro · Hab. ${p.habitacion_numero} · ${textoMedio(p.medio)}`, valor: p.valor, enCaja: p.medio === 'EFECTIVO', estado: p.estado, por: p.registrado_por, anulado: p.anulado })),
+    ...salidas.map((m) => ({ id: m.id, hora: m.registrado_en, concepto: `${TEXTO_SALIDA[m.tipo] ?? m.tipo} · ${m.detalle}${m.habitacion_numero ? ` · Hab. ${m.habitacion_numero}` : ''}`, valor: -m.valor, enCaja: true, estado: 'SALIDA', por: m.registrado_por, anulado: m.anulado })),
+  ].sort((a, b) => a.hora.localeCompare(b.hora));
+}

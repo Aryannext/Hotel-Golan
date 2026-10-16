@@ -1,18 +1,28 @@
 // Caja del turno (TICKET-03, FR-11): el número que importa es cuánta plata debe haber ahora en la caja (RN-10).
+// TICKET-10: «Salió plata» y «Lo de este turno» (cobros y salidas por hora).
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Turno } from '../api.ts';
-import { nombreTurno, pesos } from '../logica.ts';
+import { horaBogota, lineasDelTurno, nombreTurno, pesos, type LineaTurno } from '../logica.ts';
+import { SalidaDinero } from './SalidaDinero.tsx';
 import { Ico } from './Ico.tsx';
 
 /** `recarga` cambia con cada evento en vivo: la caja se vuelve a pedir sin recargar la página. */
-export function Caja({ recarga = 0 }: { recarga?: number }) {
+export function Caja({ recarga = 0, alAvisar }: { recarga?: number; alAvisar?: (texto: string) => void }) {
   const [turno, setTurno] = useState<Turno | null>(null);
+  const [lineas, setLineas] = useState<LineaTurno[]>([]);
   const [error, setError] = useState('');
+  const [saliendo, setSaliendo] = useState(false);
+  const [propia, setPropia] = useState(0);
 
   useEffect(() => {
-    api.turnoActual().then(setTurno).catch((e) =>
+    api.turnoActual().then(async (t) => {
+      setTurno(t);
+      setError('');
+      const [p, m] = await Promise.all([api.pagosDelTurno(t.id), api.salidasDelTurno(t.id)]);
+      setLineas(lineasDelTurno(p.items, m.items));
+    }).catch((e) =>
       setError(e instanceof ErrorApi && e.estado === 404 ? 'No hay un turno activo en este momento.' : e.message));
-  }, [recarga]);
+  }, [recarga, propia]);
 
   if (error) return <div class="nota" role="alert"><Ico id="info" clase="ico--s" /><p>{error}</p></div>;
   if (!turno) return null;
@@ -36,8 +46,27 @@ export function Caja({ recarga = 0 }: { recarga?: number }) {
             {c.por_verificar_cantidad > 0 && ` · ${c.por_verificar_cantidad} por verificar`}</span>
           {!porRecibir && <span><Ico id="efectivo" clase="ico--s" /> Pago del turno al entregar: <b>{pesos(c.pago_turno)}</b></span>}
         </div>
+        {!porRecibir && <div class="caja-grande__botones caja-grande__botones--uno">
+          <button type="button" class="btn btn--secundario btn--l" onClick={() => setSaliendo(true)}><Ico id="baja" clase="ico--s" />Salió plata</button>
+        </div>}
       </section>
-      <p class="ayuda" style="text-align:center">Registrar cobros, salidas de dinero y entregar el turno se habilita en las siguientes entregas.</p>
+
+      {!porRecibir && <section class="tarjeta"><div class="tarjeta__cab"><h2>Lo de este turno</h2></div>
+        {lineas.length === 0 ? <p class="vacio">Todavía no hay cobros ni salidas en este turno.</p> : lineas.map((l) => (
+          <div class={`mov${l.anulado ? ' mov--anulado' : ''}`} key={l.id}>
+            <span class="mov__ico"><Ico id={l.valor < 0 ? 'baja' : l.enCaja ? 'efectivo' : 'transferencia'} clase="ico--s" /></span>
+            <div class="mov__txt"><div class="mov__titulo">{l.concepto}</div>
+              <div class="mov__detalle">{horaBogota(l.hora)} · {l.por}{!l.enCaja ? ' · no entra a la caja' : ''}{l.anulado ? ' · anulado' : ''}</div></div>
+            <div class="mov__der"><span class={`mov__valor${l.valor < 0 ? ' negativo' : ''}`}>{l.valor < 0 ? '−' : ''}{pesos(Math.abs(l.valor))}</span>
+              {l.estado === 'POR_VERIFICAR' && <span class="pill pill--aviso">Por verificar</span>}
+              {l.estado === 'RECHAZADO' && <span class="pill pill--alerta">No llegó</span>}</div>
+          </div>
+        ))}
+      </section>}
+      <p class="ayuda" style="text-align:center">Entregar el turno con el conteo llega en la siguiente entrega.</p>
+
+      {saliendo && <SalidaDinero debeHaber={c.debe_haber} alCerrar={() => setSaliendo(false)}
+        alRegistrar={(texto) => { setSaliendo(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
     </div>
   );
 }

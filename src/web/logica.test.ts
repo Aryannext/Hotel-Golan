@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -175,5 +175,24 @@ describe('TICKET-08 · revisión de la habitación (FR-02)', () => {
     assert.deepEqual(accionesEstado('MANTENIMIENTO').map((a) => [a.estado, a.texto]), [['POR_REVISAR', 'Ya está arreglada']]);
     assert.deepEqual(accionesEstado('OCUPADA'), []);
     assert.deepEqual(accionesEstado('DISPONIBLE'), []);
+  });
+});
+
+describe('TICKET-10 · salidas de dinero y «Lo de este turno»', () => {
+  it('ofrece los tipos de salida en palabras sencillas; la devolución no está (sale desde la estadía)', () => {
+    assert.deepEqual(TIPOS_SALIDA.map((t) => t.tipo), ['COMPRA_HOTEL', 'RETIRO_ADMINISTRACION', 'RECARGO_ASEO', 'OTRO']);
+    assert.equal(TIPOS_SALIDA.find((t) => t.tipo === 'RECARGO_ASEO')?.valor, 20000);
+  });
+  it('mezcla cobros y salidas del turno en orden de hora; las salidas restan y las transferencias no van a la caja', () => {
+    const pagos = [
+      { id: 'p1', habitacion_numero: '211', medio: 'EFECTIVO', valor: 22000, estado: 'EN_CAJA', registrado_en: '2026-10-12T23:30:00-05:00', registrado_por: 'recepcion2', anulado: false },
+      { id: 'p2', habitacion_numero: '205', medio: 'NEQUI', valor: 55000, estado: 'VERIFICADO', registrado_en: '2026-10-12T19:12:00-05:00', registrado_por: 'recepcion2', anulado: false },
+    ];
+    const salidas = [{ id: 'm1', tipo: 'COMPRA_HOTEL', detalle: '2 jabones', valor: 10000, habitacion_numero: null, registrado_en: '2026-10-13T05:30:00-05:00', registrado_por: 'recepcion2', anulado: false }];
+    assert.deepEqual(lineasDelTurno(pagos, salidas).map((l) => [l.id, l.concepto, l.valor, l.enCaja]), [
+      ['p2', 'Cobro · Hab. 205 · Nequi', 55000, false],
+      ['p1', 'Cobro · Hab. 211 · Efectivo', 22000, true],
+      ['m1', 'Compra para el hotel · 2 jabones', -10000, true],
+    ]);
   });
 });

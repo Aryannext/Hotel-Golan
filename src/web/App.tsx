@@ -103,7 +103,7 @@ export function App() {
                 <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
               </div>}
               {vista === 'confirmar' ? <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />
-                : vista === 'caja' ? <Caja recarga={recarga} />
+                : vista === 'caja' ? <Caja recarga={recarga} alAvisar={(texto) => setAviso({ tono: 'exito', texto })} />
                 : error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>
                 : cotizando ? <Entrada habitacion={cotizando} alVolver={() => setCotizando(null)} alRegistrar={(est) => {
                   setCotizando(null);

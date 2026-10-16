@@ -56,3 +56,8 @@
 /* Ficha de la habitación (TICKET-06): el velo del prototipo se anima con GSAP; aquí se muestra directo. */
 .velo--visible { opacity: 1; }
 .panel__cab .titulos p { overflow-wrap: break-word; }
+
+/* Caja (TICKET-10): un solo botón «Salió plata» y opciones de salida apiladas en el celular. */
+.caja-grande__botones--uno { grid-template-columns: 1fr; }
+.segmentado--columna { display: grid; grid-template-columns: 1fr 1fr; }
+@media (max-width: 420px) { .segmentado--columna { grid-template-columns: 1fr; } }
