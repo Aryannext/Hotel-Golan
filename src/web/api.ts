@@ -19,6 +19,14 @@ export interface ResumenCaja {
 export interface Turno {
   id: string; tipo: 'DIA' | 'NOCHE'; estado: 'POR_RECIBIR' | 'ABIERTO' | 'CERRADO'; responsable: string | null; recibido_de: string | null;
   inicio_en: string; fin_en: string | null; fin_programado_en: string; base_entregada: number; base_recibida: number | null; caja: ResumenCaja;
+  cierre: { pago_tomado: boolean; efectivo_esperado: number; efectivo_contado: number; diferencia: number;
+    motivo_diferencia: string | null; entregado_por: string } | null;
+}
+export interface TurnoDetalle extends Turno { pagos: Pago[]; movimientos_caja: SalidaTurno[] }
+export interface ResumenDia {
+  dia: string; desde: string; hasta: string; turnos: Array<{ tipo: 'DIA' | 'NOCHE'; responsable: string }>;
+  efectivo: number; transferencias_verificadas: number; transferencias_pendientes: number;
+  descuentos: number; salidas: number; diferencias: number;
 }
 
 export interface Cargo { id: string; tipo: string; concepto: string; cantidad: number; valor_unitario: number; valor: number; creado_por: string; creado_en: string; anulado: boolean }
@@ -63,6 +71,9 @@ async function pedir<T>(metodo: string, ruta: string, cuerpo?: unknown, cabecera
 }
 
 export const api = {
+  turnos: (desplazamiento = 0, limite = 20) => pedir<{ items: Turno[]; total: number }>('GET', `/turnos?limite=${limite}&desplazamiento=${desplazamiento}`),
+  turno: (id: string) => pedir<TurnoDetalle>('GET', `/turnos/${id}`),
+  reporteDias: (desde: string, hasta: string) => pedir<{ items: ResumenDia[] }>('GET', `/reportes/dias?${new URLSearchParams({ desde, hasta })}`),
   iniciarSesion: (usuario: string, pin: string) => pedir<SesionActual>('POST', '/sesiones', { usuario, pin }),
   sesionActual: () => pedir<SesionActual>('GET', '/sesiones/actual'),
   cerrarSesion: () => pedir<void>('DELETE', '/sesiones/actual'),

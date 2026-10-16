@@ -7,6 +7,7 @@ import { Mapa } from './componentes/Mapa.tsx';
 import { Entrada } from './componentes/Entrada.tsx';
 import { RecibirTurno } from './componentes/RecibirTurno.tsx';
 import { Caja } from './componentes/Caja.tsx';
+import { Historial } from './componentes/Historial.tsx';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
 import { PanelEstado } from './componentes/PanelEstado.tsx';
@@ -14,7 +15,7 @@ import { Ico } from './componentes/Ico.tsx';
 import { avisoEvento, iniciales } from './logica.ts';
 import { useEnVivo } from './enVivo.ts';
 
-type Vista = 'confirmar' | 'mapa' | 'caja';
+type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial';
 interface Aviso { tono: 'exito' | 'alerta' | 'info'; texto: string }
 
 export function App() {
@@ -75,6 +76,7 @@ export function App() {
   const vistas: Array<[Vista, string, string]> = [
     ...(esAdmin ? [['confirmar', 'Por confirmar', 'transferencia'] as [Vista, string, string]] : []),
     ['mapa', 'Habitaciones', 'habitaciones'], ['caja', 'Caja', 'caja'],
+    ...(esAdmin ? [['historial', 'Historial', 'calendario'] as [Vista, string, string]] : []),
   ];
   return (
     <div class="app">
@@ -103,6 +105,7 @@ export function App() {
                 <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
               </div>}
               {vista === 'confirmar' ? <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />
+                : vista === 'historial' && esAdmin ? <Historial recarga={recarga} />
                 : vista === 'caja' ? <Caja recarga={recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={(texto) => setAviso({ tono: 'exito', texto })}
                   alEntregar={(texto) => { setSesion(null); setAviso(null); setMensaje(texto); }} />
                 : error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>

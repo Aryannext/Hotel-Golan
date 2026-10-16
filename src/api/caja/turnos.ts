@@ -7,6 +7,8 @@ import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
 import { finProgramadoTurno } from '../reglas/reglas.ts';
 import { regla } from '../estadias/cotizaciones.ts';
+import { leerPagos } from '../cobros/pagos.ts';
+import { leerMovimientos } from './movimientos.ts';
 
 type TipoTurno = 'DIA' | 'NOCHE';
 interface FilaTurno {
@@ -71,6 +73,32 @@ interface CuerpoEntrega { pago_tomado: boolean; efectivo_contado: number; motivo
 const pagoDelTurno = async (bd: Bd, t: FilaTurno) => t.pago_turno ?? regla(bd, t.tipo === 'DIA' ? 'pago_turno_dia' : 'pago_turno_noche');
 
 export function rutasTurnos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
+  app.get<{ Querystring: { limite?: number; desplazamiento?: number } }>('/turnos', {
+    preHandler: requiere(bd, ahora, ['ADMINISTRACION']),
+    schema: { querystring: {
+      type: 'object', additionalProperties: false,
+      properties: {
+        limite: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+        desplazamiento: { type: 'integer', minimum: 0, default: 0 },
+      },
+    } },
+  }, async (req) => {
+    const [{ total }] = await bd.consultar<{ total: number }>('SELECT count(*)::int AS total FROM turnos');
+    const filas = await bd.consultar<FilaTurno>(`${SELECT_TURNO} ORDER BY t.inicio_en DESC, t.id DESC LIMIT $1 OFFSET $2`,
+      [req.query.limite, req.query.desplazamiento]);
+    return { items: await Promise.all(filas.map((t) => respuestaTurno(bd, t))), total };
+  });
+
+  app.get<{ Params: { id: string } }>('/turnos/:id', {
+    preHandler: requiere(bd, ahora, ['ADMINISTRACION']),
+    schema: { params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } } },
+  }, async (req) => {
+    const [t] = await bd.consultar<FilaTurno>(`${SELECT_TURNO} WHERE t.id = $1`, [req.params.id]);
+    if (!t) throw new ErrorApi(404, 'NO_ENCONTRADO', 'El turno no existe.');
+    return { ...await respuestaTurno(bd, t), pagos: await leerPagos(bd, { turnoId: t.id }),
+      movimientos_caja: await leerMovimientos(bd, { turnoId: t.id }) };
+  });
+
   app.get('/turnos/actual', { preHandler: requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']) }, async () => {
     const t = await turnoActivo(bd);
     if (!t) throw new ErrorApi(404, 'NO_ENCONTRADO', 'No hay un turno activo.');
