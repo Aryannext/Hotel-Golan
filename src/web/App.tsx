@@ -1,5 +1,5 @@
 // Raíz de la PWA: inicio de sesión, recibir el turno si está por recibir (TICKET-03), las vistas Habitaciones y Caja,
-// «Por confirmar» para la administración y la actualización en vivo (TICKET-05); Historial (TICKET-13) y Equipo (TICKET-14).
+// «Por confirmar» para la administración y la actualización en vivo (TICKET-05); Historial (TICKET-13), Equipo (TICKET-14) y Ajustes (TICKET-15).
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion, type Pago, type SesionActual } from './api.ts';
 import { Acceso } from './componentes/Acceso.tsx';
@@ -9,6 +9,7 @@ import { RecibirTurno } from './componentes/RecibirTurno.tsx';
 import { Caja } from './componentes/Caja.tsx';
 import { Historial } from './componentes/Historial.tsx';
 import { Equipo } from './componentes/Equipo.tsx';
+import { Ajustes } from './componentes/Ajustes.tsx';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
 import { PanelEstado } from './componentes/PanelEstado.tsx';
@@ -16,7 +17,7 @@ import { Ico } from './componentes/Ico.tsx';
 import { avisoEvento, iniciales } from './logica.ts';
 import { useEnVivo } from './enVivo.ts';
 
-type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial' | 'equipo';
+type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial' | 'equipo' | 'ajustes';
 interface Aviso { tono: 'exito' | 'alerta' | 'info'; texto: string }
 
 export function App() {
@@ -77,13 +78,14 @@ export function App() {
   const vistas: Array<[Vista, string, string]> = [
     ...(esAdmin ? [['confirmar', 'Por confirmar', 'transferencia'] as [Vista, string, string]] : []),
     ['mapa', 'Habitaciones', 'habitaciones'], ['caja', 'Caja', 'caja'],
-    ...(esAdmin ? [['historial', 'Historial', 'calendario'], ['equipo', 'Equipo', 'huespedes']] as Array<[Vista, string, string]> : []),
+    ...(esAdmin ? [['historial', 'Historial', 'calendario'], ['equipo', 'Equipo', 'huespedes'], ['ajustes', 'Ajustes', 'configuracion']] as Array<[Vista, string, string]> : []),
   ];
   // Lo que se ve debajo de las pestañas: una vista por pestaña; en Habitaciones, el asistente de entrada o el mapa.
   function vistaActual() {
     if (vista === 'confirmar') return <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />;
     if (vista === 'historial' && esAdmin) return <Historial recarga={recarga} />;
     if (vista === 'equipo' && esAdmin) return <Equipo recarga={recarga} yo={u.id} />;
+    if (vista === 'ajustes' && esAdmin) return <Ajustes />;
     if (vista === 'caja') return <Caja recarga={recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={(texto) => setAviso({ tono: 'exito', texto })}
       alEntregar={(texto) => { setSesion(null); setAviso(null); setMensaje(texto); }} />;
     if (error) return <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>;

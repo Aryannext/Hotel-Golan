@@ -6,7 +6,7 @@ Sistema de recepción para un hotel pequeño de 12 habitaciones en Florencia (Ca
 
 ## Qué hace (primera entrega)
 - **Recepción:** recibir y entregar el turno con conteo; registrar entradas (asistente de 3 pasos con autorización de datos); cobros en efectivo, Nequi o Bancolombia; consumos de nevera, llave y recargo de aseo; extender la estadía (regla de las 4:00 p. m.); dar salida solo con la cuenta en $0; desistimiento y devolución; revisar, limpiar o mandar a mantenimiento las habitaciones; salidas de dinero de la caja.
-- **Administración:** confirmar transferencias con un toque desde el celular; anular cobros o salidas con motivo (sin borrar nada); consultar el historial de turnos, sus movimientos y el resumen diario de 6:30 a. m. a 6:30 a. m. (hora de Colombia); agregar personas, cambiar su PIN, desbloquearlas o desactivarlas, y ver quién hizo cada acción (sin datos de huéspedes).
+- **Administración:** confirmar transferencias con un toque desde el celular; anular cobros o salidas con motivo (sin borrar nada); consultar el historial de turnos, sus movimientos y el resumen diario de 6:30 a. m. a 6:30 a. m. (hora de Colombia); agregar personas, cambiar su PIN, desbloquearlas o desactivarlas, y ver quién hizo cada acción (sin datos de huéspedes); cambiar tarifas, reglas y productos, que aplican solo a lo nuevo.
 - **Tiempo real:** los cambios llegan a las demás pantallas por Server-Sent Events.
 
 El avance por ticket está en [`.scratch/issues/`](.scratch/issues/README.md).

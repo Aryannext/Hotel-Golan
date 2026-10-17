@@ -1,5 +1,6 @@
 import type { CotizacionExtension, Producto, SalidaTurno, TipoSalida } from './logica.ts';
 import type { RegistroActividad, UsuarioAdmin } from './equipo.ts';
+import type { Reglas, Tarifa, TarifaInput } from './ajustes.ts';
 
 // Cliente de la API. La sesión viaja en la cookie HttpOnly; el navegador la envía sola (same-origin).
 export interface Usuario { id: string; nombre: string; usuario: string; rol: 'RECEPCION' | 'ADMINISTRACION'; activo: boolean }
@@ -113,6 +114,13 @@ export const api = {
   actualizarUsuario: (id: string, cuerpo: { activo?: boolean; pin?: string; desbloquear?: boolean }) => pedir<UsuarioAdmin>('PATCH', `/usuarios/${id}`, cuerpo),
   auditoria: (desplazamiento = 0, entidad = '', limite = 20) =>
     pedir<{ items: RegistroActividad[]; total: number }>('GET', `/auditoria?${new URLSearchParams({ limite: String(limite), desplazamiento: String(desplazamiento), ...(entidad ? { entidad } : {}) })}`),
+  tarifas: () => pedir<{ items: Tarifa[] }>('GET', '/tarifas'),
+  guardarTarifas: (items: TarifaInput[]) => pedir<{ items: Tarifa[] }>('PUT', '/tarifas', { items }),
+  reglas: () => pedir<Reglas>('GET', '/reglas'),
+  guardarReglas: (cambios: Partial<Reglas>) => pedir<Reglas>('PATCH', '/reglas', cambios),
+  productosTodos: () => pedir<{ items: Producto[] }>('GET', '/productos?incluir_inactivos=true'),
+  crearProducto: (p: Omit<Producto, 'id' | 'seccion'> & { seccion?: number }) => pedir<Producto>('POST', '/productos', p),
+  guardarProducto: (id: string, p: Omit<Producto, 'id' | 'seccion'> & { seccion?: number }) => pedir<Producto>('PUT', `/productos/${id}`, p),
   turnoActual: () => pedir<Turno>('GET', '/turnos/actual'),
   recibirTurno: (base_contada: number, motivo_diferencia?: string) =>
     pedir<Turno>('POST', '/turnos/actual/recepcion', motivo_diferencia ? { base_contada, motivo_diferencia } : { base_contada }),
