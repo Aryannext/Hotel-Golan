@@ -40,6 +40,14 @@ async function calcular(tx: Bd, id: string, b: Cuerpo, ahora: Date) {
   return { habitacion: est.habitacion_numero, ...r };
 }
 
+/** Concepto, cantidad y valor unitario del cargo de una extensión. */
+function renglonExtension(r: ReturnType<typeof calcularExtension>): [string, number, number] {
+  if (r.modalidadCobrada === 'POR_HORAS') return [`Extensión: ${r.horas} ${r.horas === 1 ? 'hora' : 'horas'}`, r.horas, r.valor / r.horas];
+  if (r.pasaDeLas4) return ['Extensión: pasa de las 4:00 p. m., noche completa', 1, r.valor];
+  if (r.modalidadCobrada === 'NOCHE') return ['Extensión: otra noche', 1, r.valor];
+  return ['Extensión: tres horas', 1, r.valor];
+}
+
 export function rutasExtensiones(app: FastifyInstance, bd: Bd, ahora: () => Date) {
   const sesion = requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']);
 
@@ -58,11 +66,7 @@ export function rutasExtensiones(app: FastifyInstance, bd: Bd, ahora: () => Date
       const momento = ahora();
       const r = await calcular(tx, id, req.body, momento);
       // Por horas: cantidad × $8.000. Si pasa de las 4:00 p. m., una sola noche reemplaza las horas (RN-04).
-      const [concepto, cantidad, unitario] =
-        r.modalidadCobrada === 'POR_HORAS' ? [`Extensión: ${r.horas} ${r.horas === 1 ? 'hora' : 'horas'}`, r.horas, r.valor / r.horas]
-          : r.pasaDeLas4 ? ['Extensión: pasa de las 4:00 p. m., noche completa', 1, r.valor]
-          : r.modalidadCobrada === 'NOCHE' ? ['Extensión: otra noche', 1, r.valor]
-          : ['Extensión: tres horas', 1, r.valor];
+      const [concepto, cantidad, unitario] = renglonExtension(r);
       await tx.consultar(
         `INSERT INTO cargos (estadia_id, tipo, concepto, cantidad, valor_unitario, valor, creado_por, creado_en)
          VALUES ($1, 'EXTENSION', $2, $3, $4, $5, $6, $7)`, [id, concepto, cantidad, unitario, r.valor, u.id, momento]);

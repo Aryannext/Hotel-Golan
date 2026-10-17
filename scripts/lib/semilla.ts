@@ -59,32 +59,30 @@ export async function sembrar(bd: Bd, pinPrueba: string): Promise<ResumenSemilla
   const pinHash = await hash(pinPrueba);
 
   return bd.transaccion(async (tx) => {
-    const ids: Record<string, string> = {};
-    for (const u of USUARIOS_PRUEBA) {
-      const [fila] = await tx.consultar<{ id: string }>(
-        'INSERT INTO usuarios (nombre, usuario, pin_hash, rol) VALUES ($1, $2, $3, $4) RETURNING id',
-        [u.nombre, u.usuario, pinHash, u.rol],
-      );
-      ids[u.usuario] = fila.id;
-    }
-    for (const [numero, tipo, estado, nota] of HABITACIONES) {
-      await tx.consultar('INSERT INTO habitaciones (numero, tipo, estado, nota) VALUES ($1, $2, $3, $4)', [numero, tipo, estado, nota]);
-    }
-    for (const [tipo, modalidad, personas, valor] of TARIFAS) {
-      await tx.consultar(
-        `INSERT INTO tarifas (tipo_habitacion, modalidad, personas, valor, vigente_desde) VALUES ($1, $2, $3, $4, $5)`,
-        [tipo, modalidad, personas, valor, t('2026-10-01', '00:00')],
-      );
-    }
-    for (const [clave, valor] of REGLAS) {
-      await tx.consultar('INSERT INTO reglas (clave, valor) VALUES ($1, $2)', [clave, valor]);
-    }
-    const producto: Record<string, string> = {};
-    for (const [nombre, grupo, precio] of PRODUCTOS) {
-      const [fila] = await tx.consultar<{ id: string }>(
-        'INSERT INTO productos (nombre, grupo, precio) VALUES ($1, $2, $3) RETURNING id', [nombre, grupo, precio]);
-      producto[nombre] = fila.id;
-    }
+    // Cada tabla del catálogo va en una sola consulta (columna por columna con unnest).
+    const col = <T,>(filas: readonly T[][], i: number) => filas.map((f) => f[i]);
+    const usuarios = await tx.consultar<{ id: string; usuario: string }>(
+      `INSERT INTO usuarios (nombre, usuario, pin_hash, rol)
+       SELECT u.nombre, u.usuario, $3, u.rol FROM unnest($1::text[], $2::text[], $4::text[]) AS u(nombre, usuario, rol)
+       RETURNING id, usuario`,
+      [USUARIOS_PRUEBA.map((u) => u.nombre), USUARIOS_PRUEBA.map((u) => u.usuario), pinHash, USUARIOS_PRUEBA.map((u) => u.rol)],
+    );
+    const ids: Record<string, string> = Object.fromEntries(usuarios.map((u) => [u.usuario, u.id]));
+    await tx.consultar(
+      'INSERT INTO habitaciones (numero, tipo, estado, nota) SELECT * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[])',
+      [col(HABITACIONES, 0), col(HABITACIONES, 1), col(HABITACIONES, 2), col(HABITACIONES, 3)],
+    );
+    await tx.consultar(
+      `INSERT INTO tarifas (tipo_habitacion, modalidad, personas, valor, vigente_desde)
+       SELECT t.*, $5 FROM unnest($1::text[], $2::text[], $3::int[], $4::int[]) AS t`,
+      [col(TARIFAS, 0), col(TARIFAS, 1), col(TARIFAS, 2), col(TARIFAS, 3), t('2026-10-01', '00:00')],
+    );
+    await tx.consultar('INSERT INTO reglas (clave, valor) SELECT * FROM unnest($1::text[], $2::int[])', [col(REGLAS, 0), col(REGLAS, 1)]);
+    const productos = await tx.consultar<{ id: string; nombre: string }>(
+      'INSERT INTO productos (nombre, grupo, precio) SELECT * FROM unnest($1::text[], $2::text[], $3::int[]) RETURNING id, nombre',
+      [col(PRODUCTOS, 0), col(PRODUCTOS, 1), col(PRODUCTOS, 2)],
+    );
+    const producto: Record<string, string> = Object.fromEntries(productos.map((p) => [p.nombre, p.id]));
 
     // Turno de noche abierto: recibió $208.500 (ejemplo real del relevo, HG-LEV-001 §6.1).
     const [turno] = await tx.consultar<{ id: string }>(

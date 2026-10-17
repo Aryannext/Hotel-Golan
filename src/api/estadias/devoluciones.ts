@@ -10,6 +10,7 @@ import { ErrorApi, sinPermiso } from '../comun/errores.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
 import { turnoAbiertoId } from '../caja/turnos.ts';
 import { estadiaActiva } from './cargos.ts';
+import { publicarEventos } from '../comun/eventos.ts';
 
 interface Cuerpo { motivo: 'SOLO_MIRO' | 'YA_USO'; medio: 'EFECTIVO' | 'TRANSFERENCIA' }
 
@@ -72,9 +73,7 @@ export function rutasDevoluciones(app: FastifyInstance, bd: Bd, ahora: () => Dat
         ['habitacion.actualizada', { numero: est.habitacion_numero, estado: 'POR_REVISAR' }],
       ];
       if (movimientoId) eventos.push(['caja.movimiento', { entidad_id: movimientoId, valor, habitacion_numero: est.habitacion_numero }]);
-      for (const [tipo, payload] of eventos) {
-        await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
-      }
+      await publicarEventos(tx, eventos, momento);
       return {
         estado: 201,
         cuerpo: {

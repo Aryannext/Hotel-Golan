@@ -36,7 +36,7 @@ export function contarEstados(items: Array<{ estado: string }>) {
 }
 
 /** Fecha de hoy en Bogotá (UTC−5), AAAA-MM-DD. */
-export const hoyBogota = (ahora = Date.now()) => new Date(ahora - 5 * 3600_000).toISOString().slice(0, 10);
+export const hoyBogota = (ahora = Date.now()) => new Date(ahora - 5 * 3_600_000).toISOString().slice(0, 10);
 
 /** Dos iniciales para el avatar: «Recepción Prueba 2» → «RP». */
 export const iniciales = (nombre: string) =>

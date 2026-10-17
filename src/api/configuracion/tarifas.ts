@@ -50,13 +50,13 @@ export function rutasTarifas(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     }
     const momento = ahora();
     await bd.transaccion(async (tx) => {
-      for (const t of items) {
-        // Dos cambios en el mismo instante quedan como uno solo (el último).
-        await tx.consultar(
-          `INSERT INTO tarifas (tipo_habitacion, modalidad, personas, valor, vigente_desde) VALUES ($1, $2, $3, $4, $5)
-           ON CONFLICT (tipo_habitacion, modalidad, personas, vigente_desde) DO UPDATE SET valor = EXCLUDED.valor`,
-          [t.tipo_habitacion, t.modalidad, t.personas, t.valor, momento]);
-      }
+      // Dos cambios en el mismo instante quedan como uno solo (el último). Las repetidas ya se rechazaron arriba.
+      await tx.consultar(
+        `INSERT INTO tarifas (tipo_habitacion, modalidad, personas, valor, vigente_desde)
+         SELECT t.tipo, t.modalidad, t.personas, t.valor, $5
+           FROM unnest($1::text[], $2::text[], $3::int[], $4::int[]) AS t(tipo, modalidad, personas, valor)
+         ON CONFLICT (tipo_habitacion, modalidad, personas, vigente_desde) DO UPDATE SET valor = EXCLUDED.valor`,
+        [items.map((t) => t.tipo_habitacion), items.map((t) => t.modalidad), items.map((t) => t.personas), items.map((t) => t.valor), momento]);
       await auditar(tx, {
         usuarioId: req.usuario!.id, accion: 'ACTUALIZAR', entidad: 'tarifas', entidadId: aBogota(momento), ocurrido: momento,
         detalle: Object.fromEntries(items.map((t) => [combinacion(t), String(t.valor)])),

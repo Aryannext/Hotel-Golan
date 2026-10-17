@@ -9,6 +9,7 @@ import { finProgramadoTurno } from '../reglas/reglas.ts';
 import { regla } from '../estadias/cotizaciones.ts';
 import { leerPagos } from '../cobros/pagos.ts';
 import { leerMovimientos } from './movimientos.ts';
+import { publicarEventos } from '../comun/eventos.ts';
 
 type TipoTurno = 'DIA' | 'NOCHE';
 interface FilaTurno {
@@ -155,9 +156,7 @@ export function rutasTurnos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
       if (diferencia !== 0) {
         eventos.push(['turno.diferencia', { turno_id: t.id, momento: 'ENTREGA', esperado, contado, diferencia, entregado_por: u.usuario }]);
       }
-      for (const [tipo, payload] of eventos) {
-        await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
-      }
+      await publicarEventos(tx, eventos, momento);
       await cerrarSesion(tx, momento, u);
       return t.id;
     });

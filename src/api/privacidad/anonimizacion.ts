@@ -41,6 +41,6 @@ export function programarAnonimizacion(bd: Bd, ahora: () => Date, o: {
     finally { corriendo = false; }
   };
   void correr();
-  const id = setInterval(() => void correr(), o.cadaMs ?? 3600_000);
+  const id = setInterval(() => void correr(), o.cadaMs ?? 3_600_000);
   return () => clearInterval(id);
 }

@@ -14,7 +14,7 @@ export class ErrorRegla extends Error {
   }
 }
 
-const HORA_MS = 3600_000;
+const HORA_MS = 3_600_000;
 const DIA_MS = 24 * HORA_MS;
 const DESFASE_MS = 5 * HORA_MS;           // Bogotá = UTC−5
 const MADRUGADA_HASTA_MIN = 6 * 60;       // hasta las 6:00 a. m. → sale a las 12 m. del mismo día
