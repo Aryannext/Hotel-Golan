@@ -1,0 +1,78 @@
+// Lavandería para externos (TICKET-24; FR-27, RN-22): se anota solo el nombre; paga de una vez o al reclamar (T4-4).
+import { useEffect, useState } from 'preact/hooks';
+import { api, ErrorApi } from '../api.ts';
+import { pesos, resumenSeleccion, textoMedio, type Producto } from '../logica.ts';
+import { SelectorProductos } from './SelectorProductos.tsx';
+import { Ico } from './Ico.tsx';
+
+type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
+type Cuando = 'RECLAMAR' | Medio;
+const OPCIONES: Array<[Cuando, string]> = [['RECLAMAR', 'Paga al reclamar'], ['EFECTIVO', 'Ya, en efectivo'], ['NEQUI', `Ya, por ${textoMedio('NEQUI')}`], ['BANCOLOMBIA', `Ya, por ${textoMedio('BANCOLOMBIA')}`]];
+
+export function LavanderiaExterna({ alCerrar, alRegistrar }: { alCerrar: () => void; alRegistrar: (texto: string) => void }) {
+  const [prendas, setPrendas] = useState<Producto[]>([]);
+  const [cantidades, setCantidades] = useState<Record<string, number>>({});
+  const [nombre, setNombre] = useState('');
+  const [cuando, setCuando] = useState<Cuando>('RECLAMAR');
+  const [verError, setVerError] = useState(false);
+  const [error, setError] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    api.productos().then((r) => setPrendas(r.items.filter((p) => p.grupo === 'LAVANDERIA'))).catch((e: Error) => setError(e.message));
+    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
+    document.addEventListener('keydown', escape);
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', escape); document.body.style.overflow = ''; };
+  }, []);
+
+  const sumar = (pid: string, paso: number) => setCantidades({ ...cantidades, [pid]: Math.max(0, Math.min(50, (cantidades[pid] ?? 0) + paso)) });
+  const sel = resumenSeleccion(prendas, cantidades);
+  const nombreValido = nombre.trim().length >= 2;
+
+  async function registrar() {
+    setVerError(true);
+    if (!nombreValido || !sel.items.length) return;
+    setEnviando(true);
+    setError('');
+    try {
+      const items = sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad }));
+      await api.lavanderiaExterna(nombre.trim(), items, cuando === 'RECLAMAR' ? undefined : { medio: cuando });
+      const pago = cuando === 'RECLAMAR' ? 'Paga al reclamar.' : `Pagó ${pesos(sel.total)} por adelantado.`;
+      alRegistrar(`Lavandería de ${nombre.trim()} recibida (${pesos(sel.total)}). ${pago}`);
+    } catch (e) {
+      setError(e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo.');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div class="capa-panel">
+      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
+      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
+        <div class="panel__cab">
+          <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
+          <div class="titulos"><h2 id="panel-titulo">Lavandería de afuera</h2><p>Para alguien que no está hospedado. Solo se anota el nombre.</p></div>
+        </div>
+        <div class="panel__cuerpo">
+          <div class="campo"><label htmlFor="externo-nombre">Nombre de quien trae la ropa</label>
+            <input id="externo-nombre" autocomplete="off" maxLength={120} value={nombre} aria-invalid={verError && !nombreValido}
+              onInput={(e) => setNombre((e.target as HTMLInputElement).value)} />
+            {verError && !nombreValido && <span class="campo__error">Escriba el nombre (mínimo 2 letras).</span>}</div>
+          <SelectorProductos catalogo={prendas} cantidades={cantidades} sel={sel} sumar={sumar} />
+          {sel.items.length > 0 && <section class="tarjeta"><div class="tarjeta__cab"><h3>¿Cuándo paga?</h3></div>
+            <div class="segmentado segmentado--columna">{OPCIONES.map(([v, t]) =>
+              <button key={v} type="button" class="opcion" aria-pressed={cuando === v} onClick={() => setCuando(v)}>{t}</button>)}</div>
+            <p class="ayuda">{cuando === 'RECLAMAR' ? 'Sin pago no se le entrega la ropa, salvo que usted lo autorice.' : 'Una transferencia queda «por confirmar» hasta que la administración revise.'}</p>
+          </section>}
+          {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
+        </div>
+        <div class="panel__pie">
+          <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={!sel.items.length || enviando} onClick={registrar}>
+            <Ico id="lavanderia" clase="ico--s" />{sel.items.length ? `Recibir ropa · ${pesos(sel.total)}` : 'Elija las prendas'}</button>
+        </div>
+      </dialog>
+    </div>
+  );
+}

@@ -1,7 +1,9 @@
 // TICKET-23 · lavandería en la PWA: cuánto falta del pedido y textos de la lista y la entrega.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { faltaDelPedido, quienPidio, textoEntrega } from './lavanderia.ts';
+import { faltaDelPedido, faltaParaEntregar, quienPidio, textoEntrega } from './lavanderia.ts';
+import { origenPago } from './ventas.ts';
+import { lineasDelTurno } from './logica.ts';
 import { tituloFicha } from './presentacion.ts';
 
 describe('lo que falta por pagar del pedido', () => {
@@ -26,5 +28,22 @@ describe('textos', () => {
   });
   it('la ficha tiene la vista «Recibir lavandería»', () => {
     assert.equal(tituloFicha('lavanderia', '205'), 'Recibir lavandería');
+  });
+});
+
+describe('TICKET-24 · externos', () => {
+  const base = { id: 'p1', estadia_id: null, habitacion_numero: null, cliente_nombre: 'Cliente Prueba', detalle: 'Cobija × 1', total: 5000, estado: 'RECIBIDO',
+    registrado_por: 'recepcion2', registrado_en: '2026-10-13T05:00:00-05:00', entregado_por: null, entregado_en: null, sin_pago_autorizado_por: null };
+  it('lo que falta para entregar: el externo usa lo que debe el pedido; el huésped, su cuenta', () => {
+    assert.equal(faltaParaEntregar({ ...base, por_cobrar: 5000 }, null), 5000);
+    assert.equal(faltaParaEntregar({ ...base, por_cobrar: 0 }, null), 0);
+    assert.equal(faltaParaEntregar({ ...base, estadia_id: 'e1', habitacion_numero: '205', cliente_nombre: null, por_cobrar: null }, 2000), 2000);
+    assert.equal(faltaParaEntregar({ ...base, estadia_id: 'e1', habitacion_numero: '205', cliente_nombre: null, por_cobrar: null }, null), null);
+  });
+  it('el cobro de un externo se ve como lavandería con su nombre', () => {
+    const p = { id: 'g1', habitacion_numero: null, venta_detalle: null, lavanderia_cliente: 'Cliente Prueba', medio: 'NEQUI', valor: 5000, estado: 'POR_VERIFICAR',
+      registrado_en: '2026-10-13T05:10:00-05:00', registrado_por: 'recepcion2', anulado: false };
+    assert.equal(origenPago(p), 'Lavandería · Cliente Prueba');
+    assert.equal(lineasDelTurno([p], [])[0].concepto, 'Lavandería · Cliente Prueba · Nequi');
   });
 });

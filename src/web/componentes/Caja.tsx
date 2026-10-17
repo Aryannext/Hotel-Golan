@@ -6,6 +6,8 @@ import { horaBogota, lineasDelTurno, nombreTurno, pesos, puedeAnular, type Linea
 import { SalidaDinero } from './SalidaDinero.tsx';
 import { VentaContado } from './VentaContado.tsx';
 import { EntregarLavanderia } from './EntregarLavanderia.tsx';
+import { LavanderiaExterna } from './LavanderiaExterna.tsx';
+import { CobrarDeudaLavanderia } from './CobrarDeudaLavanderia.tsx';
 import { quienPidio, type PedidoLavanderia } from '../lavanderia.ts';
 import { EntregarTurno } from './EntregarTurno.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
@@ -25,6 +27,9 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
   const [vendiendo, setVendiendo] = useState(false);
   const [lavanderia, setLavanderia] = useState<PedidoLavanderia[]>([]);
   const [entregandoRopa, setEntregandoRopa] = useState<PedidoLavanderia | null>(null);
+  const [recibiendoExterno, setRecibiendoExterno] = useState(false);
+  const [deudas, setDeudas] = useState<PedidoLavanderia[]>([]);
+  const [cobrandoDeuda, setCobrandoDeuda] = useState<PedidoLavanderia | null>(null);
   const [entregando, setEntregando] = useState(false);
   const [anulando, setAnulando] = useState<QueAnular | null>(null);
   const [propia, setPropia] = useState(0);
@@ -33,9 +38,10 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
     api.turnoActual().then(async (t) => {
       setTurno(t);
       setError('');
-      const [p, m, l] = await Promise.all([api.pagosDelTurno(t.id), api.salidasDelTurno(t.id), api.lavanderiaPorEntregar()]);
+      const [p, m, l, d] = await Promise.all([api.pagosDelTurno(t.id), api.salidasDelTurno(t.id), api.lavanderiaPorEntregar(), api.deudasLavanderia()]);
       setLineas(lineasDelTurno(p.items, m.items));
       setLavanderia(l.items);
+      setDeudas(d.items);
     }).catch((e) =>
       setError(e instanceof ErrorApi && e.estado === 404 ? 'No hay un turno activo en este momento.' : e.message));
   }, [recarga, propia]);
@@ -65,8 +71,19 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
         {!porRecibir && <div class="caja-grande__botones">
           <button type="button" class="btn btn--secundario btn--l" onClick={() => setVendiendo(true)}><Ico id="vitrina" clase="ico--s" />Venta de contado</button>
           <button type="button" class="btn btn--secundario btn--l" onClick={() => setSaliendo(true)}><Ico id="baja" clase="ico--s" />Salió plata</button>
+          <button type="button" class="btn btn--secundario btn--l" onClick={() => setRecibiendoExterno(true)}><Ico id="lavanderia" clase="ico--s" />Lavandería de afuera</button>
         </div>}
       </section>
+
+      {deudas.length > 0 && <section class="tarjeta"><div class="tarjeta__cab"><h2><Ico id="alerta" clase="ico--s" />Deudas de lavandería</h2></div>
+        <p class="ayuda">Personas de afuera que se llevaron la ropa sin pagar, con la autorización de quien entregó.</p>
+        {deudas.map((p) => <div class="mov" key={p.id}>
+          <div class="mov__txt"><div class="mov__titulo">{quienPidio(p)} · {p.detalle}</div>
+            <div class="mov__detalle">Autorizó {p.sin_pago_autorizado_por}</div></div>
+          <div class="mov__der"><span class="mov__valor negativo">{pesos(p.por_cobrar ?? 0)}</span>
+            {!porRecibir && <button type="button" class="btn btn--secundario btn--mini" onClick={() => setCobrandoDeuda(p)}>Cobrar</button>}</div>
+        </div>)}
+      </section>}
 
       {!porRecibir && lavanderia.length > 0 && <section class="tarjeta"><div class="tarjeta__cab"><h2><Ico id="lavanderia" clase="ico--s" />Lavandería por entregar</h2></div>
         {lavanderia.map((p) => <div class="mov" key={p.id}>
@@ -97,6 +114,10 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
         <p class="ayuda" style="text-align:center">Entregue al terminar su horario, cuando llegue quien lo recibe.</p>
       </>}
 
+      {recibiendoExterno && <LavanderiaExterna alCerrar={() => setRecibiendoExterno(false)}
+        alRegistrar={(texto) => { setRecibiendoExterno(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
+      {cobrandoDeuda && <CobrarDeudaLavanderia pedido={cobrandoDeuda} alCerrar={() => setCobrandoDeuda(null)}
+        alCobrar={(texto) => { setCobrandoDeuda(null); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
       {entregandoRopa && <EntregarLavanderia pedido={entregandoRopa} alCerrar={() => setEntregandoRopa(null)}
         alEntregar={(texto) => { setEntregandoRopa(null); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
       {vendiendo && <VentaContado alCerrar={() => setVendiendo(false)}

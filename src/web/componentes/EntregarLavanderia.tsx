@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi } from '../api.ts';
 import { pesos, textoMedio } from '../logica.ts';
-import { faltaDelPedido, quienPidio, textoEntrega, type PedidoLavanderia } from '../lavanderia.ts';
+import { faltaParaEntregar, quienPidio, textoEntrega, type PedidoLavanderia } from '../lavanderia.ts';
 import { Ico } from './Ico.tsx';
 
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
@@ -25,7 +25,7 @@ export function EntregarLavanderia({ pedido, alCerrar, alEntregar }: { pedido: P
     return () => { document.removeEventListener('keydown', escape); document.body.style.overflow = ''; };
   }, []);
 
-  const falta = saldo === null ? null : faltaDelPedido(pedido.total, saldo);
+  const falta = faltaParaEntregar(pedido, saldo);
 
   async function entregar(sinPago: boolean) {
     setEnviando(true);
@@ -59,7 +59,7 @@ export function EntregarLavanderia({ pedido, alCerrar, alEntregar }: { pedido: P
         </div>
         <div class="panel__cuerpo">
           {falta === null && !error && <p><output>Consultando la cuenta…</output></p>}
-          {falta === 0 && <div class="saldo saldo--ok"><div><b>Ya está pagado</b><p>La cuenta de la habitación no debe este lavado.</p></div><strong>{pesos(0)}</strong></div>}
+          {falta === 0 && <div class="saldo saldo--ok"><div><b>Ya está pagado</b><p>{pedido.estadia_id ? 'La cuenta de la habitación no debe este lavado.' : 'Lo pagó por adelantado.'}</p></div><strong>{pesos(0)}</strong></div>}
           {!!falta && <>
             <div class="saldo saldo--aviso"><div><b>Falta por pagar</b><p>Sin pago no se entrega la ropa.</p></div><strong>{pesos(falta)}</strong></div>
             {!autorizo && <section class="tarjeta"><div class="tarjeta__cab"><h3>¿Cómo paga?</h3></div>
@@ -69,7 +69,7 @@ export function EntregarLavanderia({ pedido, alCerrar, alEntregar }: { pedido: P
             </section>}
             <label class="casilla casilla--aviso">
               <input type="checkbox" checked={autorizo} onChange={(e) => setAutorizo((e.target as HTMLInputElement).checked)} />
-              <span>No paga ahora: <b>yo autorizo entregar la ropa sin pago</b> y asumo el riesgo. La deuda queda en la cuenta de la habitación.</span></label>
+              <span>No paga ahora: <b>yo autorizo entregar la ropa sin pago</b> y asumo el riesgo. {pedido.estadia_id ? 'La deuda queda en la cuenta de la habitación.' : 'La deuda queda a su nombre.'}</span></label>
           </>}
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
         </div>

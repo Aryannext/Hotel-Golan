@@ -207,7 +207,7 @@ export type TipoSalida = typeof TIPOS_SALIDA[number]['tipo'];
 const TEXTO_SALIDA: Record<string, string> = { ...Object.fromEntries(TIPOS_SALIDA.map((t) => [t.tipo, t.texto])), DEVOLUCION: 'Devolución a un cliente' };
 
 /** Cobro del turno: de una habitación o de una venta de contado (`venta_detalle`, TICKET-22). */
-export interface PagoTurno { id: string; habitacion_numero: string | null; venta_detalle?: string | null; medio: string; valor: number; estado: string; registrado_en: string; registrado_por: string; anulado: boolean }
+export interface PagoTurno { id: string; habitacion_numero: string | null; venta_detalle?: string | null; lavanderia_cliente?: string | null; medio: string; valor: number; estado: string; registrado_en: string; registrado_por: string; anulado: boolean }
 export interface SalidaTurno { id: string; tipo: string; detalle: string; valor: number; habitacion_numero: string | null; registrado_en: string; registrado_por: string; anulado: boolean }
 export interface LineaTurno {
   id: string; hora: string; concepto: string; valor: number; enCaja: boolean; estado: string; por: string; anulado: boolean;
@@ -219,9 +219,14 @@ function conceptoSalida(m: SalidaTurno): string {
   return `${TEXTO_SALIDA[m.tipo] ?? m.tipo} · ${m.detalle}${hab}`;
 }
 
+function origenCobro(p: PagoTurno): string {
+  if (p.habitacion_numero) return `Cobro · Hab. ${p.habitacion_numero}`;
+  if (p.lavanderia_cliente) return `Lavandería · ${p.lavanderia_cliente}`;
+  return `Venta de contado · ${p.venta_detalle ?? ''}`;
+}
+
 function conceptoCobro(p: PagoTurno): string {
-  const origen = p.habitacion_numero ? `Cobro · Hab. ${p.habitacion_numero}` : `Venta de contado · ${p.venta_detalle ?? ''}`;
-  return `${origen} · ${textoMedio(p.medio)}`;
+  return `${origenCobro(p)} · ${textoMedio(p.medio)}`;
 }
 
 /** Cobros (suman) y salidas (restan) del turno, por hora. Solo el efectivo y las salidas mueven la caja. */

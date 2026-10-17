@@ -35,7 +35,8 @@ export interface ResumenDia {
 
 export interface Cargo { id: string; tipo: string; concepto: string; cantidad: number; valor_unitario: number; valor: number; creado_por: string; creado_en: string; anulado: boolean }
 export interface Pago {
-  id: string; estadia_id: string | null; habitacion_numero: string | null; venta_id: string | null; venta_detalle: string | null; turno_id: string; medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA'; valor: number;
+  id: string; estadia_id: string | null; habitacion_numero: string | null; venta_id: string | null; venta_detalle: string | null;
+  pedido_lavanderia_id: string | null; lavanderia_cliente: string | null; turno_id: string; medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA'; valor: number;
   estado: string; registrado_por: string; registrado_en: string; verificado_por: string | null; verificado_en: string | null; anulado: boolean;
 }
 export interface Estadia {
@@ -125,6 +126,11 @@ export const api = {
   pedirLavanderia: (estadiaId: string, items: Array<{ producto_id: string; cantidad: number }>) =>
     pedir<PedidoLavanderia>('POST', `/estadias/${estadiaId}/lavanderia`, { items }),
   lavanderiaPorEntregar: () => pedir<{ items: PedidoLavanderia[] }>('GET', '/lavanderia?estado=RECIBIDO'),
+  // TICKET-24 · externos: solo el nombre; pagan de una vez o al reclamar.
+  lavanderiaExterna: (cliente_nombre: string, items: Array<{ producto_id: string; cantidad: number }>, cobro?: { medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' }) =>
+    pedir<PedidoLavanderia>('POST', '/lavanderia', { cliente_nombre, items, ...(cobro ? { cobro } : {}) }),
+  deudasLavanderia: () => pedir<{ items: PedidoLavanderia[] }>('GET', '/lavanderia/deudas'),
+  cobrarLavanderia: (id: string, medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA') => pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/cobro`, { medio }),
   entregarLavanderia: (id: string, cuerpo: { cobro?: { medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' }; sin_pago_autorizado?: boolean }) =>
     pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/entrega`, cuerpo),
   // TICKET-22 · venta de contado (sin habitación).
