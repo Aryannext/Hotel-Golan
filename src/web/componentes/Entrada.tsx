@@ -9,12 +9,13 @@ import { PasoServicio, SERVICIO_INICIAL, type Servicio } from './PasoServicio.ts
 import { Ico } from './Ico.tsx';
 import { entradaIso, errorTardio } from '../tardio.ts';
 import { fechaReporte } from '../reportes.ts';
+import type { Reglas, Tarifa } from '../ajustes.ts';
 
 const PASOS = ['Datos del huésped', 'Habitación y servicio', 'Confirmar'];
 const FORMAS: Array<[FormaPago, string]> = [['EFECTIVO', 'Efectivo'], ['NEQUI', 'Nequi'], ['BANCOLOMBIA', 'Bancolombia'], ['AL_SALIR', 'Paga al salir']];
 
-export function Entrada({ habitacion, alVolver, alRegistrar }: {
-  habitacion: Habitacion; alVolver: () => void; alRegistrar: (e: Estadia) => void;
+export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
+  habitacion: Habitacion; reglas: Reglas | null; alVolver: () => void; alRegistrar: (e: Estadia) => void;
 }) {
   const [paso, setPaso] = useState(1);
   const [h, setH] = useState<FormHuesped>(HUESPED_VACIO);
@@ -28,6 +29,9 @@ export function Entrada({ habitacion, alVolver, alRegistrar }: {
   const [error, setError] = useState('');
   // Una clave por asistente: un doble toque o un reintento no duplican la entrada (Idempotency-Key).
   const [clave] = useState(() => nuevaClave());
+  // Tarifas vigentes para la ayuda de personas; si no cargan, la ayuda va sin importe.
+  const [tarifas, setTarifas] = useState<Tarifa[] | null>(null);
+  useEffect(() => { api.tarifas().then((r) => setTarifas(r.items)).catch(() => undefined); }, []);
 
   useEffect(() => {
     let vigente = true;
@@ -131,7 +135,7 @@ export function Entrada({ habitacion, alVolver, alRegistrar }: {
           {err('autorizo') && <span class="campo__error">{err('autorizo')}</span>}
         </section>}
 
-        {paso === 2 && <PasoServicio habitacion={habitacion} servicio={servicio} alCambiar={setServicio} cot={cot} error={errorCot} />}
+        {paso === 2 && <PasoServicio habitacion={habitacion} servicio={servicio} alCambiar={setServicio} cot={cot} error={errorCot} reglas={reglas} tarifas={tarifas} />}
 
         {paso === 3 && cot && <div class="rejilla rejilla--2">
           <section class="tarjeta tarjeta--crema"><div class="tarjeta__cab"><h2>Resumen</h2></div>

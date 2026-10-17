@@ -106,7 +106,7 @@ export function App() {
     if (vista === 'caja') return <Caja recarga={recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={(texto) => setAviso({ tono: 'exito', texto })}
       alEntregar={(texto) => { setSesion(null); setAviso(null); setMensaje(texto); }} />;
     if (error) return <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>;
-    if (cotizando) return <Entrada habitacion={cotizando} alVolver={() => setCotizando(null)} alRegistrar={(est) => {
+    if (cotizando) return <Entrada habitacion={cotizando} reglas={reglas} alVolver={() => setCotizando(null)} alRegistrar={(est) => {
       setCotizando(null);
       setRecarga((n) => n + 1);
       setAviso({ tono: 'exito', texto: `Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.` });
@@ -145,7 +145,7 @@ export function App() {
                 <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
               </div>}
               {vistaActual()}
-              {ficha && <Ficha habitacion={ficha} recarga={recarga} esAdmin={esAdmin} alCerrar={() => setFicha(null)} alCambiar={() => setRecarga((n) => n + 1)}
+              {ficha && <Ficha habitacion={ficha} recarga={recarga} reglas={reglas} esAdmin={esAdmin} alCerrar={() => setFicha(null)} alCambiar={() => setRecarga((n) => n + 1)}
                 alSalir={(texto) => { setFicha(null); setRecarga((n) => n + 1); setAviso({ tono: 'exito', texto }); }} />}
               {revisando && <PanelEstado habitacion={revisando} alCerrar={() => setRevisando(null)}
                 alCambiar={(texto) => { setRevisando(null); setRecarga((n) => n + 1); setAviso({ tono: texto.includes('Recuerde') ? 'info' : 'exito', texto }); }} />}

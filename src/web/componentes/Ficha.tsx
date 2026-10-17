@@ -9,13 +9,15 @@ import {
 import { Ico } from './Ico.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { textoTardio } from '../tardio.ts';
+import type { Reglas } from '../ajustes.ts';
+import { ayudaHoras } from '../textosConfig.ts';
 
 type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion';
 type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 
-export function Ficha({ habitacion, recarga, esAdmin = false, alCerrar, alCambiar, alSalir }: {
-  habitacion: Habitacion; recarga: number; esAdmin?: boolean; alCerrar: () => void; alCambiar: () => void; alSalir: (texto: string) => void;
+export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, alCambiar, alSalir }: {
+  habitacion: Habitacion; recarga: number; reglas: Pick<Reglas, 'valor_hora'> | null; esAdmin?: boolean; alCerrar: () => void; alCambiar: () => void; alSalir: (texto: string) => void;
 }) {
   const id = habitacion.estadia_activa!.id;
   const [est, setEst] = useState<Estadia | null>(null);
@@ -207,7 +209,7 @@ export function Ficha({ habitacion, recarga, esAdmin = false, alCerrar, alCambia
             <output>{horas} {horas === 1 ? 'hora' : 'horas'}</output>
             <button type="button" aria-label="Sumar hora" disabled={horas >= 12} onClick={() => setHoras(horas + 1)}>+</button>
           </div>
-          <span class="ayuda">$8.000 por hora empezada, solo para extender. Sin descuento.</span></div>}
+          <span class="ayuda">{ayudaHoras(reglas)}</span></div>}
       </section>
       {r?.aviso && <div class="saldo saldo--aviso"><div><b>{r.aviso}</b><p>La noche completa reemplaza las horas.</p></div></div>}
       {cotExt && <section class="tarjeta tarjeta--crema" aria-live="polite">

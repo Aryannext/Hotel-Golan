@@ -1,7 +1,8 @@
 // Revisar, limpiar o reparar una habitación (TICKET-08, FR-02): solo las transiciones permitidas, como en el prototipo.
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion } from '../api.ts';
-import { accionesEstado, pesos, textoEstado, type AccionEstado } from '../logica.ts';
+import { accionesEstado, textoEstado, type AccionEstado, type Producto } from '../logica.ts';
+import { avisoLimpiezaEspecial, ayudaRecargoAseo } from '../textosConfig.ts';
 import { Ico } from './Ico.tsx';
 
 const AYUDA: Record<string, string> = {
@@ -15,6 +16,9 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
   const [nota, setNota] = useState('');
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
+  // El recargo de aseo extremo es un producto del catálogo (Ajustes); sin catálogo, el texto va sin importe.
+  const [productos, setProductos] = useState<Producto[] | null>(null);
+  useEffect(() => { api.productos().then((r) => setProductos(r.items)).catch(() => undefined); }, []);
 
   useEffect(() => {
     const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
@@ -30,7 +34,7 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
     try {
       const r = await api.cambiarEstado(h.numero, { estado: a.estado, ...(a.especial ? { limpieza_especial: true } : {}), ...(a.pideNota && nota.trim() ? { nota: nota.trim() } : {}) });
       alCambiar(a.especial
-        ? `Habitación ${h.numero} en limpieza especial. Recuerde: el recargo de ${pesos(20000)} se le entrega a quien limpió (salida de caja).`
+        ? avisoLimpiezaEspecial(h.numero, productos)
         : `Habitación ${h.numero}: ${textoEstado(r.estado).toLowerCase()}.`);
     } catch (e) {
       setError(e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo.');
@@ -63,7 +67,7 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
               {acciones.map((a) => <>
                 <button type="button" class={`btn ${acciones.length === 1 ? 'btn--primario' : 'btn--secundario'} btn--l`} disabled={enviando} onClick={() => aplicar(a)}>
                   <Ico id={a.icono} clase="ico--s" />{a.texto}</button>
-                {a.especial && <p class="ayuda">Si fue extremo (vómito, fluidos), al huésped se le cobran {pesos(20000)} y se le entregan a quien hace el aseo.</p>}
+                {a.especial && <p class="ayuda">{ayudaRecargoAseo(productos)}</p>}
               </>)}
             </div>
           </>}
