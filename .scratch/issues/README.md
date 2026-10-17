@@ -22,7 +22,7 @@ Fase 2 del pipeline AI-SDLC (16-10-2026). Aprobados por el usuario. Se trabaja l
 | [TICKET-16](16-avisos.md) | Avisos en pantalla | 05, 08 | **done** |
 | [TICKET-17](17-anonimizar-a-90-dias.md) | Anonimizar los datos de huéspedes a los 90 días | 04 | **done** |
 | [TICKET-18](18-registro-tardio.md) | Registro tardío (contingencia) | 04 | **done** |
-| [TICKET-19](19-desplegar-en-vps.md) | Desplegar el esqueleto en el VPS por la red privada | 01 | ready-for-agent |
+| [TICKET-19](19-desplegar-en-vps.md) | Desplegar el sistema en el VPS por la red privada (actualizado el 17-10-2026, HG-AUD-001 H-05) | 01; revisión del VPS | ready-for-agent |
 
 **Frontera inicial:** TICKET-01. Después de él se pueden trabajar en paralelo 02, 03, 14 y 19.
 
@@ -41,3 +41,16 @@ Especificada en docs/PRD.md v0.4 (RN-19 a RN-23, FR-24 a FR-29) con la tanda 4 d
 
 **En espera:** archivo para el contador (FR-29), hasta hablar con él (T4-7).
 **Frontera:** 20, 23 y 25 pueden empezar ya. Orden propuesto: 20 → 21 → 22 → 23 → 24 → 25.
+
+## Hallazgos de la auditoría de trazabilidad (17-10-2026)
+
+Salen de HG-AUD-001 v0.1. Aprobados por el usuario el 17-10-2026. Los marcados `needs-info` esperan una decisión de la administradora (guía HG-VAL-001).
+
+| Ticket | Título | Bloqueado por | Estado |
+|---|---|---|---|
+| [TICKET-26](26-cambio-de-habitacion.md) | Cambio de habitación (y aviso de ropa en lavandería al dar salida) | — | needs-info |
+| [TICKET-27](27-cobrar-un-dano.md) | Cobrar un daño | — | needs-info |
+| [TICKET-28](28-aviso-de-privacidad.md) | Aviso de privacidad visible en la entrada | — | needs-info |
+| [TICKET-29](29-guia-y-practica.md) | Guía corta de uso y sesión de práctica | 19, 28 | ready-for-agent |
+
+**Orden propuesto:** 19 (cuando el usuario avise) · 26, 27 y 28 apenas responda la administradora · 29 al final.
