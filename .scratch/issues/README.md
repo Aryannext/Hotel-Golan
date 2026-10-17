@@ -25,3 +25,19 @@ Fase 2 del pipeline AI-SDLC (16-10-2026). Aprobados por el usuario. Se trabaja l
 | [TICKET-19](19-desplegar-en-vps.md) | Desplegar el esqueleto en el VPS por la red privada | 01 | ready-for-agent |
 
 **Frontera inicial:** TICKET-01. Después de él se pueden trabajar en paralelo 02, 03, 14 y 19.
+
+## Segunda entrega (vitrina, lavandería y solicitudes de factura)
+
+Especificada en docs/PRD.md v0.4 (RN-19 a RN-23, FR-24 a FR-29) con la tanda 4 de recepción (HG-ACT-001 §10). Aprobada por el usuario el 17-10-2026.
+
+| Ticket | Título | Bloqueado por | Estado |
+|---|---|---|---|
+| [TICKET-20](20-catalogo-completo.md) | Catálogo completo en Ajustes | — | **done** |
+| [TICKET-21](21-surtido-y-existencias.md) | Surtido y existencias | 20 | ready-for-agent |
+| [TICKET-22](22-venta-de-contado.md) | Venta de contado | 21 | ready-for-agent |
+| [TICKET-23](23-lavanderia-huespedes.md) | Lavandería para huéspedes | — | ready-for-agent |
+| [TICKET-24](24-lavanderia-externos.md) | Lavandería para externos | 22, 23 | ready-for-agent |
+| [TICKET-25](25-solicitudes-de-factura.md) | Solicitudes de factura | — | ready-for-agent |
+
+**En espera:** archivo para el contador (FR-29), hasta hablar con él (T4-7).
+**Frontera:** 20, 23 y 25 pueden empezar ya. Orden propuesto: 20 → 21 → 22 → 23 → 24 → 25.

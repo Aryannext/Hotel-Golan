@@ -1,5 +1,5 @@
 // Presentación de la configuración (TICKET-15, FR-22). Sin JSX, se prueba con node --test.
-import { horaBogota, leerPesos, pesos } from './logica.ts';
+import { GRUPOS, horaBogota, leerPesos, pesos } from './logica.ts';
 
 export interface Tarifa { id: string; tipo_habitacion: 'AIRE' | 'VENTILADOR'; modalidad: 'NOCHE' | 'TRES_HORAS'; personas: number; valor: number; vigente_desde: string }
 export type TarifaInput = Pick<Tarifa, 'tipo_habitacion' | 'modalidad' | 'personas' | 'valor'>;
@@ -9,8 +9,8 @@ export interface Reglas {
 }
 export type ClaveRegla = keyof Reglas;
 
-/** La vitrina llega en la segunda entrega (precios y sección 1 de la familiar pendientes): por ahora no se edita. */
-export const GRUPOS_EDITABLES: Array<[string, string]> = [['NEVERA', 'Nevera'], ['LAVANDERIA', 'Lavandería'], ['OTROS', 'Llave, aseo y otros']];
+/** La administración edita todos los grupos, incluidas las dos vitrinas (FR-24, RN-19). */
+export const GRUPOS_EDITABLES = GRUPOS;
 
 /** Pesos escritos por la persona; un signo menos o un texto sin números no es un valor válido. */
 const pesosValidos = (texto: string) => (texto.includes('-') ? null : leerPesos(texto));

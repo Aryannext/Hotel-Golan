@@ -46,8 +46,8 @@ describe('FR-22 — reglas en la PWA', () => {
 });
 
 describe('FR-22 — productos en la PWA', () => {
-  it('en la primera entrega solo se editan nevera, lavandería y otros', () => {
-    assert.deepEqual(GRUPOS_EDITABLES.map(([g]) => g), ['NEVERA', 'LAVANDERIA', 'OTROS']);
+  it('FR-24: la administración edita todos los grupos, incluidas las dos vitrinas', () => {
+    assert.deepEqual(GRUPOS_EDITABLES.map(([g]) => g), ['NEVERA', 'VITRINA_PASABOCAS', 'VITRINA_ASEO', 'LAVANDERIA', 'OTROS']);
   });
 
   it('valida nombre y precio', () => {

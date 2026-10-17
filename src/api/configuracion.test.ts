@@ -136,10 +136,36 @@ describe('FR-22 — Catálogo de productos', () => {
     assert.deepEqual(a.detalle, { precio: '5500' });
   });
 
-  it('un producto de la sección 1 puede ser de la familiar (RN-13)', async () => {
-    const r = await pedir('POST', '/productos', { nombre: 'Champú sobre', grupo: 'VITRINA_ASEO', precio: 1500, seccion: 1, pertenece_a: 'FAMILIAR', activo: true });
+  it('RN-13 (T4-10): la sección 1 de la familiar no va en el sistema; ningún producto es de otro dueño: 400', async () => {
+    const familiar = await pedir('POST', '/productos', { nombre: 'Champú sobre', grupo: 'VITRINA_ASEO', precio: 1500, pertenece_a: 'FAMILIAR', activo: true });
+    assert.equal(familiar.statusCode, 400);
+    const seccion1 = await pedir('POST', '/productos', { nombre: 'Champú sobre', grupo: 'VITRINA_ASEO', precio: 1500, seccion: 1, activo: true });
+    assert.equal(seccion1.statusCode, 400);
+    const [n] = await e.bd.consultar<{ n: number }>(`SELECT count(*)::int AS n FROM productos WHERE nombre = 'Champú sobre'`);
+    assert.equal(n.n, 0);
+  });
+
+  it('FR-24: la administración crea un producto de vitrina sin indicar dueño (queda del hotel) y recepción lo carga a una habitación', async () => {
+    const r = await pedir('POST', '/productos', { nombre: 'Galletas de prueba', grupo: 'VITRINA_PASABOCAS', precio: 2000, activo: true });
     assert.equal(r.statusCode, 201);
-    assert.deepEqual([r.json().seccion, r.json().pertenece_a], [1, 'FAMILIAR']);
+    assert.deepEqual([r.json().grupo, r.json().pertenece_a, r.json().precio], ['VITRINA_PASABOCAS', 'HOTEL', 2000]);
+    const catalogo = (await pedir('GET', '/productos', undefined, recepcion)).json().items as Array<{ id: string }>;
+    assert.ok(catalogo.some((p) => p.id === r.json().id));
+    const cargo = await e.app.inject({
+      method: 'POST', url: `/api/v1/estadias/${await estadia211()}/cargos`,
+      payload: { items: [{ producto_id: r.json().id, cantidad: 2 }] }, headers: { cookie: recepcion },
+    });
+    assert.equal(cargo.statusCode, 201);
+    const nuevo = (cargo.json().cargos as Array<{ concepto: string; tipo: string; valor: number }>).find((c) => c.concepto === 'Galletas de prueba');
+    assert.deepEqual([nuevo?.tipo, nuevo?.valor], ['PRODUCTO', 4000]);
+  });
+
+  it('FR-24: productos de la vitrina de aseo también se crean y se editan', async () => {
+    const r = await pedir('POST', '/productos', { nombre: 'Jabón de prueba', grupo: 'VITRINA_ASEO', precio: 3000, activo: true });
+    assert.equal(r.statusCode, 201);
+    const cambio = await pedir('PUT', `/productos/${r.json().id}`, { nombre: 'Jabón de prueba', grupo: 'VITRINA_ASEO', precio: 3500, activo: true });
+    assert.equal(cambio.statusCode, 200);
+    assert.equal(cambio.json().precio, 3500);
   });
 
   it('nombre repetido en el mismo grupo: 409; precio negativo o grupo desconocido: 400', async () => {
