@@ -41,12 +41,13 @@ function Tarifas({ alGuardar }: { alGuardar: (texto: string) => void }) {
     try {
       await api.guardarTarifas(items);
       await cargar();
-      alGuardar(`Listo: ${items.length === 1 ? 'una tarifa cambiada' : `${items.length} tarifas cambiadas`}. Aplica a las entradas desde ahora; las ya registradas conservan su valor.`);
+      const cuantas = items.length === 1 ? 'una tarifa cambiada' : `${items.length} tarifas cambiadas`;
+      alGuardar(`Listo: ${cuantas}. Aplica a las entradas desde ahora; las ya registradas conservan su valor.`);
     } catch (err) { setError(mensaje(err)); }
     finally { setEnviando(false); }
   }
 
-  if (!tarifas) return <><AvisoError texto={error} />{!error && <p role="status">Cargando tarifas…</p>}</>;
+  if (!tarifas) return <><AvisoError texto={error} />{!error && <p><output>Cargando tarifas…</output></p>}</>;
   return <form class="tarjeta" onSubmit={(ev) => void guardar(ev)}>
     <div class="tarjeta__cab"><h2><Ico id="habitaciones" clase="ico--s" />Tarifas</h2></div>
     <div class="ajustes__rejilla">{tarifas.map((t) => <div class="campo" key={t.id}>
@@ -86,7 +87,7 @@ function ReglasHotel({ alGuardar }: { alGuardar: (texto: string) => void }) {
     finally { setEnviando(false); }
   }
 
-  if (!reglas || !textos) return <><AvisoError texto={error} />{!error && <p role="status">Cargando reglas…</p>}</>;
+  if (!reglas || !textos) return <><AvisoError texto={error} />{!error && <p><output>Cargando reglas…</output></p>}</>;
   return <form class="tarjeta" onSubmit={(ev) => void guardar(ev)}>
     <div class="tarjeta__cab"><h2><Ico id="configuracion" clase="ico--s" />Reglas del hotel</h2></div>
     <div class="ajustes__rejilla">{REGLAS.map((r) => <div class="campo" key={r.clave}>
@@ -207,7 +208,7 @@ function Productos({ alGuardar }: { alGuardar: (texto: string) => void }) {
   useEffect(() => { api.productosTodos().then((r) => setProductos(r.items)).catch((e) => setError(mensaje(e))); }, [recarga]);
   const listo = (texto: string) => { setAgregando(false); setRecarga((n) => n + 1); alGuardar(texto); };
 
-  if (!productos) return <><AvisoError texto={error} />{!error && <p role="status">Cargando productos…</p>}</>;
+  if (!productos) return <><AvisoError texto={error} />{!error && <p><output>Cargando productos…</output></p>}</>;
   return <section class="tarjeta">
     <div class="tarjeta__cab"><h2><Ico id="vitrina" clase="ico--s" />Productos para cobrar</h2>
       {!agregando && <button type="button" class="btn btn--secundario btn--mini" onClick={() => setAgregando(true)}><Ico id="mas" clase="ico--xs" />Agregar</button>}</div>

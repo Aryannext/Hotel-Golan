@@ -1,6 +1,8 @@
 // Ficha de la habitación ocupada (TICKET-06, FR-06, FR-07): cuenta con cargos, pagos y saldo; «Agregar» y «Registrar pago».
 // Es el panel del prototipo (abajo en el celular). Se vuelve a pedir con cada evento en vivo (`recarga`).
+// Cada vista (cuenta, cargos, pago, salida, extender, desistimiento) es un componente aparte; la ficha solo decide cuál mostrar.
 import { useEffect, useState } from 'preact/hooks';
+import { Fragment, type ComponentChildren } from 'preact';
 import { api, ErrorApi, type Estadia, type Habitacion } from '../api.ts';
 import {
   agruparCatalogo, cambioEfectivo, resumenExtension, devolucionPosible, type CotizacionExtension, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
@@ -11,10 +13,178 @@ import { Anular, type QueAnular } from './Anular.tsx';
 import { textoTardio } from '../tardio.ts';
 import type { Reglas } from '../ajustes.ts';
 import { ayudaHoras } from '../textosConfig.ts';
+import { cuantos, pillEstadoPago, textoCambio, textoDesistimiento, textoDevolucion, tituloFicha } from '../presentacion.ts';
 
 type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion';
 type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
+type MotivoDev = 'SOLO_MIRO' | 'YA_USO';
+type MedioDev = 'EFECTIVO' | 'TRANSFERENCIA';
+type Seleccion = ReturnType<typeof resumenSeleccion>;
+
+const MODALIDADES_EXT: Array<[ModExt, string]> = [['NOCHE', 'Otra noche'], ['TRES_HORAS', '3 horas'], ['POR_HORAS', 'Por horas']];
+const MEDIOS: Medio[] = ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'];
+const SIN_CONEXION = 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.';
+const cuando = (iso: string) => `${diaRelativo(iso, hoyBogota())} ${horaBogota(iso)}`;
+
+function Fila({ concepto, valor, total = false }: { concepto: ComponentChildren; valor: number; total?: boolean }) {
+  return <div class={`fila${total ? ' fila--total' : ''}`}><div class="fila__txt"><div class="fila__concepto">{concepto}</div></div><div class="fila__valor">{pesos(valor)}</div></div>;
+}
+
+function Opciones<T extends string>({ opciones, actual, alElegir }: { opciones: Array<[T, string]>; actual: T; alElegir: (v: T) => void }) {
+  return <div class="segmentado">{opciones.map(([v, t]) =>
+    <button key={v} type="button" class="opcion" aria-pressed={actual === v} onClick={() => alElegir(v)}>{t}</button>)}</div>;
+}
+
+function VistaCuenta({ e, esAdmin, numero, ir, alAnular }: {
+  e: Estadia; esAdmin: boolean; numero: string; ir: (s: Sub) => void; alAnular: (q: QueAnular) => void;
+}) {
+  const s = estadoSaldo(e.cuenta);
+  const cantidad = (c: Estadia['cargos'][number]) => (c.cantidad > 1 && c.tipo !== 'ALOJAMIENTO' && c.tipo !== 'DESCUENTO' ? ` × ${c.cantidad}` : '');
+  return <>
+    {e.registro_tardio && <div class="nota"><Ico id="talonario" clase="ico--s" /><p>{textoTardio(e)}</p></div>}
+    <section class="tarjeta"><div class="tarjeta__cab"><h3>Cargos</h3>
+      <button type="button" class="enlace" onClick={() => ir('cargo')}><Ico id="mas" clase="ico--xs" />Agregar</button></div>
+      {e.cargos.filter((c) => !c.anulado).map((c) => <div key={c.id} class="fila"><div class="fila__txt"><div class="fila__concepto">{c.concepto}{cantidad(c)}</div>
+        <div class="fila__detalle">{cuando(c.creado_en)} · {c.creado_por}</div></div><div class="fila__valor">{pesos(c.valor)}</div></div>)}
+      <Fila concepto="Total cargos" valor={e.cuenta.total_cargos} total />
+    </section>
+    <section class="tarjeta"><div class="tarjeta__cab"><h3>Pagos</h3>
+      <button type="button" class="enlace" disabled={e.cuenta.saldo === 0} onClick={() => ir('pago')}><Ico id="mas" clase="ico--xs" />Registrar pago</button></div>
+      {e.pagos.length === 0 ? <p class="ayuda">Sin pagos.</p> : e.pagos.map((p) => <MovPago key={p.id} p={p} esAdmin={esAdmin} numero={numero} alAnular={alAnular} />)}
+    </section>
+    <div class={`saldo saldo--${s.tono}`}><div><b>{s.titulo}</b><p>{s.detalle}</p></div><strong>{pesos(s.valor)}</strong></div>
+    <div class="acciones">
+      <button type="button" class="btn btn--secundario" onClick={() => ir('extender')}><Ico id="reloj" clase="ico--s" />Extender</button>
+      <button type="button" class="btn btn--secundario" onClick={() => ir('devolucion')}><Ico id="devolver" clase="ico--s" />Desiste</button>
+      <button type="button" class="btn btn--secundario" onClick={() => ir('salida')}><Ico id="salida" clase="ico--s" />Dar salida</button>
+    </div>
+  </>;
+}
+
+function MovPago({ p, esAdmin, numero, alAnular }: { p: Estadia['pagos'][number]; esAdmin: boolean; numero: string; alAnular: (q: QueAnular) => void }) {
+  const pill = pillEstadoPago(p.estado, 'Llegó');
+  return <div class={`mov${p.anulado ? ' mov--anulado' : ''}`}>
+    <span class="mov__ico"><Ico id={p.medio === 'EFECTIVO' ? 'efectivo' : 'transferencia'} clase="ico--s" /></span>
+    <div class="mov__txt"><div class="mov__titulo">{textoMedio(p.medio)}</div>
+      <div class="mov__detalle">{cuando(p.registrado_en)} · {p.registrado_por}</div></div>
+    <div class="mov__der"><span class="mov__valor">{pesos(p.valor)}</span>
+      {pill && <span class={`pill ${pill[0]}`}>{pill[1]}</span>}
+      {p.anulado && <span class="pill pill--neutro">Anulado</span>}
+      {esAdmin && !p.anulado && <button type="button" class="accion-icono accion-icono--rojo" aria-label={`Anular pago de ${pesos(p.valor)}`} title="Anular"
+        onClick={() => alAnular({ id: p.id, origen: 'PAGO', concepto: `Cobro · Hab. ${numero} · ${textoMedio(p.medio)}`, valor: p.valor })}><Ico id="papelera" clase="ico--s" /></button>}</div>
+  </div>;
+}
+
+function VistaCargo({ catalogo, cantidades, sel, sumar }: {
+  catalogo: Producto[]; cantidades: Record<string, number>; sel: Seleccion; sumar: (pid: string, paso: number) => void;
+}) {
+  return <>
+    {agruparCatalogo(catalogo).map(([grupo, productos]) => <Fragment key={grupo}>
+      <p class="subtitulo">{grupo}</p>
+      <div class="catalogo">{productos.map((p) => {
+        const n = cantidades[p.id] ?? 0;
+        return <button key={p.id} type="button" class="producto" aria-pressed={n > 0} aria-label={`Agregar ${p.nombre}${n ? `, van ${n}` : ''}`} onClick={() => sumar(p.id, 1)}>
+          <strong>{p.nombre}</strong><span>{pesos(p.precio)}</span>{n > 0 && <em class="producto__n">{n}</em>}</button>;
+      })}</div>
+    </Fragment>)}
+    {sel.items.length === 0
+      ? <p class="ayuda">Toque los productos para agregarlos. Puede elegir varios y tocar de nuevo para sumar cantidad.</p>
+      : <section class="tarjeta tarjeta--oro"><div class="tarjeta__cab"><h3>Seleccionados</h3></div>
+        {sel.items.map((x) => <div key={x.producto.id} class="item-sel"><span class="item-sel__nombre">{x.producto.nombre}</span>
+          <div class="contador contador--mini">
+            <button type="button" aria-label={`Quitar uno de ${x.producto.nombre}`} onClick={() => sumar(x.producto.id, -1)}>−</button>
+            <output>{x.cantidad}</output>
+            <button type="button" aria-label={`Agregar uno de ${x.producto.nombre}`} onClick={() => sumar(x.producto.id, 1)}>+</button>
+          </div><strong>{pesos(x.subtotal)}</strong></div>)}
+        <Fila concepto="Total" valor={sel.total} total />
+      </section>}
+  </>;
+}
+
+function VistaPago({ medio, alMedio, valor, alValor, saldo, escrito, pago }: {
+  medio: Medio; alMedio: (m: Medio) => void; valor: string; alValor: (v: string) => void; saldo: number; escrito: number; pago: { valor: number };
+}) {
+  const cambio = cambioEfectivo(saldo, escrito);
+  return <section class="tarjeta"><div class="tarjeta__cab"><h3>Medio de pago</h3></div>
+    <Opciones opciones={MEDIOS.map((m) => [m, textoMedio(m)] as [Medio, string])} actual={medio} alElegir={alMedio} />
+    <div class="campo"><label htmlFor="valor-pago">{medio === 'EFECTIVO' ? 'Valor recibido' : 'Valor de la transferencia'}</label>
+      <input id="valor-pago" inputmode="numeric" autocomplete="off" placeholder={String(saldo)} value={valor} onInput={(ev) => alValor((ev.target as HTMLInputElement).value)} /></div>
+    {medio === 'EFECTIVO'
+      ? <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>
+        <b>{textoCambio(cambio.tipo, 'Abono: sigue debiendo')}</b>
+        <p>Entran {pesos(pago.valor)} a la caja.</p></div><strong>{pesos(cambio.valor)}</strong></div>
+      : <p class="ayuda">Quedará «por verificar» hasta que la administración confirme que llegó.</p>}
+    <p class="ayuda">Saldo pendiente: {pesos(saldo)}</p>
+  </section>;
+}
+
+/** RN-07: nadie sale debiendo. Si queda saldo, se ofrece cobrarlo primero. */
+function VistaSalida({ c, ir }: { c: Estadia['cuenta']; ir: (s: Sub) => void }) {
+  return <>
+    <section class="tarjeta tarjeta--crema">
+      <Fila concepto="Total cargos" valor={c.total_cargos} />
+      <Fila concepto="Pagado" valor={c.pagado + c.por_verificar} />
+      <Fila concepto={c.saldo ? 'Falta pagar' : 'Saldo'} valor={c.saldo} total />
+    </section>
+    {c.saldo > 0 && <>
+      <div class="saldo saldo--alerta"><div><b>Nadie sale debiendo</b><p>Cobre el saldo antes de dar la salida. Si no paga, avise a la administradora.</p></div><strong>{pesos(c.saldo)}</strong></div>
+      <button type="button" class="btn btn--primario btn--l btn--bloque" onClick={() => ir('pago')}><Ico id="efectivo" clase="ico--s" />Cobrar {pesos(c.saldo)}</button>
+    </>}
+    {c.por_verificar > 0 && <div class="nota"><Ico id="alerta" clase="ico--s" /><p>Hay {pesos(c.por_verificar)} en transferencias por verificar. La habitación se entrega igual; si la administración dice que no llegó, se le avisará.</p></div>}
+    <div class="nota"><Ico id="lupa" clase="ico--s" /><p>La habitación pasa a «Por revisar» antes de volver a ofrecerse.</p></div>
+  </>;
+}
+
+function VistaExtender({ modExt, alModExt, horas, alHoras, cotExt, reglas }: {
+  modExt: ModExt; alModExt: (m: ModExt) => void; horas: number; alHoras: (h: number) => void; cotExt: CotizacionExtension | null; reglas: Pick<Reglas, 'valor_hora'> | null;
+}) {
+  const r = cotExt && resumenExtension(cotExt, hoyBogota());
+  return <>
+    <section class="tarjeta"><div class="tarjeta__cab"><h3>¿Cómo desea continuar?</h3></div>
+      <Opciones opciones={MODALIDADES_EXT} actual={modExt} alElegir={alModExt} />
+      {modExt === 'POR_HORAS' && <div class="campo"><span>Horas</span>
+        <div class="contador">
+          <button type="button" aria-label="Restar hora" disabled={horas <= 1} onClick={() => alHoras(horas - 1)}>−</button>
+          <output>{cuantos(horas, 'hora', 'horas')}</output>
+          <button type="button" aria-label="Sumar hora" disabled={horas >= 12} onClick={() => alHoras(horas + 1)}>+</button>
+        </div>
+        <span class="ayuda">{ayudaHoras(reglas)}</span></div>}
+    </section>
+    {r?.aviso && <div class="saldo saldo--aviso"><div><b>{r.aviso}</b><p>La noche completa reemplaza las horas.</p></div></div>}
+    {cotExt && r && <section class="tarjeta tarjeta--crema" aria-live="polite">
+      <Fila concepto="Valor de la extensión" valor={cotExt.valor} total />
+      <p class="ayuda" style="margin-top:10px"><b>Nueva salida: {r.salida}</b></p>
+    </section>}
+  </>;
+}
+
+function VistaDevolucion({ d, motivo, alMotivo, medio, alMedio, esAdmin }: {
+  d: ReturnType<typeof devolucionPosible>; motivo: MotivoDev; alMotivo: (m: MotivoDev) => void; medio: MedioDev; alMedio: (m: MedioDev) => void; esAdmin: boolean;
+}) {
+  return <>
+    <div class="nota nota--info"><Ico id="info" clase="ico--s" /><p>Si solo miró la habitación, se devuelve todo. Si ya la usó (se instaló o se acostó), no se devuelve nada. Si pagó por transferencia sin confirmar, espere a la administración.</p></div>
+    <section class="tarjeta"><div class="tarjeta__cab"><h3>Motivo</h3></div>
+      <Opciones opciones={[['SOLO_MIRO', 'Solo la miró'], ['YA_USO', 'Ya la usó']]} actual={motivo} alElegir={alMotivo} />
+      {esAdmin && d.valor > 0 && <div class="campo"><span>¿Cómo se devuelve?</span>
+        <Opciones opciones={[['EFECTIVO', 'En efectivo (sale de la caja)'], ['TRANSFERENCIA', 'Por transferencia']]} actual={medio} alElegir={alMedio} /></div>}
+    </section>
+    {d.bloqueo
+      ? <div class="saldo saldo--aviso"><div><b>Todavía no se puede devolver</b><p>{d.bloqueo}</p></div></div>
+      : <div class={`saldo ${d.valor ? 'saldo--alerta' : 'saldo--ok'}`}><div>
+        <b>{d.valor ? 'Se le devuelve' : 'No se devuelve nada'}</b>
+        <p>{textoDevolucion(d.valor, medio)}</p>
+      </div><strong>{pesos(d.valor)}</strong></div>}
+    <p class="ayuda">La devolución queda unida a esta estadía para que no se cuente como ingreso ni se devuelva dos veces.</p>
+  </>;
+}
+
+function BotonPie({ peligro = false, deshabilitado, alTocar, icono, children }: {
+  peligro?: boolean; deshabilitado: boolean; alTocar: () => void; icono: string; children: ComponentChildren;
+}) {
+  return <button type="button" class={`btn ${peligro ? 'btn--peligro' : 'btn--primario'} btn--l btn--bloque`} disabled={deshabilitado} onClick={alTocar}>
+    <Ico id={icono} clase="ico--s" />{children}</button>;
+}
 
 export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, alCambiar, alSalir }: {
   habitacion: Habitacion; recarga: number; reglas: Pick<Reglas, 'valor_hora'> | null; esAdmin?: boolean; alCerrar: () => void; alCambiar: () => void; alSalir: (texto: string) => void;
@@ -34,8 +204,8 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
   const [horas, setHoras] = useState(1);
   const [cotExt, setCotExt] = useState<CotizacionExtension | null>(null);
   const [anulando, setAnulando] = useState<QueAnular | null>(null);
-  const [motivoDev, setMotivoDev] = useState<'SOLO_MIRO' | 'YA_USO'>('SOLO_MIRO');
-  const [medioDev, setMedioDev] = useState<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO');
+  const [motivoDev, setMotivoDev] = useState<MotivoDev>('SOLO_MIRO');
+  const [medioDev, setMedioDev] = useState<MedioDev>('EFECTIVO');
 
   useEffect(() => { api.estadia(id).then(setEst).catch((e: Error) => setError(e.message)); }, [id, recarga]);
   useEffect(() => { if (sub === 'cargo' && catalogo.length === 0) api.productos().then((r) => setCatalogo(r.items)).catch((e: Error) => setError(e.message)); }, [sub]);
@@ -66,16 +236,19 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
     if (s === 'devolucion') { setMotivoDev('SOLO_MIRO'); setMedioDev('EFECTIVO'); }
   }
 
-  async function enviar(accion: () => Promise<unknown>) {
+  /** Envía una operación; `alTerminar` decide qué sigue (por defecto, recargar la cuenta y volver a ella). */
+  async function enviar(accion: () => Promise<unknown>, alTerminar?: (r: unknown) => void, alFallar?: () => Promise<void>) {
     setEnviando(true);
     setError('');
     try {
-      await accion();
+      const r = await accion();
+      if (alTerminar) { alTerminar(r); return; }
       alCambiar();
       setEst(await api.estadia(id));
       ir('cuenta');
     } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.');
+      setError(e instanceof ErrorApi ? e.message : SIN_CONEXION);
+      await alFallar?.();
     } finally {
       setEnviando(false);
     }
@@ -83,200 +256,66 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
 
   const sumar = (pid: string, paso: number) => setCantidades({ ...cantidades, [pid]: Math.max(0, Math.min(20, (cantidades[pid] ?? 0) + paso)) });
   const e = est;
-  const subtitulo = e ? `${e.huesped.nombre_mostrado} · ${e.personas} ${e.personas === 1 ? 'persona' : 'personas'} · sale ${diaRelativo(e.salida_prevista_en, hoyBogota())} ${horaBogota(e.salida_prevista_en)}` : '';
+  const subtitulo = e ? `${e.huesped.nombre_mostrado} · ${cuantos(e.personas, 'persona', 'personas')} · sale ${cuando(e.salida_prevista_en)}` : '';
   const sel = resumenSeleccion(catalogo, cantidades);
   const saldo = e?.cuenta.saldo ?? 0;
   const escrito = leerPesos(valor) ?? saldo;
   const pago = valorPago(medio, saldo, escrito);
+  const devolucion = e ? devolucionPosible(e.pagos, motivoDev, esAdmin) : null;
 
-  let cuerpo = null;
-  let pie = null;
-  if (e && sub === 'cuenta') {
-    const s = estadoSaldo(e.cuenta);
-    cuerpo = <>
-      {e.registro_tardio && <div class="nota"><Ico id="talonario" clase="ico--s" /><p>{textoTardio(e)}</p></div>}
-      <section class="tarjeta"><div class="tarjeta__cab"><h3>Cargos</h3>
-        <button type="button" class="enlace" onClick={() => ir('cargo')}><Ico id="mas" clase="ico--xs" />Agregar</button></div>
-        {e.cargos.filter((c) => !c.anulado).map((c) => <div class="fila"><div class="fila__txt"><div class="fila__concepto">{c.concepto}{c.cantidad > 1 && c.tipo !== 'ALOJAMIENTO' && c.tipo !== 'DESCUENTO' ? ` × ${c.cantidad}` : ''}</div>
-          <div class="fila__detalle">{diaRelativo(c.creado_en, hoyBogota())} {horaBogota(c.creado_en)} · {c.creado_por}</div></div><div class="fila__valor">{pesos(c.valor)}</div></div>)}
-        <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">Total cargos</div></div><div class="fila__valor">{pesos(e.cuenta.total_cargos)}</div></div>
-      </section>
-      <section class="tarjeta"><div class="tarjeta__cab"><h3>Pagos</h3>
-        <button type="button" class="enlace" disabled={saldo === 0} onClick={() => ir('pago')}><Ico id="mas" clase="ico--xs" />Registrar pago</button></div>
-        {e.pagos.length === 0 ? <p class="ayuda">Sin pagos.</p> : e.pagos.map((p) => <div class={`mov${p.anulado ? ' mov--anulado' : ''}`}>
-          <span class="mov__ico"><Ico id={p.medio === 'EFECTIVO' ? 'efectivo' : 'transferencia'} clase="ico--s" /></span>
-          <div class="mov__txt"><div class="mov__titulo">{textoMedio(p.medio)}</div>
-            <div class="mov__detalle">{diaRelativo(p.registrado_en, hoyBogota())} {horaBogota(p.registrado_en)} · {p.registrado_por}</div></div>
-          <div class="mov__der"><span class="mov__valor">{pesos(p.valor)}</span>
-            {p.estado === 'POR_VERIFICAR' && <span class="pill pill--aviso">Por verificar</span>}
-            {p.estado === 'RECHAZADO' && <span class="pill pill--alerta">No llegó</span>}
-            {p.estado === 'VERIFICADO' && <span class="pill pill--exito">Llegó</span>}
-            {p.anulado && <span class="pill pill--neutro">Anulado</span>}
-            {esAdmin && !p.anulado && <button type="button" class="accion-icono accion-icono--rojo" aria-label={`Anular pago de ${pesos(p.valor)}`} title="Anular"
-              onClick={() => setAnulando({ id: p.id, origen: 'PAGO', concepto: `Cobro · Hab. ${habitacion.numero} · ${textoMedio(p.medio)}`, valor: p.valor })}><Ico id="papelera" clase="ico--s" /></button>}</div>
-        </div>)}
-      </section>
-      <div class={`saldo saldo--${s.tono}`}><div><b>{s.titulo}</b><p>{s.detalle}</p></div><strong>{pesos(s.valor)}</strong></div>
-      <div class="acciones">
-        <button type="button" class="btn btn--secundario" onClick={() => ir('extender')}><Ico id="reloj" clase="ico--s" />Extender</button>
-        <button type="button" class="btn btn--secundario" onClick={() => ir('devolucion')}><Ico id="devolver" clase="ico--s" />Desiste</button>
-        <button type="button" class="btn btn--secundario" onClick={() => ir('salida')}><Ico id="salida" clase="ico--s" />Dar salida</button>
-      </div>
-    </>;
-  } else if (sub === 'cargo') {
-    cuerpo = <>
-      {agruparCatalogo(catalogo).map(([grupo, productos]) => <>
-        <p class="subtitulo">{grupo}</p>
-        <div class="catalogo">{productos.map((p) => {
-          const n = cantidades[p.id] ?? 0;
-          return <button type="button" class="producto" aria-pressed={n > 0} aria-label={`Agregar ${p.nombre}${n ? ', van ' + n : ''}`} onClick={() => sumar(p.id, 1)}>
-            <strong>{p.nombre}</strong><span>{pesos(p.precio)}</span>{n > 0 && <em class="producto__n">{n}</em>}</button>;
-        })}</div>
-      </>)}
-      {sel.items.length === 0
-        ? <p class="ayuda">Toque los productos para agregarlos. Puede elegir varios y tocar de nuevo para sumar cantidad.</p>
-        : <section class="tarjeta tarjeta--oro"><div class="tarjeta__cab"><h3>Seleccionados</h3></div>
-          {sel.items.map((x) => <div class="item-sel"><span class="item-sel__nombre">{x.producto.nombre}</span>
-            <div class="contador contador--mini">
-              <button type="button" aria-label={`Quitar uno de ${x.producto.nombre}`} onClick={() => sumar(x.producto.id, -1)}>−</button>
-              <output>{x.cantidad}</output>
-              <button type="button" aria-label={`Agregar uno de ${x.producto.nombre}`} onClick={() => sumar(x.producto.id, 1)}>+</button>
-            </div><strong>{pesos(x.subtotal)}</strong></div>)}
-          <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">Total</div></div><div class="fila__valor">{pesos(sel.total)}</div></div>
-        </section>}
-    </>;
-    pie = <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={!sel.items.length || enviando}
-      onClick={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>
-      <Ico id="mas" clase="ico--s" />{sel.items.length ? `Agregar ${sel.items.length} ${sel.items.length === 1 ? 'producto' : 'productos'} · ${pesos(sel.total)}` : 'Elija productos'}</button>;
-  } else if (e && sub === 'pago') {
-    const cambio = cambioEfectivo(saldo, escrito);
-    cuerpo = <section class="tarjeta"><div class="tarjeta__cab"><h3>Medio de pago</h3></div>
-      <div class="segmentado">{(['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'] as Medio[]).map((m) =>
-        <button type="button" class="opcion" aria-pressed={medio === m} onClick={() => setMedio(m)}>{textoMedio(m)}</button>)}</div>
-      <div class="campo"><label for="valor-pago">{medio === 'EFECTIVO' ? 'Valor recibido' : 'Valor de la transferencia'}</label>
-        <input id="valor-pago" inputmode="numeric" autocomplete="off" placeholder={String(saldo)} value={valor} onInput={(ev) => setValor((ev.target as HTMLInputElement).value)} /></div>
-      {medio === 'EFECTIVO'
-        ? <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>
-          <b>{cambio.tipo === 'vueltas' ? 'Vueltas' : cambio.tipo === 'abono' ? 'Abono: sigue debiendo' : 'Pago exacto'}</b>
-          <p>Entran {pesos(pago.valor)} a la caja.</p></div><strong>{pesos(cambio.valor)}</strong></div>
-        : <p class="ayuda">Quedará «por verificar» hasta que la administración confirme que llegó.</p>}
-      <p class="ayuda">Saldo pendiente: {pesos(saldo)}</p>
-    </section>;
-    pie = <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando || pago.valor < 1}
-      onClick={() => enviar(() => api.registrarPago(id, medio, pago.valor, clave))}><Ico id="check" clase="ico--s" />Registrar pago de {pesos(pago.valor)}</button>;
-  }
-
-  if (e && sub === 'salida') {
-    // RN-07: nadie sale debiendo. Si queda saldo, se ofrece cobrarlo primero.
-    const c = e.cuenta;
-    cuerpo = <>
-      <section class="tarjeta tarjeta--crema">
-        <div class="fila"><div class="fila__txt"><div class="fila__concepto">Total cargos</div></div><div class="fila__valor">{pesos(c.total_cargos)}</div></div>
-        <div class="fila"><div class="fila__txt"><div class="fila__concepto">Pagado</div></div><div class="fila__valor">{pesos(c.pagado + c.por_verificar)}</div></div>
-        <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">{c.saldo ? 'Falta pagar' : 'Saldo'}</div></div><div class="fila__valor">{pesos(c.saldo)}</div></div>
-      </section>
-      {c.saldo > 0 && <>
-        <div class="saldo saldo--alerta"><div><b>Nadie sale debiendo</b><p>Cobre el saldo antes de dar la salida. Si no paga, avise a la administradora.</p></div><strong>{pesos(c.saldo)}</strong></div>
-        <button type="button" class="btn btn--primario btn--l btn--bloque" onClick={() => ir('pago')}><Ico id="efectivo" clase="ico--s" />Cobrar {pesos(c.saldo)}</button>
-      </>}
-      {c.por_verificar > 0 && <div class="nota"><Ico id="alerta" clase="ico--s" /><p>Hay {pesos(c.por_verificar)} en transferencias por verificar. La habitación se entrega igual; si la administración dice que no llegó, se le avisará.</p></div>}
-      <div class="nota"><Ico id="lupa" clase="ico--s" /><p>La habitación pasa a «Por revisar» antes de volver a ofrecerse.</p></div>
-    </>;
-    pie = <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={c.saldo > 0 || enviando} onClick={async () => {
-      setEnviando(true);
-      setError('');
-      try {
-        await api.darSalida(id);
-        alSalir(`Salida registrada. La habitación ${habitacion.numero} queda por revisar.`);
-      } catch (err) {
-        setError(err instanceof ErrorApi ? err.message : 'No se pudo conectar con el sistema. Intente de nuevo.');
-        setEst(await api.estadia(id).catch(() => e));
-      } finally {
-        setEnviando(false);
+  function vista(): [ComponentChildren, ComponentChildren] {
+    if (sub === 'cargo') {
+      const texto = sel.items.length ? `Agregar ${cuantos(sel.items.length, 'producto', 'productos')} · ${pesos(sel.total)}` : 'Elija productos';
+      return [<VistaCargo catalogo={catalogo} cantidades={cantidades} sel={sel} sumar={sumar} />,
+        <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
+          alTocar={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie>];
+    }
+    if (!e) return [null, null];
+    switch (sub) {
+      case 'pago':
+        return [<VistaPago medio={medio} alMedio={setMedio} valor={valor} alValor={setValor} saldo={saldo} escrito={escrito} pago={pago} />,
+          <BotonPie icono="check" deshabilitado={enviando || pago.valor < 1} alTocar={() => enviar(() => api.registrarPago(id, medio, pago.valor, clave))}>
+            Registrar pago de {pesos(pago.valor)}</BotonPie>];
+      case 'salida':
+        return [<VistaSalida c={e.cuenta} ir={ir} />,
+          <BotonPie icono="salida" deshabilitado={e.cuenta.saldo > 0 || enviando}
+            alTocar={() => enviar(() => api.darSalida(id), () => alSalir(`Salida registrada. La habitación ${habitacion.numero} queda por revisar.`),
+              async () => setEst(await api.estadia(id).catch(() => e)))}>{e.cuenta.saldo > 0 ? 'Primero cobre el saldo' : 'Dar salida'}</BotonPie>];
+      case 'extender':
+        return [<VistaExtender modExt={modExt} alModExt={setModExt} horas={horas} alHoras={setHoras} cotExt={cotExt} reglas={reglas} />,
+          <BotonPie icono="reloj" deshabilitado={!cotExt || enviando}
+            alTocar={() => enviar(() => api.extender(id, modExt === 'POR_HORAS' ? { modalidad: modExt, horas } : { modalidad: modExt }, clave))}>
+            {cotExt ? `Extender · ${pesos(cotExt.valor)}` : 'Calculando…'}</BotonPie>];
+      case 'devolucion': {
+        const d = devolucion!;
+        return [<VistaDevolucion d={d} motivo={motivoDev} alMotivo={setMotivoDev} medio={medioDev} alMedio={setMedioDev} esAdmin={esAdmin} />,
+          <BotonPie peligro icono="devolver" deshabilitado={!!d.bloqueo || enviando}
+            alTocar={() => enviar(() => api.desistir(id, { motivo: motivoDev, medio: medioDev }, clave),
+              (r) => alSalir(textoDesistimiento(habitacion.numero, r as { valor: number; medio: string | null })))}>
+            {d.valor && !d.bloqueo ? `Registrar devolución de ${pesos(d.valor)}` : 'Registrar desistimiento'}</BotonPie>];
       }
-    }}><Ico id="salida" clase="ico--s" />{c.saldo > 0 ? 'Primero cobre el saldo' : 'Dar salida'}</button>;
+      default:
+        return [<VistaCuenta e={e} esAdmin={esAdmin} numero={habitacion.numero} ir={ir} alAnular={setAnulando} />, null];
+    }
   }
 
-  if (e && sub === 'extender') {
-    const r = cotExt && resumenExtension(cotExt, hoyBogota());
-    cuerpo = <>
-      <section class="tarjeta"><div class="tarjeta__cab"><h3>¿Cómo desea continuar?</h3></div>
-        <div class="segmentado">{([['NOCHE', 'Otra noche'], ['TRES_HORAS', '3 horas'], ['POR_HORAS', 'Por horas']] as Array<[ModExt, string]>).map(([m, t]) =>
-          <button type="button" class="opcion" aria-pressed={modExt === m} onClick={() => setModExt(m)}>{t}</button>)}</div>
-        {modExt === 'POR_HORAS' && <div class="campo"><span>Horas</span>
-          <div class="contador">
-            <button type="button" aria-label="Restar hora" disabled={horas <= 1} onClick={() => setHoras(horas - 1)}>−</button>
-            <output>{horas} {horas === 1 ? 'hora' : 'horas'}</output>
-            <button type="button" aria-label="Sumar hora" disabled={horas >= 12} onClick={() => setHoras(horas + 1)}>+</button>
-          </div>
-          <span class="ayuda">{ayudaHoras(reglas)}</span></div>}
-      </section>
-      {r?.aviso && <div class="saldo saldo--aviso"><div><b>{r.aviso}</b><p>La noche completa reemplaza las horas.</p></div></div>}
-      {cotExt && <section class="tarjeta tarjeta--crema" aria-live="polite">
-        <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">Valor de la extensión</div></div><div class="fila__valor">{pesos(cotExt.valor)}</div></div>
-        <p class="ayuda" style="margin-top:10px"><b>Nueva salida: {r!.salida}</b></p>
-      </section>}
-    </>;
-    pie = <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={!cotExt || enviando}
-      onClick={() => enviar(() => api.extender(id, modExt === 'POR_HORAS' ? { modalidad: modExt, horas } : { modalidad: modExt }, clave))}>
-      <Ico id="reloj" clase="ico--s" />{cotExt ? `Extender · ${pesos(cotExt.valor)}` : 'Calculando…'}</button>;
-  }
-
-  if (e && sub === 'devolucion') {
-    const d = devolucionPosible(e.pagos, motivoDev, esAdmin);
-    cuerpo = <>
-      <div class="nota nota--info"><Ico id="info" clase="ico--s" /><p>Si solo miró la habitación, se devuelve todo. Si ya la usó (se instaló o se acostó), no se devuelve nada. Si pagó por transferencia sin confirmar, espere a la administración.</p></div>
-      <section class="tarjeta"><div class="tarjeta__cab"><h3>Motivo</h3></div>
-        <div class="segmentado">
-          <button type="button" class="opcion" aria-pressed={motivoDev === 'SOLO_MIRO'} onClick={() => setMotivoDev('SOLO_MIRO')}>Solo la miró</button>
-          <button type="button" class="opcion" aria-pressed={motivoDev === 'YA_USO'} onClick={() => setMotivoDev('YA_USO')}>Ya la usó</button>
-        </div>
-        {esAdmin && d.valor > 0 && <div class="campo"><span>¿Cómo se devuelve?</span>
-          <div class="segmentado">
-            <button type="button" class="opcion" aria-pressed={medioDev === 'EFECTIVO'} onClick={() => setMedioDev('EFECTIVO')}>En efectivo (sale de la caja)</button>
-            <button type="button" class="opcion" aria-pressed={medioDev === 'TRANSFERENCIA'} onClick={() => setMedioDev('TRANSFERENCIA')}>Por transferencia</button>
-          </div></div>}
-      </section>
-      {d.bloqueo
-        ? <div class="saldo saldo--aviso"><div><b>Todavía no se puede devolver</b><p>{d.bloqueo}</p></div></div>
-        : <div class={`saldo ${d.valor ? 'saldo--alerta' : 'saldo--ok'}`}><div>
-          <b>{d.valor ? 'Se le devuelve' : 'No se devuelve nada'}</b>
-          <p>{d.valor ? (medioDev === 'EFECTIVO' ? 'Sale de la caja del turno; no cuenta como venta.' : 'La administración hace la transferencia.') : 'La estadía se cierra y la habitación pasa a revisión.'}</p>
-        </div><strong>{pesos(d.valor)}</strong></div>}
-      <p class="ayuda">La devolución queda unida a esta estadía para que no se cuente como ingreso ni se devuelva dos veces.</p>
-    </>;
-    pie = <button type="button" class="btn btn--peligro btn--l btn--bloque" disabled={!!d.bloqueo || enviando} onClick={async () => {
-      setEnviando(true);
-      setError('');
-      try {
-        const r = await api.desistir(id, { motivo: motivoDev, medio: medioDev }, clave);
-        alSalir(r.valor
-          ? `Desistimiento registrado en la ${habitacion.numero}: se devolvieron ${pesos(r.valor)}${r.medio === 'EFECTIVO' ? ' de la caja' : ' por transferencia'}. La habitación queda por revisar.`
-          : `Desistimiento registrado en la ${habitacion.numero}, sin devolución. La habitación queda por revisar.`);
-      } catch (err) {
-        setError(err instanceof ErrorApi ? err.message : 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.');
-      } finally {
-        setEnviando(false);
-      }
-    }}><Ico id="devolver" clase="ico--s" />{d.valor && !d.bloqueo ? `Registrar devolución de ${pesos(d.valor)}` : 'Registrar desistimiento'}</button>;
-  }
-
-  const titulo = sub === 'devolucion' ? 'Devolución por desistimiento' : sub === 'extender' ? 'Extender estadía' : sub === 'cargo' ? 'Agregar cargos' : sub === 'pago' ? 'Registrar pago' : sub === 'salida' ? 'Dar salida' : `Hab. ${habitacion.numero}`;
+  const [cuerpo, pie] = vista();
+  const enCuenta = sub === 'cuenta';
   return (
     <div class="capa-panel">
-      <div class="velo velo--visible" onClick={alCerrar} />
-      <section class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
+      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
         <div class="panel__cab">
-          <button type="button" class="redondo" aria-label={sub === 'cuenta' ? 'Cerrar' : 'Volver'} onClick={() => (sub === 'cuenta' ? alCerrar() : ir('cuenta'))}>
-            <Ico id={sub === 'cuenta' ? 'cerrar' : 'atras'} clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">{titulo}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
+          <button type="button" class="redondo" aria-label={enCuenta ? 'Cerrar' : 'Volver'} onClick={() => (enCuenta ? alCerrar() : ir('cuenta'))}>
+            <Ico id={enCuenta ? 'cerrar' : 'atras'} clase="ico--s" /></button>
+          <div class="titulos"><h2 id="panel-titulo">{tituloFicha(sub, habitacion.numero)}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
         </div>
         <div class="panel__cuerpo">
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
           {cuerpo}
         </div>
         {pie && <div class="panel__pie">{pie}</div>}
-      </section>
+      </dialog>
       {anulando && <Anular que={anulando} alCerrar={() => setAnulando(null)} alAnular={async () => { setAnulando(null); alCambiar(); setEst(await api.estadia(id)); }} />}
     </div>
   );

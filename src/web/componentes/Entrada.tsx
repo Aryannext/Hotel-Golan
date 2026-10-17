@@ -1,5 +1,6 @@
 // Asistente «Nueva entrada» (TICKET-04, FR-03, FR-05): 1) datos del titular y autorización, 2) habitación y servicio, 3) confirmar y cobrar.
 import { useEffect, useState } from 'preact/hooks';
+import { Fragment } from 'preact';
 import { api, ErrorApi, type Cotizacion, type Estadia, type FormaPago, type Habitacion } from '../api.ts';
 import {
   AVISO_VERSION, HUESPED_VACIO, TIPOS_DOCUMENTO, aHuespedInput, cambioEfectivo, enmascarar, erroresHuesped, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, textoSalida,
@@ -11,9 +12,16 @@ import { entradaIso, errorTardio } from '../tardio.ts';
 import { fechaReporte } from '../reportes.ts';
 import type { Reglas, Tarifa } from '../ajustes.ts';
 import { leerDescuento } from '../textosConfig.ts';
+import { claseAsistente, cuantos, textoCambio } from '../presentacion.ts';
 
 const PASOS = ['Datos del huésped', 'Habitación y servicio', 'Confirmar'];
 const FORMAS: Array<[FormaPago, string]> = [['EFECTIVO', 'Efectivo'], ['NEQUI', 'Nequi'], ['BANCOLOMBIA', 'Bancolombia'], ['AL_SALIR', 'Paga al salir']];
+
+/** Descuento por noche que se envía (0 si no pidió rebaja o no es de noche). */
+function descuentoElegido(s: Servicio, reglas: Reglas | null): number {
+  if (s.modalidad !== 'NOCHE' || !s.descuento) return 0;
+  return leerDescuento(s.valorDescuento, reglas).valor ?? 0;
+}
 
 export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
   habitacion: Habitacion; reglas: Reglas | null; alVolver: () => void; alRegistrar: (e: Estadia) => void;
@@ -54,7 +62,6 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
   useEffect(() => { if (forma === 'AL_SALIR' && cot && !cot.permite_pago_al_salir) setForma('EFECTIVO'); }, [cot]);
 
   const errores = erroresHuesped(h);
-  const campo = <K extends keyof FormHuesped>(k: K, v: FormHuesped[K]) => setH({ ...h, [k]: v });
   const err = (k: keyof FormHuesped) => (verErrores ? errores[k] : undefined);
 
   function siguiente() {
@@ -73,7 +80,7 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
       alRegistrar(await api.registrarEntrada({
         habitacion_numero: habitacion.numero, modalidad: servicio.modalidad, personas: servicio.personas,
         noches: servicio.modalidad === 'NOCHE' ? servicio.noches : 1,
-        valor_descuento: servicio.modalidad === 'NOCHE' && servicio.descuento ? leerDescuento(servicio.valorDescuento, reglas).valor ?? 0 : 0,
+        valor_descuento: descuentoElegido(servicio, reglas),
         ...(servicio.tardio ? { registro_tardio: true, entrada_en: entradaIso(servicio.entrada) ?? undefined } : {}),
         huesped: aHuespedInput(h), autorizacion: { otorgada: h.autorizo, version_aviso: AVISO_VERSION },
         pago: forma === 'EFECTIVO' ? { forma, valor_recibido: valor } : { forma },
@@ -85,97 +92,19 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
     }
   }
 
-  const total = cot?.total ?? 0;
-  const valorRecibido = leerPesos(recibido) ?? total;
-  const cambio = cambioEfectivo(total, valorRecibido);
-
   return (
     <>
       <div class="titulo-vista"><div style="display:flex;align-items:center;gap:14px">
         <button type="button" class="btn btn--secundario" onClick={alVolver}><Ico id="atras" clase="ico--s" />Volver</button>
         <h1>Nueva entrada · {habitacion.numero}</h1>
       </div></div>
-      <div class="asistente">{PASOS.map((t, i) => <>
-        {i > 0 && <div class={`asistente__linea${paso > i ? ' asistente__linea--hecha' : ''}`}><span /></div>}
-        <div class={`asistente__paso${paso === i + 1 ? ' asistente__paso--activo' : paso > i + 1 ? ' asistente__paso--hecho' : ''}`}>
-          <span class="asistente__num">{paso > i + 1 ? <Ico id="check" clase="ico--s" /> : i + 1}</span><span class="asistente__txt">{t}</span>
-        </div>
-      </>)}</div>
+      <Asistente paso={paso} />
 
       <div class="pila">
-        {paso === 1 && <section class="tarjeta">
-          <div class="tarjeta__cab"><h2>Datos del titular</h2></div>
-          <p class="ayuda">Solo se registra a quien toma la habitación. El documento es opcional.</p>
-          <div class="form-rejilla form-rejilla--2">
-            <div class={`campo${err('nombre') ? ' campo--error' : ''}`}><label for="h-nombre">Nombre completo <span class="req">*</span></label>
-              <input id="h-nombre" autocomplete="off" value={h.nombre} onInput={(e) => campo('nombre', (e.target as HTMLInputElement).value)} />
-              {err('nombre') && <span class="campo__error">{err('nombre')}</span>}</div>
-            <div class={`campo${err('numeroDocumento') ? ' campo--error' : ''}`}><label for="h-doc">Documento</label>
-              <div class="doble">
-                <select aria-label="Tipo de documento" value={h.tipoDocumento} onChange={(e) => campo('tipoDocumento', (e.target as HTMLSelectElement).value)}>
-                  <option value="">Sin documento</option>
-                  {TIPOS_DOCUMENTO.map(([v, t]) => <option value={v}>{t}</option>)}
-                </select>
-                <input id="h-doc" autocomplete="off" disabled={!h.tipoDocumento} value={h.numeroDocumento}
-                  onInput={(e) => campo('numeroDocumento', (e.target as HTMLInputElement).value)} />
-              </div>
-              {err('numeroDocumento') && <span class="campo__error">{err('numeroDocumento')}</span>}</div>
-            <div class={`campo${err('nacionalidad') ? ' campo--error' : ''}`}><label for="h-nac">Nacionalidad <span class="req">*</span></label>
-              <input id="h-nac" autocomplete="off" value={h.nacionalidad} onInput={(e) => campo('nacionalidad', (e.target as HTMLInputElement).value)} />
-              {err('nacionalidad') && <span class="campo__error">{err('nacionalidad')}</span>}</div>
-            <div class={`campo${err('telefono') ? ' campo--error' : ''}`}><label for="h-tel">Celular (opcional)</label>
-              <input id="h-tel" inputmode="tel" autocomplete="off" placeholder="Ej. 300 123 4567" value={h.telefono}
-                onInput={(e) => campo('telefono', (e.target as HTMLInputElement).value)} />
-              {err('telefono') && <span class="campo__error">{err('telefono')}</span>}</div>
-          </div>
-          <label class="casilla"><input type="checkbox" checked={h.esMenor} onChange={(e) => setH({ ...h, esMenor: (e.target as HTMLInputElement).checked, acompanante: false })} />
-            <span>Es menor de edad</span></label>
-          {h.esMenor && <label class={`casilla casilla--aviso${err('acompanante') ? ' casilla--error' : ''}`}>
-            <input type="checkbox" checked={h.acompanante} onChange={(e) => campo('acompanante', (e.target as HTMLInputElement).checked)} />
-            <span>Verifiqué el registro civil y que viene con su padre, madre o tutor.</span></label>}
-          {err('acompanante') && <span class="campo__error">{err('acompanante')}</span>}
-          <label class={`casilla casilla--fuerte${err('autorizo') ? ' casilla--error' : ''}`}>
-            <input type="checkbox" checked={h.autorizo} onChange={(e) => campo('autorizo', (e.target as HTMLInputElement).checked)} />
-            <span>Le leí el aviso de privacidad ({AVISO_VERSION}) y <b>el huésped autorizó</b> el uso de sus datos.</span></label>
-          {err('autorizo') && <span class="campo__error">{err('autorizo')}</span>}
-        </section>}
-
+        {paso === 1 && <PasoHuesped h={h} alCambiar={setH} err={err} />}
         {paso === 2 && <PasoServicio habitacion={habitacion} servicio={servicio} alCambiar={setServicio} cot={cot} error={errorCot} reglas={reglas} tarifas={tarifas} />}
-
-        {paso === 3 && cot && <div class="rejilla rejilla--2">
-          <section class="tarjeta tarjeta--crema"><div class="tarjeta__cab"><h2>Resumen</h2></div>
-            <dl class="kv">
-              <dt>Huésped</dt><dd>{h.nombre.trim()}</dd>
-              {h.tipoDocumento && <><dt>Documento</dt><dd>{h.tipoDocumento} {enmascarar(h.numeroDocumento)}</dd></>}
-              <dt>Habitación</dt><dd>{habitacion.numero} · {habitacion.tipo === 'AIRE' ? 'Aire' : 'Ventilador'}</dd>
-              <dt>Servicio</dt><dd>{servicio.modalidad === 'NOCHE' ? `${servicio.noches} ${servicio.noches === 1 ? 'noche' : 'noches'}` : '3 horas'} · {servicio.personas} {servicio.personas === 1 ? 'persona' : 'personas'}</dd>
-              {servicio.tardio && <><dt>Entró</dt><dd>{fechaReporte(`${servicio.entrada}:00-05:00`)} a las {horaBogota(`${servicio.entrada}:00-05:00`)} (registro tardío)</dd></>}
-              <dt>Sale</dt><dd>{textoSalida(cot.salida_prevista_en, hoyBogota())}</dd>
-            </dl>
-            {cot.descuento > 0 && <>
-              <div class="fila"><div class="fila__txt"><div class="fila__concepto">Tarifa</div></div><div class="fila__valor">{pesos(cot.tarifa)}</div></div>
-              <div class="fila"><div class="fila__txt"><div class="fila__concepto">Descuento</div></div><div class="fila__valor">−{pesos(cot.descuento)}</div></div>
-            </>}
-            <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">Total</div></div><div class="fila__valor">{pesos(total)}</div></div>
-          </section>
-          <section class="tarjeta"><div class="tarjeta__cab"><h2>Pago</h2></div>
-            <div class="segmentado">{FORMAS.filter(([f]) => f !== 'AL_SALIR' || cot.permite_pago_al_salir).map(([f, t]) =>
-              <button type="button" class="opcion" aria-pressed={forma === f} onClick={() => setForma(f)}>{t}</button>)}</div>
-            <p class="ayuda">{cot.permite_pago_al_salir ? 'Una noche se puede cobrar al salir.' : 'Se cobra por adelantado.'} Nadie sale debiendo.</p>
-            {forma === 'EFECTIVO' && <>
-              <div class="campo"><label for="recibido">Valor recibido</label>
-                <input id="recibido" inputmode="numeric" autocomplete="off" placeholder={String(total)} value={recibido}
-                  onInput={(e) => setRecibido((e.target as HTMLInputElement).value)} /></div>
-              <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>
-                <b>{cambio.tipo === 'vueltas' ? 'Vueltas' : cambio.tipo === 'abono' ? 'Queda debiendo' : 'Pago exacto'}</b>
-                <p>{cambio.tipo === 'abono' ? `Se registra un abono de ${pesos(valorRecibido)}.` : `Entran ${pesos(total)} a la caja.`}</p>
-              </div><strong>{pesos(cambio.valor)}</strong></div>
-            </>}
-            {(forma === 'NEQUI' || forma === 'BANCOLOMBIA') && <p class="ayuda">Queda «por verificar» hasta que la administración confirme que llegó. La habitación se entrega igual.</p>}
-            {forma === 'AL_SALIR' && <p class="ayuda">Se cobran {pesos(total)} al salir, junto con lo que consuma.</p>}
-          </section>
-        </div>}
-
+        {paso === 3 && cot && <PasoConfirmar habitacion={habitacion} h={h} servicio={servicio} cot={cot}
+          forma={forma} alForma={setForma} recibido={recibido} alRecibido={setRecibido} />}
         {error && <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
       </div>
 
@@ -187,4 +116,100 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
       </div>
     </>
   );
+}
+
+function Asistente({ paso }: { paso: number }) {
+  return <div class="asistente">{PASOS.map((t, i) => <Fragment key={t}>
+    {i > 0 && <div class={`asistente__linea${paso > i ? ' asistente__linea--hecha' : ''}`}><span /></div>}
+    <div class={claseAsistente(paso, i)}>
+      <span class="asistente__num">{paso > i + 1 ? <Ico id="check" clase="ico--s" /> : i + 1}</span><span class="asistente__txt">{t}</span>
+    </div>
+  </Fragment>)}</div>;
+}
+
+/** Campo de texto del titular con su etiqueta y su error. */
+function CampoTexto({ id, etiqueta, req = false, valor, error, alEscribir, ...extra }: {
+  id: string; etiqueta: string; req?: boolean; valor: string; error?: string; alEscribir: (v: string) => void; inputmode?: 'tel'; placeholder?: string;
+}) {
+  return <div class={`campo${error ? ' campo--error' : ''}`}><label htmlFor={id}>{etiqueta}{req && <> <span class="req">*</span></>}</label>
+    <input id={id} autocomplete="off" value={valor} onInput={(e) => alEscribir((e.target as HTMLInputElement).value)} {...extra} />
+    {error && <span class="campo__error">{error}</span>}</div>;
+}
+
+function PasoHuesped({ h, alCambiar, err }: { h: FormHuesped; alCambiar: (h: FormHuesped) => void; err: (k: keyof FormHuesped) => string | undefined }) {
+  const campo = <K extends keyof FormHuesped>(k: K, v: FormHuesped[K]) => alCambiar({ ...h, [k]: v });
+  return <section class="tarjeta">
+    <div class="tarjeta__cab"><h2>Datos del titular</h2></div>
+    <p class="ayuda">Solo se registra a quien toma la habitación. El documento es opcional.</p>
+    <div class="form-rejilla form-rejilla--2">
+      <CampoTexto id="h-nombre" etiqueta="Nombre completo" req valor={h.nombre} error={err('nombre')} alEscribir={(v) => campo('nombre', v)} />
+      <div class={`campo${err('numeroDocumento') ? ' campo--error' : ''}`}><label htmlFor="h-doc">Documento</label>
+        <div class="doble">
+          <select aria-label="Tipo de documento" value={h.tipoDocumento} onChange={(e) => campo('tipoDocumento', (e.target as HTMLSelectElement).value)}>
+            <option value="">Sin documento</option>
+            {TIPOS_DOCUMENTO.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+          </select>
+          <input id="h-doc" autocomplete="off" disabled={!h.tipoDocumento} value={h.numeroDocumento}
+            onInput={(e) => campo('numeroDocumento', (e.target as HTMLInputElement).value)} />
+        </div>
+        {err('numeroDocumento') && <span class="campo__error">{err('numeroDocumento')}</span>}</div>
+      <CampoTexto id="h-nac" etiqueta="Nacionalidad" req valor={h.nacionalidad} error={err('nacionalidad')} alEscribir={(v) => campo('nacionalidad', v)} />
+      <CampoTexto id="h-tel" etiqueta="Celular (opcional)" inputmode="tel" placeholder="Ej. 300 123 4567" valor={h.telefono} error={err('telefono')}
+        alEscribir={(v) => campo('telefono', v)} />
+    </div>
+    <label class="casilla"><input type="checkbox" checked={h.esMenor} onChange={(e) => alCambiar({ ...h, esMenor: (e.target as HTMLInputElement).checked, acompanante: false })} />
+      <span>Es menor de edad</span></label>
+    {h.esMenor && <label class={`casilla casilla--aviso${err('acompanante') ? ' casilla--error' : ''}`}>
+      <input type="checkbox" checked={h.acompanante} onChange={(e) => campo('acompanante', (e.target as HTMLInputElement).checked)} />
+      <span>Verifiqué el registro civil y que viene con su padre, madre o tutor.</span></label>}
+    {err('acompanante') && <span class="campo__error">{err('acompanante')}</span>}
+    <label class={`casilla casilla--fuerte${err('autorizo') ? ' casilla--error' : ''}`}>
+      <input type="checkbox" checked={h.autorizo} onChange={(e) => campo('autorizo', (e.target as HTMLInputElement).checked)} />
+      <span>Le leí el aviso de privacidad ({AVISO_VERSION}) y <b>el huésped autorizó</b> el uso de sus datos.</span></label>
+    {err('autorizo') && <span class="campo__error">{err('autorizo')}</span>}
+  </section>;
+}
+
+function PasoConfirmar({ habitacion, h, servicio, cot, forma, alForma, recibido, alRecibido }: {
+  habitacion: Habitacion; h: FormHuesped; servicio: Servicio; cot: Cotizacion;
+  forma: FormaPago; alForma: (f: FormaPago) => void; recibido: string; alRecibido: (v: string) => void;
+}) {
+  const total = cot.total;
+  const valorRecibido = leerPesos(recibido) ?? total;
+  const cambio = cambioEfectivo(total, valorRecibido);
+  const tiempo = servicio.modalidad === 'NOCHE' ? cuantos(servicio.noches, 'noche', 'noches') : '3 horas';
+  const entrada = `${servicio.entrada}:00-05:00`;
+  return <div class="rejilla rejilla--2">
+    <section class="tarjeta tarjeta--crema"><div class="tarjeta__cab"><h2>Resumen</h2></div>
+      <dl class="kv">
+        <dt>Huésped</dt><dd>{h.nombre.trim()}</dd>
+        {h.tipoDocumento && <><dt>Documento</dt><dd>{h.tipoDocumento} {enmascarar(h.numeroDocumento)}</dd></>}
+        <dt>Habitación</dt><dd>{habitacion.numero} · {habitacion.tipo === 'AIRE' ? 'Aire' : 'Ventilador'}</dd>
+        <dt>Servicio</dt><dd>{tiempo} · {cuantos(servicio.personas, 'persona', 'personas')}</dd>
+        {servicio.tardio && <><dt>Entró</dt><dd>{fechaReporte(entrada)} a las {horaBogota(entrada)} (registro tardío)</dd></>}
+        <dt>Sale</dt><dd>{textoSalida(cot.salida_prevista_en, hoyBogota())}</dd>
+      </dl>
+      {cot.descuento > 0 && <>
+        <div class="fila"><div class="fila__txt"><div class="fila__concepto">Tarifa</div></div><div class="fila__valor">{pesos(cot.tarifa)}</div></div>
+        <div class="fila"><div class="fila__txt"><div class="fila__concepto">Descuento</div></div><div class="fila__valor">−{pesos(cot.descuento)}</div></div>
+      </>}
+      <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">Total</div></div><div class="fila__valor">{pesos(total)}</div></div>
+    </section>
+    <section class="tarjeta"><div class="tarjeta__cab"><h2>Pago</h2></div>
+      <div class="segmentado">{FORMAS.filter(([f]) => f !== 'AL_SALIR' || cot.permite_pago_al_salir).map(([f, t]) =>
+        <button key={f} type="button" class="opcion" aria-pressed={forma === f} onClick={() => alForma(f)}>{t}</button>)}</div>
+      <p class="ayuda">{cot.permite_pago_al_salir ? 'Una noche se puede cobrar al salir.' : 'Se cobra por adelantado.'} Nadie sale debiendo.</p>
+      {forma === 'EFECTIVO' && <>
+        <div class="campo"><label htmlFor="recibido">Valor recibido</label>
+          <input id="recibido" inputmode="numeric" autocomplete="off" placeholder={String(total)} value={recibido}
+            onInput={(e) => alRecibido((e.target as HTMLInputElement).value)} /></div>
+        <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>
+          <b>{textoCambio(cambio.tipo, 'Queda debiendo')}</b>
+          <p>{cambio.tipo === 'abono' ? `Se registra un abono de ${pesos(valorRecibido)}.` : `Entran ${pesos(total)} a la caja.`}</p>
+        </div><strong>{pesos(cambio.valor)}</strong></div>
+      </>}
+      {(forma === 'NEQUI' || forma === 'BANCOLOMBIA') && <p class="ayuda">Queda «por verificar» hasta que la administración confirme que llegó. La habitación se entrega igual.</p>}
+      {forma === 'AL_SALIR' && <p class="ayuda">Se cobran {pesos(total)} al salir, junto con lo que consuma.</p>}
+    </section>
+  </div>;
 }

@@ -14,6 +14,11 @@ describe('Presentación del mapa de habitaciones', () => {
     assert.equal(pesos(28000), '$28.000');
     assert.equal(pesos(234500), '$234.500');
     assert.equal(pesos(0), '$0');
+    assert.equal(pesos(999), '$999');
+    assert.equal(pesos(1000), '$1.000');
+    assert.equal(pesos(1234567), '$1.234.567');
+    assert.equal(pesos(-5000), '$-5.000');
+    assert.equal(pesos(2500.6), '$2.501');
   });
 
   it('muestra la hora de Bogotá tal como la manda la API, sin depender de la zona del equipo', () => {

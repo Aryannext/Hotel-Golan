@@ -15,11 +15,12 @@ export async function aplicarMigraciones(bd: Bd, dir = DIR_MIGRACIONES): Promise
   );
   const archivos = (await readdir(dir)).filter((n) => /^\d{4}_.+\.sql$/.test(n)).sort();
   const nuevas: string[] = [];
+  // Una tras otra a propósito: cada migración depende de las anteriores y trae su propio BEGIN/COMMIT.
   for (const nombre of archivos) {
     if (aplicadas.has(nombre)) continue;
-    // Cada archivo trae su propio BEGIN/COMMIT.
-    await bd.ejecutar(await readFile(join(dir, nombre), 'utf8'));
-    await bd.consultar('INSERT INTO schema_migraciones (nombre) VALUES ($1)', [nombre]);
+    const sql = await readFile(join(dir, nombre), 'utf8'); // NOSONAR: el orden de las migraciones es obligatorio
+    await bd.ejecutar(sql); // NOSONAR: el orden de las migraciones es obligatorio
+    await bd.consultar('INSERT INTO schema_migraciones (nombre) VALUES ($1)', [nombre]); // NOSONAR: idem
     nuevas.push(nombre);
   }
   return nuevas;

@@ -12,6 +12,7 @@ import { conIdempotencia } from '../comun/idempotencia.ts';
 import { turnoAbiertoId } from '../caja/turnos.ts';
 import { estadiaActiva } from '../estadias/cargos.ts';
 import { leerEstadia } from '../estadias/estadias.ts';
+import { publicarEventos } from '../comun/eventos.ts';
 
 interface FilaPago {
   id: string; estadia_id: string; habitacion_numero: string; turno_id: string; medio: string; valor: number; estado: string;
@@ -109,9 +110,7 @@ export function rutasPagos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
       });
       const eventos: Array<[string, Record<string, unknown>]> = [['habitacion.actualizada', { numero: est.habitacion_numero, entidad_id: req.params.id }]];
       if (!efectivo) eventos.push(['pago.por_verificar', { entidad_id: p.id, habitacion_numero: est.habitacion_numero, valor }]);
-      for (const [tipo, payload] of eventos) {
-        await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
-      }
+      await publicarEventos(tx, eventos, momento);
       const [pago] = await leerPagos(tx, { id: p.id });
       return { estado: 201, cuerpo: pago };
     });

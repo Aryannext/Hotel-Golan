@@ -3,8 +3,8 @@
 import { horaBogota } from './logica.ts';
 import { fechaReporte } from './reportes.ts';
 
-const DESFASE_MS = 5 * 3600_000;
-const LIMITE_MS = 48 * 3600_000;
+const DESFASE_MS = 5 * 3_600_000;
+const LIMITE_MS = 48 * 3_600_000;
 
 /** «2026-10-13T06:10»: el formato de un campo datetime-local, en hora de Bogotá. */
 export const aLocalBogota = (ms: number) => new Date(ms - DESFASE_MS).toISOString().slice(0, 16);

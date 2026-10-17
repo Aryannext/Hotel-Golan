@@ -61,8 +61,8 @@ CREATE TABLE autorizaciones_datos (
 
 CREATE TABLE turnos (
   id                          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tipo                        text NOT NULL CHECK (tipo IN ('DIA', 'NOCHE')),
-  estado                      text NOT NULL CHECK (estado IN ('POR_RECIBIR', 'ABIERTO', 'CERRADO')),
+  tipo                        text NOT NULL CHECK (tipo IN ('DIA', 'NOCHE')), -- NOSONAR: valores permitidos del CHECK
+  estado                      text NOT NULL CHECK (estado IN ('POR_RECIBIR', 'ABIERTO', 'CERRADO')), -- NOSONAR: valores permitidos del CHECK
   responsable_id              uuid REFERENCES usuarios (id),
   recibido_de_id              uuid REFERENCES usuarios (id),
   inicio_en                   timestamptz NOT NULL DEFAULT now(),
@@ -87,13 +87,13 @@ CREATE TABLE estadias (
   habitacion_numero  text NOT NULL REFERENCES habitaciones (numero),
   huesped_id         uuid NOT NULL REFERENCES huespedes (id),
   turno_id           uuid NOT NULL REFERENCES turnos (id),
-  modalidad          text NOT NULL CHECK (modalidad IN ('NOCHE', 'TRES_HORAS', 'POR_HORAS')),
+  modalidad          text NOT NULL CHECK (modalidad IN ('NOCHE', 'TRES_HORAS', 'POR_HORAS')), -- NOSONAR: valores permitidos del CHECK
   personas           integer NOT NULL CHECK (personas BETWEEN 1 AND 3),
   noches             integer NOT NULL DEFAULT 1 CHECK (noches BETWEEN 1 AND 30),
   entrada_en         timestamptz NOT NULL,
   salida_prevista_en timestamptz NOT NULL,
   salida_real_en     timestamptz,
-  estado             text NOT NULL DEFAULT 'ACTIVA' CHECK (estado IN ('ACTIVA', 'CERRADA', 'DESISTIDA')),
+  estado             text NOT NULL DEFAULT 'ACTIVA' CHECK (estado IN ('ACTIVA', 'CERRADA', 'DESISTIDA')), -- NOSONAR: valores permitidos del CHECK
   forma_cobro        text NOT NULL CHECK (forma_cobro IN ('ANTICIPADO', 'AL_SALIR')),
   registro_tardio    boolean NOT NULL DEFAULT false,                 -- ADR-010
   creada_por         uuid NOT NULL REFERENCES usuarios (id),
@@ -122,7 +122,7 @@ CREATE TABLE cargos (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   estadia_id       uuid NOT NULL REFERENCES estadias (id),
   producto_id      uuid REFERENCES productos (id),
-  tipo             text NOT NULL CHECK (tipo IN ('ALOJAMIENTO', 'DESCUENTO', 'EXTENSION', 'PRODUCTO', 'LLAVE', 'RECARGO_ASEO', 'DANO')),
+  tipo             text NOT NULL CHECK (tipo IN ('ALOJAMIENTO', 'DESCUENTO', 'EXTENSION', 'PRODUCTO', 'LLAVE', 'RECARGO_ASEO', 'DANO')), -- NOSONAR: valores permitidos del CHECK
   concepto         text NOT NULL,
   cantidad         integer NOT NULL DEFAULT 1 CHECK (cantidad >= 1),
   valor_unitario   integer NOT NULL,
@@ -141,9 +141,9 @@ CREATE TABLE pagos (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   estadia_id         uuid NOT NULL REFERENCES estadias (id),
   turno_id           uuid NOT NULL REFERENCES turnos (id),
-  medio              text NOT NULL CHECK (medio IN ('EFECTIVO', 'NEQUI', 'BANCOLOMBIA')),
+  medio              text NOT NULL CHECK (medio IN ('EFECTIVO', 'NEQUI', 'BANCOLOMBIA')), -- NOSONAR: valores permitidos del CHECK
   valor              integer NOT NULL CHECK (valor > 0),
-  estado             text NOT NULL CHECK (estado IN ('EN_CAJA', 'POR_VERIFICAR', 'VERIFICADO', 'RECHAZADO')),
+  estado             text NOT NULL CHECK (estado IN ('EN_CAJA', 'POR_VERIFICAR', 'VERIFICADO', 'RECHAZADO')), -- NOSONAR: valores permitidos del CHECK
   registrado_por     uuid NOT NULL REFERENCES usuarios (id),
   registrado_en      timestamptz NOT NULL DEFAULT now(),
   verificado_por     uuid REFERENCES usuarios (id),

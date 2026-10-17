@@ -3,7 +3,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
 import { requiere } from '../identidad/sesiones.ts';
-import { auditar } from '../comun/auditoria.ts';
+import { auditarVarios } from '../comun/auditoria.ts';
 import { ErrorApi } from '../comun/errores.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
 import { leerEstadia } from './estadias.ts';
@@ -51,21 +51,28 @@ export function rutasCargos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'agregarCargos', async (tx) => {
       const momento = ahora();
       const est = await estadiaActiva(tx, req.params.id);
-      for (const item of req.body.items) {
-        const [p] = await tx.consultar<{ id: string; nombre: string; precio: number; activo: boolean }>(
-          'SELECT id, nombre, precio, activo FROM productos WHERE id = $1', [item.producto_id]);
+      const productos = new Map((await tx.consultar<{ id: string; nombre: string; precio: number; activo: boolean }>(
+        'SELECT id, nombre, precio, activo FROM productos WHERE id = ANY($1::uuid[])', [req.body.items.map((i) => i.producto_id)],
+      )).map((p) => [p.id, p]));
+      const filas = req.body.items.map((item) => {
+        const p = productos.get(item.producto_id);
         if (!p) throw new ErrorApi(404, 'NO_ENCONTRADO', 'Ese producto no existe en el catálogo.');
         if (!p.activo) throw new ErrorApi(409, 'CONFLICTO', `«${p.nombre}» ya no está a la venta.`);
-        const tipo = tipoDeCargo(p.nombre);
-        const [c] = await tx.consultar<{ id: string }>(
-          `INSERT INTO cargos (estadia_id, producto_id, tipo, concepto, cantidad, valor_unitario, valor, creado_por, creado_en)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-          [req.params.id, p.id, tipo, p.nombre, item.cantidad, p.precio, p.precio * item.cantidad, u.id, momento]);
-        await auditar(tx, {
-          usuarioId: u.id, accion: 'CREAR', entidad: 'cargos', entidadId: c.id,
-          detalle: { estadia: req.params.id, tipo, valor: String(p.precio * item.cantidad) }, ocurrido: momento,
-        });
-      }
+        return { p, tipo: tipoDeCargo(p.nombre), cantidad: item.cantidad, valor: p.precio * item.cantidad };
+      });
+      const creados = await tx.consultar<{ id: string }>(
+        `INSERT INTO cargos (estadia_id, producto_id, tipo, concepto, cantidad, valor_unitario, valor, creado_por, creado_en)
+         SELECT $1, c.producto_id, c.tipo, c.concepto, c.cantidad, c.valor_unitario, c.valor, $2, $3
+           FROM unnest($4::uuid[], $5::text[], $6::text[], $7::int[], $8::int[], $9::int[]) WITH ORDINALITY
+                AS c(producto_id, tipo, concepto, cantidad, valor_unitario, valor, n)
+          ORDER BY c.n
+         RETURNING id`,
+        [req.params.id, u.id, momento, filas.map((f) => f.p.id), filas.map((f) => f.tipo), filas.map((f) => f.p.nombre),
+          filas.map((f) => f.cantidad), filas.map((f) => f.p.precio), filas.map((f) => f.valor)]);
+      await auditarVarios(tx, creados.map((c, i) => ({
+        usuarioId: u.id, accion: 'CREAR' as const, entidad: 'cargos', entidadId: c.id,
+        detalle: { estadia: req.params.id, tipo: filas[i].tipo, valor: String(filas[i].valor) }, ocurrido: momento,
+      })));
       // El mapa muestra el saldo: se avisa que la habitación cambió.
       await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)',
         ['habitacion.actualizada', JSON.stringify({ numero: est.habitacion_numero, entidad_id: req.params.id }), momento]);

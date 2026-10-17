@@ -37,7 +37,7 @@ export function RecibirTurno({ alRecibir }: { alRecibir: () => void }) {
     const valor = leerPesos(contado);
     if (valor === null) { setError('Escriba cuánto efectivo contó.'); return; }
     if (valor !== turno!.base_entregada && motivo.trim().length < 5) { setError('Explique por qué no coincide (mínimo 5 letras).'); return; }
-    recibir(valor, valor === turno!.base_entregada ? undefined : motivo.trim());
+    void recibir(valor, valor === turno!.base_entregada ? undefined : motivo.trim()); // recibir() muestra sus propios errores
   }
 
   if (!turno) return error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div> : null;
@@ -62,13 +62,13 @@ export function RecibirTurno({ alRecibir }: { alRecibir: () => void }) {
         </> : (
           <form class="pila" style="gap:12px" onSubmit={enviarOtro} noValidate>
             <div class={`campo${error && valor === null ? ' campo--error' : ''}`}>
-              <label for="contado">¿Cuánto contó en la caja?</label>
+              <label htmlFor="contado">¿Cuánto contó en la caja?</label>
               <input id="contado" inputmode="numeric" autocomplete="off" placeholder={`Ej. ${entregado}`} value={contado}
                 onInput={(e) => setContado((e.target as HTMLInputElement).value)} />
             </div>
             {dif && <p><span class={`pill pill--${dif.tono}`}>{dif.texto}</span></p>}
-            {dif && dif.tono === 'alerta' && <div class="campo">
-              <label for="motivo">¿Por qué no coincide? <span class="req">*</span></label>
+            {dif?.tono === 'alerta' && <div class="campo">
+              <label htmlFor="motivo">¿Por qué no coincide? <span class="req">*</span></label>
               <textarea id="motivo" rows={2} maxLength={300} value={motivo} onInput={(e) => setMotivo((e.target as HTMLTextAreaElement).value)} />
               <span class="ayuda">Se le avisa a la administración.</span>
             </div>}

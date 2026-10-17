@@ -10,6 +10,7 @@ import { conIdempotencia } from '../comun/idempotencia.ts';
 import { turnoAbiertoId } from '../caja/turnos.ts';
 import { cotizar, type ModalidadCotizable, type TipoHabitacion } from '../reglas/reglas.ts';
 import { descuentoPedido, regla, tarifasVigentes } from './cotizaciones.ts';
+import { publicarEventos, type Evento } from '../comun/eventos.ts';
 
 const HABITACIONES = ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '301'];
 const UNICO_VIOLADO = '23505';
@@ -102,7 +103,7 @@ const esquemaCuerpo = {
         tipo_documento: { type: 'string', enum: ['CC', 'CE', 'TI', 'RC', 'PASAPORTE', 'PPT'] },
         numero_documento: { type: 'string', pattern: '^[A-Za-z0-9-]{4,20}$' },
         nacionalidad: { type: 'string', minLength: 2, maxLength: 60 },
-        telefono: { type: 'string', pattern: '^\\+57[0-9]{10}$' },
+        telefono: { type: 'string', pattern: String.raw`^\+57[0-9]{10}$` },
         es_menor: { type: 'boolean' },
         acompanante_verificado: { type: 'boolean' },
       },
@@ -129,7 +130,51 @@ const esquemaCuerpo = {
 function conceptoAlojamiento(modalidad: ModalidadCotizable, tipo: TipoHabitacion, personas: number, noches: number) {
   const hab = tipo === 'AIRE' ? 'aire' : 'ventilador';
   if (modalidad === 'TRES_HORAS') return `Tres horas · ${hab}`;
-  return `${noches === 1 ? 'Noche' : `${noches} noches`} · ${hab}, ${personas} ${personas === 1 ? 'persona' : 'personas'}`;
+  const cuantas = noches === 1 ? 'Noche' : `${noches} noches`;
+  return `${cuantas} · ${hab}, ${personas} ${personas === 1 ? 'persona' : 'personas'}`;
+}
+
+/** Titular y su autorización de datos (FR-05, ADR-006). */
+async function crearHuesped(tx: Bd, b: Cuerpo, usuarioId: string, entrada: Date): Promise<string> {
+  const hu = b.huesped;
+  const [huesped] = await tx.consultar<{ id: string }>(
+    `INSERT INTO huespedes (nombre, tipo_documento, numero_documento, nacionalidad, telefono, es_menor, acompanante_verificado)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+    [hu.nombre.trim(), hu.tipo_documento ?? null, hu.numero_documento ?? null, hu.nacionalidad.trim(), hu.telefono ?? null, hu.es_menor, hu.acompanante_verificado ?? false]);
+  await tx.consultar('INSERT INTO autorizaciones_datos (huesped_id, version_aviso, otorgada_en, registrada_por) VALUES ($1, $2, $3, $4)',
+    [huesped.id, b.autorizacion.version_aviso, entrada, usuarioId]);
+  return huesped.id;
+}
+
+/** Inserta la estadía; si la habitación ya tiene una activa (índice único), responde 409. */
+async function crearEstadia(tx: Bd, valores: unknown[]): Promise<string> {
+  try {
+    const [{ id }] = await tx.consultar<{ id: string }>(
+      `INSERT INTO estadias (habitacion_numero, huesped_id, turno_id, modalidad, personas, noches, entrada_en, salida_prevista_en,
+                             forma_cobro, creada_por, creada_en, registro_tardio)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`, valores);
+    return id;
+  } catch (error) {
+    if ((error as { code?: string }).code === UNICO_VIOLADO) {
+      throw new ErrorApi(409, 'HABITACION_NO_DISPONIBLE', `La habitación ${String(valores[0])} ya tiene una estadía activa.`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Pago al entrar. Efectivo: si recibió más, la diferencia son vueltas; si recibió menos, queda como abono.
+ * Transferencia: queda por verificar (RN-12) y devuelve el evento para avisar a la administración.
+ */
+async function cobrarAlEntrar(tx: Bd, b: Cuerpo, e: { estadiaId: string; turnoId: string; total: number; usuarioId: string; momento: Date }): Promise<Evento | null> {
+  const efectivo = b.pago.forma === 'EFECTIVO';
+  const valor = efectivo ? Math.min(b.pago.valor_recibido ?? e.total, e.total) : e.total;
+  if (valor <= 0) return null;
+  const [p] = await tx.consultar<{ id: string }>(
+    `INSERT INTO pagos (estadia_id, turno_id, medio, valor, estado, registrado_por, registrado_en)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+    [e.estadiaId, e.turnoId, b.pago.forma, valor, efectivo ? 'EN_CAJA' : 'POR_VERIFICAR', e.usuarioId, e.momento]);
+  return efectivo ? null : ['pago.por_verificar', { entidad_id: p.id, habitacion_numero: b.habitacion_numero, valor }];
 }
 
 /** `momento` es cuándo se digita; `entrada` es la hora real (igual a `momento` salvo en un registro tardío, ADR-010). */
@@ -158,28 +203,9 @@ async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuari
     throw new ErrorApi(422, 'PAGO_AL_SALIR_NO_PERMITIDO', 'Solo una noche se puede pagar al salir. Varias noches o tres horas se cobran por adelantado.');
   }
 
-  const hu = b.huesped;
-  const [huesped] = await tx.consultar<{ id: string }>(
-    `INSERT INTO huespedes (nombre, tipo_documento, numero_documento, nacionalidad, telefono, es_menor, acompanante_verificado)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-    [hu.nombre.trim(), hu.tipo_documento ?? null, hu.numero_documento ?? null, hu.nacionalidad.trim(), hu.telefono ?? null, hu.es_menor, hu.acompanante_verificado ?? false]);
-  await tx.consultar('INSERT INTO autorizaciones_datos (huesped_id, version_aviso, otorgada_en, registrada_por) VALUES ($1, $2, $3, $4)',
-    [huesped.id, b.autorizacion.version_aviso, entrada, usuario.id]);
-
-  let estadiaId: string;
-  try {
-    [{ id: estadiaId }] = await tx.consultar<{ id: string }>(
-      `INSERT INTO estadias (habitacion_numero, huesped_id, turno_id, modalidad, personas, noches, entrada_en, salida_prevista_en,
-                             forma_cobro, creada_por, creada_en, registro_tardio)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
-      [b.habitacion_numero, huesped.id, turnoId, b.modalidad, b.personas, noches, entrada, c.salida, alSalir ? 'AL_SALIR' : 'ANTICIPADO', usuario.id,
-        momento, b.registro_tardio ?? false]);
-  } catch (error) {
-    if ((error as { code?: string }).code === UNICO_VIOLADO) {
-      throw new ErrorApi(409, 'HABITACION_NO_DISPONIBLE', `La habitación ${b.habitacion_numero} ya tiene una estadía activa.`);
-    }
-    throw error;
-  }
+  const huespedId = await crearHuesped(tx, b, usuario.id, entrada);
+  const estadiaId = await crearEstadia(tx, [b.habitacion_numero, huespedId, turnoId, b.modalidad, b.personas, noches, entrada, c.salida,
+    alSalir ? 'AL_SALIR' : 'ANTICIPADO', usuario.id, momento, b.registro_tardio ?? false]);
 
   const cargo = (tipo: string, concepto: string, cantidad: number, unitario: number) => tx.consultar(
     `INSERT INTO cargos (estadia_id, tipo, concepto, cantidad, valor_unitario, valor, creado_por, creado_en)
@@ -188,22 +214,7 @@ async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuari
   // RN-05: el descuento queda aparte, con quién lo dio.
   if (c.descuento > 0) await cargo('DESCUENTO', 'Descuento por noche (lo pidió el cliente)', noches, -c.descuento / noches);
 
-  if (!alSalir) {
-    const efectivo = b.pago.forma === 'EFECTIVO';
-    // Efectivo: si recibió más, la diferencia son vueltas; si recibió menos, queda como abono.
-    const valor = efectivo ? Math.min(b.pago.valor_recibido ?? c.total, c.total) : c.total;
-    if (valor > 0) {
-      const [p] = await tx.consultar<{ id: string }>(
-        `INSERT INTO pagos (estadia_id, turno_id, medio, valor, estado, registrado_por, registrado_en)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-        [estadiaId, turnoId, b.pago.forma, valor, efectivo ? 'EN_CAJA' : 'POR_VERIFICAR', usuario.id, momento]);
-      if (!efectivo) {
-        // RN-12: la transferencia espera la confirmación de la administración (verificación y aviso en vivo: TICKET-05).
-        await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)',
-          ['pago.por_verificar', JSON.stringify({ entidad_id: p.id, habitacion_numero: b.habitacion_numero, valor }), momento]);
-      }
-    }
-  }
+  const eventoPago = alSalir ? null : await cobrarAlEntrar(tx, b, { estadiaId, turnoId, total: c.total, usuarioId: usuario.id, momento });
 
   await tx.consultar('UPDATE habitaciones SET estado = $2, actualizado_en = $3 WHERE numero = $1', [b.habitacion_numero, 'OCUPADA', momento]);
   // Auditoría sin datos personales (FR-20, ADR-006).
@@ -212,16 +223,15 @@ async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuari
     detalle: { habitacion: b.habitacion_numero, modalidad: b.modalidad, total: String(c.total), pago: b.pago.forma, ...(b.registro_tardio ? { registro_tardio: 'si' } : {}) },
     ocurrido: momento,
   });
-  for (const [tipo, payload] of [
+  await publicarEventos(tx, [
+    ...(eventoPago ? [eventoPago] : []),
     ['estadia.creada', { entidad_id: estadiaId, habitacion_numero: b.habitacion_numero }],
     ['habitacion.actualizada', { numero: b.habitacion_numero, estado: 'OCUPADA' }],
-  ] as const) {
-    await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
-  }
+  ], momento);
   return estadiaId;
 }
 
-const LIMITE_TARDIO_MS = 48 * 3600_000;
+const LIMITE_TARDIO_MS = 48 * 3_600_000;
 
 /** ADR-010: `entrada_en` solo va con `registro_tardio`, y debe estar en las últimas 48 horas (no en el futuro). */
 function horaDeEntrada(b: Cuerpo, momento: Date): Date {
@@ -279,8 +289,8 @@ export function rutasEstadias(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     const ids = await bd.consultar<{ id: string }>(
       `SELECT id FROM estadias WHERE ($1::text IS NULL OR estado = $1) ORDER BY entrada_en DESC, id LIMIT $2 OFFSET $3`,
       [estado, limite, desplazamiento]);
-    const items = [];
-    for (const { id } of ids) items.push(await leerEstadia(bd, id));
+    // Fuera de transacción: las lecturas pueden ir en paralelo (el pool reparte las conexiones).
+    const items = await Promise.all(ids.map(({ id }) => leerEstadia(bd, id)));
     return { items, total };
   });
 
@@ -305,12 +315,10 @@ export function rutasEstadias(app: FastifyInstance, bd: Bd, ahora: () => Date) {
       await tx.consultar(`UPDATE habitaciones SET estado = 'POR_REVISAR', nota = $2, actualizado_en = $3 WHERE numero = $1`,
         [f.habitacion_numero, `Salió a las ${horaTexto(momento)}`, momento]);
       await auditar(tx, { usuarioId: u.id, accion: 'ACTUALIZAR', entidad: 'estadias', entidadId: req.params.id, detalle: { accion: 'SALIDA' }, ocurrido: momento });
-      for (const [tipo, payload] of [
+      await publicarEventos(tx, [
         ['estadia.cerrada', { entidad_id: req.params.id, habitacion_numero: f.habitacion_numero }],
         ['habitacion.actualizada', { numero: f.habitacion_numero, estado: 'POR_REVISAR' }],
-      ] as const) {
-        await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
-      }
+      ], momento);
       return leerEstadia(tx, req.params.id);
     });
   });

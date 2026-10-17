@@ -32,22 +32,22 @@ export function Anular({ que, alCerrar, alAnular }: { que: QueAnular; alCerrar: 
 
   return (
     <div class="capa-panel capa-panel--encima">
-      <div class="velo velo--visible" onClick={alCerrar} />
-      <section class="panel" role="dialog" aria-modal="true" aria-labelledby="anular-titulo">
+      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
+      <dialog open class="panel" aria-modal="true" aria-labelledby="anular-titulo">
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
           <div class="titulos"><h2 id="anular-titulo">Anular {que.origen === 'PAGO' ? 'cobro' : 'salida de dinero'}</h2><p>{que.concepto} · {pesos(Math.abs(que.valor))}</p></div>
         </div>
         <div class="panel__cuerpo">
           <div class="nota"><Ico id="info" clase="ico--s" /><p>No se borra: queda visible y marcado como anulado, con su nombre y la hora. La caja y la cuenta se recalculan solas.</p></div>
-          <div class="campo"><label for="motivo-anular">¿Por qué se anula? <span class="req">*</span></label>
+          <div class="campo"><label htmlFor="motivo-anular">¿Por qué se anula? <span class="req">*</span></label>
             <textarea id="motivo-anular" rows={2} maxLength={200} placeholder="Ej. se registró dos veces" value={motivo} onInput={(e) => setMotivo((e.target as HTMLTextAreaElement).value)} /></div>
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
         </div>
         <div class="panel__pie">
           <button type="button" class="btn btn--peligro btn--l btn--bloque" disabled={enviando} onClick={anular}><Ico id="papelera" clase="ico--s" />Anular</button>
         </div>
-      </section>
+      </dialog>
     </div>
   );
 }

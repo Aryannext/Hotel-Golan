@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { api, type ResumenDia, type Turno, type TurnoDetalle } from '../api.ts';
 import { horaBogota, lineasDelTurno, pesos } from '../logica.ts';
 import { diaHotelActual, errorRango, fechaReporte } from '../reportes.ts';
+import { pillEstadoPago } from '../presentacion.ts';
 
 const tipoTurno = (t: Turno['tipo']) => t === 'DIA' ? 'Día' : 'Noche';
 const estadoTurno = (t: Turno) => ({ ABIERTO: 'En curso', CERRADO: 'Cerrado', POR_RECIBIR: 'Por recibir' })[t.estado];
@@ -37,7 +38,7 @@ function Detalle({ id, recarga, alVolver }: { id: string; recarga: number; alVol
   const lineas = turno ? lineasDelTurno(turno.pagos, turno.movimientos_caja) : [];
   return <div class="historial">
     <button type="button" class="btn btn--secundario" onClick={alVolver}>Volver al historial</button>
-    {cargando && <p role="status">Cargando detalle…</p>}
+    {cargando && <p><output>Cargando detalle…</output></p>}
     {error && <p class="nota nota--alerta" role="alert">{error}</p>}
     {turno && <>
       <section class="tarjeta">
@@ -59,10 +60,7 @@ function Detalle({ id, recarga, alVolver }: { id: string; recarga: number; alVol
             <div class="mov__txt"><div class="mov__titulo">{l.concepto}</div>
               <div class="mov__detalle">{momento(l.hora)} · {l.por}{!l.enCaja ? ' · no entra a la caja' : ''}</div></div>
             <div class="mov__der"><span class="mov__valor">{pesos(l.valor)}</span>
-              {l.anulado ? <span class="pill pill--neutro">Anulado</span>
-                : l.estado === 'POR_VERIFICAR' ? <span class="pill pill--aviso">Por verificar</span>
-                : l.estado === 'RECHAZADO' ? <span class="pill pill--alerta">No llegó</span>
-                : l.estado === 'VERIFICADO' && <span class="pill pill--ok">Verificado</span>}
+              <PillLinea anulado={l.anulado} estado={l.estado} />
             </div>
           </div>)}
       </section>
@@ -86,7 +84,7 @@ function Turnos({ recarga }: { recarga: number }) {
   }, [pagina, recarga]);
   if (id) return <Detalle id={id} recarga={recarga} alVolver={() => setId(null)} />;
   return <div class="historial">
-    {cargando && <p role="status">Cargando turnos…</p>}
+    {cargando && <p><output>Cargando turnos…</output></p>}
     {error && <p class="nota nota--alerta" role="alert">{error}</p>}
     {!cargando && datos && <>
       {datos.items.length === 0 && <p class="vacio">No hay turnos para mostrar.</p>}
@@ -134,7 +132,7 @@ function Dias({ recarga }: { recarga: number }) {
       <button type="submit" class="btn btn--primario" disabled={cargando}>Consultar</button>
     </form>
     <p class="ayuda">Cada día reúne los turnos que comenzaron de 6:30 a. m. a 6:30 a. m. del día siguiente, hora de Colombia. Los turnos en curso tienen cifras parciales.</p>
-    {cargando && <p role="status">Consultando días…</p>}
+    {cargando && <p><output>Consultando días…</output></p>}
     {error && <p class="nota nota--alerta" role="alert">{error}</p>}
     {!cargando && dias && <>
       <p>Consulta: {fechaReporte(consulta.desde)} al {fechaReporte(consulta.hasta)}.</p>
@@ -152,6 +150,12 @@ function Dias({ recarga }: { recarga: number }) {
       <p class="ayuda">El efectivo corresponde a cobros, sin sumar la base ni las transferencias. Las salidas no incluyen el pago del turno, que se consulta en su detalle. Los descuentos y las salidas se muestran por separado.</p>
     </>}
   </div>;
+}
+
+function PillLinea({ anulado, estado }: { anulado: boolean; estado: string }) {
+  if (anulado) return <span class="pill pill--neutro">Anulado</span>;
+  const p = pillEstadoPago(estado);
+  return p && <span class={`pill ${p[0]}`}>{p[1]}</span>;
 }
 
 export function Historial({ recarga }: { recarga: number }) {

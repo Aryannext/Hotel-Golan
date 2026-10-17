@@ -63,11 +63,13 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
   // Tiempo real (ADR-005): después de cada cambio se publica lo que quedó en la bandeja de salida.
   const publicador = new Publicador(o.bd, (e) => app.log.error(e));
   const conexionesVivas = new Set<() => void>();
-  app.addHook('onResponse', async (req) => { if (req.method !== 'GET') publicador.despertar(); });
+  app.addHook('onResponse', (req, _rep, listo) => { if (req.method !== 'GET') publicador.despertar(); listo(); });
   // Las conexiones SSE no terminan solas: se cierran antes de apagar el servidor.
-  app.addHook('preClose', async () => {
-    for (const cerrar of [...conexionesVivas]) cerrar();
+  // Cada cierre se quita del Set; borrar el elemento actual mientras se recorre un Set es seguro.
+  app.addHook('preClose', (listo) => {
+    for (const cerrar of conexionesVivas) cerrar();
     publicador.cerrar();
+    listo();
   });
 
   await app.register(async (api) => {

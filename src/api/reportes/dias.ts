@@ -56,7 +56,7 @@ export function rutasReportes(app: FastifyInstance, bd: Bd, ahora: () => Date) {
         FROM por_turno GROUP BY dia ORDER BY dia`, [desde, hasta]);
     return { items: filas.map((d) => {
       const inicio = new Date(`${d.dia}T06:30:00-05:00`);
-      return { ...d, desde: aBogota(inicio), hasta: aBogota(new Date(inicio.getTime() + 86400_000)) };
+      return { ...d, desde: aBogota(inicio), hasta: aBogota(new Date(inicio.getTime() + 86_400_000)) };
     }) };
   });
 }

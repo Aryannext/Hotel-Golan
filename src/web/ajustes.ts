@@ -14,6 +14,7 @@ export const GRUPOS_EDITABLES: Array<[string, string]> = [['NEVERA', 'Nevera'], 
 
 /** Pesos escritos por la persona; un signo menos o un texto sin números no es un valor válido. */
 const pesosValidos = (texto: string) => (texto.includes('-') ? null : leerPesos(texto));
+const enteroValido = (texto: string) => (/^\d+$/.test(texto.trim()) ? Number(texto) : null);
 
 export function etiquetaTarifa(t: Pick<Tarifa, 'tipo_habitacion' | 'modalidad' | 'personas'>): string {
   const tipo = t.tipo_habitacion === 'AIRE' ? 'Aire' : 'Ventilador';
@@ -57,7 +58,7 @@ export function reglasCambiadas(actuales: Reglas, textos: Record<ClaveRegla, str
   const cambios: Partial<Reglas> = {};
   const errores: Partial<Record<ClaveRegla, string>> = {};
   for (const r of REGLAS) {
-    const valor = r.pesos ? pesosValidos(textos[r.clave]) : (/^\d+$/.test(textos[r.clave].trim()) ? Number(textos[r.clave]) : null);
+    const valor = r.pesos ? pesosValidos(textos[r.clave]) : enteroValido(textos[r.clave]);
     if (valor === null) { errores[r.clave] = 'Escriba un número.'; continue; }
     if (valor < r.min || valor > r.max) { errores[r.clave] = `Debe estar entre ${r.min} y ${r.max}.`; continue; }
     if (valor !== actuales[r.clave]) cambios[r.clave] = valor;

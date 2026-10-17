@@ -47,8 +47,8 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
   const danioAccion = acciones.find((a) => a.pideNota);
   return (
     <div class="capa-panel">
-      <div class="velo velo--visible" onClick={alCerrar} />
-      <section class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
+      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label={danio ? 'Volver' : 'Cerrar'} onClick={() => (danio ? setDanio(false) : alCerrar())}><Ico id={danio ? 'atras' : 'cerrar'} clase="ico--s" /></button>
           <div class="titulos"><h2 id="panel-titulo">{h.estado === 'POR_REVISAR' ? `Revisar habitación ${h.numero}` : `Habitación ${h.numero}`}</h2>
@@ -57,7 +57,7 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
         <div class="panel__cuerpo">
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
           {danio && danioAccion ? <>
-            <div class="campo"><label for="nota-danio">¿Qué se dañó?</label>
+            <div class="campo"><label htmlFor="nota-danio">¿Qué se dañó?</label>
               <textarea id="nota-danio" rows={2} maxLength={200} placeholder="Ej. la ducha gotea" value={nota} onInput={(e) => setNota((e.target as HTMLTextAreaElement).value)} /></div>
             <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando} onClick={() => aplicar(danioAccion)}>
               <Ico id="herramienta" clase="ico--s" />Mandar a mantenimiento</button>
@@ -72,7 +72,7 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
             </div>
           </>}
         </div>
-      </section>
+      </dialog>
     </div>
   );
 }

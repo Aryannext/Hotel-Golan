@@ -35,10 +35,10 @@ export function rutasReglas(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     const momento = ahora();
     const cambios = Object.entries(req.body) as Array<[Clave, number]>;
     await bd.transaccion(async (tx) => {
-      for (const [clave, valor] of cambios) {
-        await tx.consultar('UPDATE reglas SET valor = $2, actualizado_por = $3, actualizado_en = $4 WHERE clave = $1',
-          [clave, valor, req.usuario!.id, momento]);
-      }
+      await tx.consultar(
+        `UPDATE reglas r SET valor = c.valor, actualizado_por = $3, actualizado_en = $4
+           FROM unnest($1::text[], $2::int[]) AS c(clave, valor) WHERE r.clave = c.clave`,
+        [cambios.map(([clave]) => clave), cambios.map(([, valor]) => valor), req.usuario!.id, momento]);
       await auditar(tx, {
         usuarioId: req.usuario!.id, accion: 'ACTUALIZAR', entidad: 'reglas', entidadId: 'reglas', ocurrido: momento,
         detalle: Object.fromEntries(cambios.map(([k, v]) => [k, String(v)])),

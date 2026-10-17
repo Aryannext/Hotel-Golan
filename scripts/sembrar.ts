@@ -1,6 +1,6 @@
 // Carga datos sintéticos en una base de DESARROLLO.
 // Uso: npm run db:sembrar              (falla si ya hay datos)
-//      npm run db:reiniciar            (borra TODO el esquema, migra y siembra de nuevo)
+//      npm run db:reiniciar            (borra todo el esquema, migra y siembra de nuevo)
 import { conectarPostgres } from './lib/bd.ts';
 import { aplicarMigraciones } from './lib/migraciones.ts';
 import { sembrar } from './lib/semilla.ts';

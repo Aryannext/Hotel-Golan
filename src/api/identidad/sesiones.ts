@@ -11,7 +11,7 @@ export type Rol = 'RECEPCION' | 'ADMINISTRACION';
 export interface UsuarioSesion { id: string; nombre: string; usuario: string; rol: Rol; activo: boolean; sesionId: string; expira: Date }
 
 export const COOKIE = 'sesion';
-export const DURACION_SESION_MS = 12 * 3600_000;
+export const DURACION_SESION_MS = 12 * 3_600_000;
 const INTENTOS_MAXIMOS = 5;
 const BLOQUEO_MS = 15 * 60_000;
 
@@ -29,7 +29,7 @@ export async function iniciarSesion(bd: Bd, ahora: Date, usuario: string, pin: s
   const [u] = await bd.consultar<FilaUsuario>(
     'SELECT id, nombre, usuario, rol, activo, pin_hash, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE usuario = $1',
     [usuario]);
-  if (!u || !u.activo) {
+  if (!u?.activo) {
     await verify(await relleno(), pin);
     throw credencialesInvalidas();
   }
