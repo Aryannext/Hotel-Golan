@@ -9,6 +9,7 @@ Sistema de recepción para un hotel pequeño de 12 habitaciones en Florencia (Ca
 - **Administración:** confirmar transferencias con un toque desde el celular; anular cobros o salidas con motivo (sin borrar nada); consultar el historial de turnos, sus movimientos y el resumen diario de 6:30 a. m. a 6:30 a. m. (hora de Colombia); agregar personas, cambiar su PIN, desbloquearlas o desactivarlas, y ver quién hizo cada acción (sin datos de huéspedes); cambiar tarifas, reglas y productos, que aplican solo a lo nuevo.
 - **Avisos:** campana y «Pendientes» con salidas vencidas (corre el valor por hora), transferencias por verificar y habitaciones por revisar o en limpieza.
 - **Tiempo real:** los cambios llegan a las demás pantallas por Server-Sent Events.
+- **Privacidad:** una tarea borra nombre, documento y teléfono de los huéspedes a los 90 días de la salida (plazo configurable, por confirmar con el hotel); se conservan los importes. También se puede correr a mano con `npm run privacidad:anonimizar`.
 
 El avance por ticket está en [`.scratch/issues/`](.scratch/issues/README.md).
 
