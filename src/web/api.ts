@@ -1,4 +1,5 @@
 import type { CotizacionExtension, Producto, SalidaTurno, TipoSalida } from './logica.ts';
+import type { RegistroActividad, UsuarioAdmin } from './equipo.ts';
 
 // Cliente de la API. La sesión viaja en la cookie HttpOnly; el navegador la envía sola (same-origin).
 export interface Usuario { id: string; nombre: string; usuario: string; rol: 'RECEPCION' | 'ADMINISTRACION'; activo: boolean }
@@ -107,6 +108,11 @@ export const api = {
     pedir<{ id: string; valor: number; medio: string; movimiento_caja_id: string | null }>('POST', `/estadias/${id}/devoluciones`, cuerpo, { 'idempotency-key': clave }),
   anularPago: (id: string, motivo: string) => pedir<Pago>('POST', `/pagos/${id}/anulacion`, { motivo }),
   anularSalida: (id: string, motivo: string) => pedir<SalidaTurno>('POST', `/movimientos_caja/${id}/anulacion`, { motivo }),
+  usuarios: () => pedir<{ items: UsuarioAdmin[] }>('GET', '/usuarios'),
+  crearUsuario: (cuerpo: { nombre: string; usuario: string; rol: UsuarioAdmin['rol']; pin: string }) => pedir<UsuarioAdmin>('POST', '/usuarios', cuerpo),
+  actualizarUsuario: (id: string, cuerpo: { activo?: boolean; pin?: string; desbloquear?: boolean }) => pedir<UsuarioAdmin>('PATCH', `/usuarios/${id}`, cuerpo),
+  auditoria: (desplazamiento = 0, entidad = '', limite = 20) =>
+    pedir<{ items: RegistroActividad[]; total: number }>('GET', `/auditoria?${new URLSearchParams({ limite: String(limite), desplazamiento: String(desplazamiento), ...(entidad ? { entidad } : {}) })}`),
   turnoActual: () => pedir<Turno>('GET', '/turnos/actual'),
   recibirTurno: (base_contada: number, motivo_diferencia?: string) =>
     pedir<Turno>('POST', '/turnos/actual/recepcion', motivo_diferencia ? { base_contada, motivo_diferencia } : { base_contada }),

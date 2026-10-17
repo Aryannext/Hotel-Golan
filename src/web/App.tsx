@@ -1,5 +1,5 @@
 // Raíz de la PWA: inicio de sesión, recibir el turno si está por recibir (TICKET-03), las vistas Habitaciones y Caja,
-// «Por confirmar» para la administración y la actualización en vivo (TICKET-05).
+// «Por confirmar» para la administración y la actualización en vivo (TICKET-05); Historial (TICKET-13) y Equipo (TICKET-14).
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion, type Pago, type SesionActual } from './api.ts';
 import { Acceso } from './componentes/Acceso.tsx';
@@ -8,6 +8,7 @@ import { Entrada } from './componentes/Entrada.tsx';
 import { RecibirTurno } from './componentes/RecibirTurno.tsx';
 import { Caja } from './componentes/Caja.tsx';
 import { Historial } from './componentes/Historial.tsx';
+import { Equipo } from './componentes/Equipo.tsx';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
 import { PanelEstado } from './componentes/PanelEstado.tsx';
@@ -15,7 +16,7 @@ import { Ico } from './componentes/Ico.tsx';
 import { avisoEvento, iniciales } from './logica.ts';
 import { useEnVivo } from './enVivo.ts';
 
-type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial';
+type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial' | 'equipo';
 interface Aviso { tono: 'exito' | 'alerta' | 'info'; texto: string }
 
 export function App() {
@@ -76,8 +77,24 @@ export function App() {
   const vistas: Array<[Vista, string, string]> = [
     ...(esAdmin ? [['confirmar', 'Por confirmar', 'transferencia'] as [Vista, string, string]] : []),
     ['mapa', 'Habitaciones', 'habitaciones'], ['caja', 'Caja', 'caja'],
-    ...(esAdmin ? [['historial', 'Historial', 'calendario'] as [Vista, string, string]] : []),
+    ...(esAdmin ? [['historial', 'Historial', 'calendario'], ['equipo', 'Equipo', 'huespedes']] as Array<[Vista, string, string]> : []),
   ];
+  // Lo que se ve debajo de las pestañas: una vista por pestaña; en Habitaciones, el asistente de entrada o el mapa.
+  function vistaActual() {
+    if (vista === 'confirmar') return <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />;
+    if (vista === 'historial' && esAdmin) return <Historial recarga={recarga} />;
+    if (vista === 'equipo' && esAdmin) return <Equipo recarga={recarga} yo={u.id} />;
+    if (vista === 'caja') return <Caja recarga={recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={(texto) => setAviso({ tono: 'exito', texto })}
+      alEntregar={(texto) => { setSesion(null); setAviso(null); setMensaje(texto); }} />;
+    if (error) return <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>;
+    if (cotizando) return <Entrada habitacion={cotizando} alVolver={() => setCotizando(null)} alRegistrar={(est) => {
+      setCotizando(null);
+      setRecarga((n) => n + 1);
+      setAviso({ tono: 'exito', texto: `Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.` });
+    }} />;
+    return <Mapa habitaciones={habitaciones} alElegir={(hab) => { setAviso(null); setCotizando(hab); }} alAbrir={setFicha} alRevisar={setRevisando} />;
+  }
+
   return (
     <div class="app">
       <div class="contenido">
@@ -104,17 +121,7 @@ export function App() {
                 <Ico id={aviso.tono === 'alerta' ? 'alerta' : aviso.tono === 'exito' ? 'check' : 'info'} clase="ico--s" /><p>{aviso.texto}</p>
                 <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
               </div>}
-              {vista === 'confirmar' ? <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />
-                : vista === 'historial' && esAdmin ? <Historial recarga={recarga} />
-                : vista === 'caja' ? <Caja recarga={recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={(texto) => setAviso({ tono: 'exito', texto })}
-                  alEntregar={(texto) => { setSesion(null); setAviso(null); setMensaje(texto); }} />
-                : error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>
-                : cotizando ? <Entrada habitacion={cotizando} alVolver={() => setCotizando(null)} alRegistrar={(est) => {
-                  setCotizando(null);
-                  setRecarga((n) => n + 1);
-                  setAviso({ tono: 'exito', texto: `Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.` });
-                }} />
-                : <Mapa habitaciones={habitaciones} alElegir={(hab) => { setAviso(null); setCotizando(hab); }} alAbrir={setFicha} alRevisar={setRevisando} />}
+              {vistaActual()}
               {ficha && <Ficha habitacion={ficha} recarga={recarga} esAdmin={esAdmin} alCerrar={() => setFicha(null)} alCambiar={() => setRecarga((n) => n + 1)}
                 alSalir={(texto) => { setFicha(null); setRecarga((n) => n + 1); setAviso({ tono: 'exito', texto }); }} />}
               {revisando && <PanelEstado habitacion={revisando} alCerrar={() => setRevisando(null)}
