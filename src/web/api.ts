@@ -36,7 +36,7 @@ export interface ResumenDia {
 export interface Cargo { id: string; tipo: string; concepto: string; cantidad: number; valor_unitario: number; valor: number; creado_por: string; creado_en: string; anulado: boolean }
 export interface Pago {
   id: string; estadia_id: string | null; habitacion_numero: string | null; venta_id: string | null; venta_detalle: string | null;
-  pedido_lavanderia_id: string | null; lavanderia_cliente: string | null; turno_id: string; medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA'; valor: number;
+  pedido_lavanderia_id: string | null; lavanderia_cliente: string | null; turno_id: string; medio: MedioPago; valor: number;
   estado: string; registrado_por: string; registrado_en: string; verificado_por: string | null; verificado_en: string | null; anulado: boolean;
 }
 export interface Estadia {
@@ -45,7 +45,9 @@ export interface Estadia {
   huesped: { id: string; nombre_mostrado: string; tipo_documento: string | null; documento_enmascarado: string | null; nacionalidad: string | null; anonimizado: boolean };
   cargos: Cargo[]; pagos: Pago[]; cuenta: { total_cargos: number; pagado: number; por_verificar: number; saldo: number; a_favor: number };
 }
-export type FormaPago = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' | 'AL_SALIR';
+/** Medios con los que se paga: el efectivo entra a la caja; las transferencias quedan por confirmar (RN-12). */
+export type MedioPago = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
+export type FormaPago = MedioPago | 'AL_SALIR';
 export interface PedidoEntrada extends PedidoCotizacion {
   registro_tardio?: boolean;
   huesped: Record<string, unknown>;
@@ -94,7 +96,7 @@ export const api = {
   productos: () => pedir<{ items: Producto[] }>('GET', '/productos'),
   agregarCargos: (id: string, items: Array<{ producto_id: string; cantidad: number }>, clave: string) =>
     pedir<Estadia>('POST', `/estadias/${id}/cargos`, { items }, { 'idempotency-key': clave }),
-  registrarPago: (id: string, medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA', valor: number, clave: string) =>
+  registrarPago: (id: string, medio: MedioPago, valor: number, clave: string) =>
     pedir<Pago>('POST', `/estadias/${id}/pagos`, { medio, valor }, { 'idempotency-key': clave }),
   darSalida: (id: string) => pedir<Estadia>('POST', `/estadias/${id}/salida`),
   cambiarEstado: (numero: string, cuerpo: { estado: string; nota?: string; limpieza_especial?: boolean }) =>
@@ -127,14 +129,14 @@ export const api = {
     pedir<PedidoLavanderia>('POST', `/estadias/${estadiaId}/lavanderia`, { items }),
   lavanderiaPorEntregar: () => pedir<{ items: PedidoLavanderia[] }>('GET', '/lavanderia?estado=RECIBIDO'),
   // TICKET-24 · externos: solo el nombre; pagan de una vez o al reclamar.
-  lavanderiaExterna: (cliente_nombre: string, items: Array<{ producto_id: string; cantidad: number }>, cobro?: { medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' }) =>
+  lavanderiaExterna: (cliente_nombre: string, items: Array<{ producto_id: string; cantidad: number }>, cobro?: { medio: MedioPago }) =>
     pedir<PedidoLavanderia>('POST', '/lavanderia', { cliente_nombre, items, ...(cobro ? { cobro } : {}) }),
   deudasLavanderia: () => pedir<{ items: PedidoLavanderia[] }>('GET', '/lavanderia/deudas'),
-  cobrarLavanderia: (id: string, medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA') => pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/cobro`, { medio }),
-  entregarLavanderia: (id: string, cuerpo: { cobro?: { medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' }; sin_pago_autorizado?: boolean }) =>
+  cobrarLavanderia: (id: string, medio: MedioPago) => pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/cobro`, { medio }),
+  entregarLavanderia: (id: string, cuerpo: { cobro?: { medio: MedioPago }; sin_pago_autorizado?: boolean }) =>
     pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/entrega`, cuerpo),
   // TICKET-22 · venta de contado (sin habitación).
-  venderContado: (items: Array<{ producto_id: string; cantidad: number }>, medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA', clave: string) =>
+  venderContado: (items: Array<{ producto_id: string; cantidad: number }>, medio: MedioPago, clave: string) =>
     pedir<{ id: string; total: number; pago: Pago }>('POST', '/ventas', { items, medio }, { 'idempotency-key': clave }),
   // TICKET-21 · surtido y existencias (solo la administración).
   existencias: () => pedir<{ items: Existencia[] }>('GET', '/existencias'),

@@ -135,7 +135,7 @@ export function rutasLavanderia(app: FastifyInstance, bd: Bd, ahora: () => Date)
     schema: {
       body: {
         type: 'object', additionalProperties: false, required: ['cliente_nombre', 'items'],
-        properties: { cliente_nombre: { type: 'string', minLength: 2, maxLength: 120, pattern: '\\S.*\\S' }, items: ITEMS, cobro: COBRO },
+        properties: { cliente_nombre: { type: 'string', minLength: 2, maxLength: 120, pattern: String.raw`\S.*\S` }, items: ITEMS, cobro: COBRO },
       },
     },
   }, async (req, rep) => {
