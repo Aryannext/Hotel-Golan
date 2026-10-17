@@ -361,6 +361,8 @@ dialog { margin: 0; padding: 0; border: 0; color: inherit; width: auto; height: 
 .producto span { font: 500 12px/1.3 var(--f-ui); color: var(--texto-2); }
 .acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .acciones .btn { justify-content: flex-start; }
+/* Si quedan impares, la última acción (p. ej. «Dar salida») ocupa toda la fila. */
+.acciones .btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
 
 /* ---------- Notificaciones y avisos ---------- */
 .popover { position: fixed; z-index: 60; top: 64px; right: 12px; width: min(360px, calc(100vw - 24px)); background: var(--blanco); border: 1px solid var(--borde); border-radius: var(--r-lg); box-shadow: var(--sombra-alta); padding: 14px 16px; }
