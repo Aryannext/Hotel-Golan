@@ -91,7 +91,11 @@ const FRASES: Record<string, Frase> = {
   'ANULAR movimientos_caja': (d) => `Anuló una salida de dinero de ${valor(d)}`,
   'CREAR usuarios': (d, _r, q) => `Creó el usuario ${q ?? 'nuevo'} (${d.rol === 'ADMINISTRACION' ? 'administración' : 'recepción'})`,
   'ACTUALIZAR usuarios': (d, _r, q) => textoCambioUsuario(d, q ?? 'un usuario'),
-  'ANONIMIZAR huespedes': () => 'Borró los datos de huéspedes vencidos',
+  'ANONIMIZAR huespedes': (d) => {
+    if (!d.cantidad) return 'Borró los datos de huéspedes vencidos';
+    const n = Number(d.cantidad);
+    return `Borró los datos personales de ${n} huésped${n === 1 ? '' : 'es'} (plazo de retención cumplido)`;
+  },
   'ACTUALIZAR tarifas': textoTarifas,
   'ACTUALIZAR reglas': (d) => 'Cambió ' + Object.entries(d).map(([k, v]) => textoRegla(k, Number(v))).join('; '),
   'CREAR productos': (d) => `Agregó un producto de ${valor(d, 'precio')} al catálogo`,

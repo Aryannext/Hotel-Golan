@@ -61,6 +61,8 @@ describe('FR-20 — actividad en palabras', () => {
       [r('ACTUALIZAR', 'usuarios', { pin: 'cambiado' }, 'u3'), 'Cambió el PIN de recepcion3'],
       [r('ACTUALIZAR', 'usuarios', { desbloqueo: 'si' }, 'u3'), 'Desbloqueó a recepcion3'],
       [r('ANONIMIZAR', 'huespedes'), 'Borró los datos de huéspedes vencidos'],
+      [r('ANONIMIZAR', 'huespedes', { cantidad: '1' }), 'Borró los datos personales de 1 huésped (plazo de retención cumplido)'],
+      [r('ANONIMIZAR', 'huespedes', { cantidad: '3' }), 'Borró los datos personales de 3 huéspedes (plazo de retención cumplido)'],
       [r('ACTUALIZAR', 'tarifas', { 'AIRE NOCHE 1': '65000' }), 'Cambió la tarifa Aire · noche · 1 persona a $65.000'],
       [r('ACTUALIZAR', 'tarifas', { 'AIRE NOCHE 1': '65000', 'VENTILADOR TRES_HORAS 2': '27000' }),
         'Cambió la tarifa Aire · noche · 1 persona a $65.000; Ventilador · tres horas (1 o 2 personas) a $27.000'],
