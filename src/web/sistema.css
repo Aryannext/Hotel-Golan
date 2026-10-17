@@ -99,3 +99,29 @@
 .producto__form { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .producto__error { flex-basis: 100%; }
 .mov__der .btn--mini { margin-left: 6px; }
+
+/* Avisos (TICKET-16): campana con contador en la barra superior y lista de pendientes. */
+.campana { position: relative; }
+.campana__boton { position: relative; background: var(--blanco); color: var(--madera-600, #5A4632); border: 1px solid var(--pared, #D4C9B5); }
+.campana__cuenta { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--oro, #C9A45C); color: var(--puerta, #2B2118); font: 700 11px/18px var(--f-ui); text-align: center; }
+.campana__cuenta--urgente { background: var(--rojo); color: var(--blanco); }
+.campana__panel { position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; width: min(360px, calc(100vw - 32px)); max-height: 70vh; overflow-y: auto;
+  padding: 12px; background: var(--blanco); border: 1px solid var(--borde); border-radius: var(--r-lg); box-shadow: var(--sombra); }
+.campana__titulo { margin: 0 0 8px; font: 700 14px/1.3 var(--f-ui); }
+.lista-avisos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.aviso-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--borde); border-radius: var(--r-md, 12px);
+  background: var(--blanco); text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.aviso-item:hover { background: var(--crema-2); }
+.aviso-item > .ico:first-child { flex: none; }
+.aviso-item--alerta { border-color: var(--rojo); background: var(--rojo-bg); }
+.aviso-item--alerta > .ico:first-child { color: var(--rojo); }
+.aviso-item--aviso { background: var(--ambar-bg); }
+.aviso-item--aviso > .ico:first-child { color: var(--ambar); }
+.aviso-item__txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.aviso-item__txt b { font: 700 14px/1.3 var(--f-ui); }
+.aviso-item__txt span { font: 500 12.5px/1.4 var(--f-ui); color: var(--texto-2); }
+.pendientes { margin-bottom: 16px; }
+@media (max-width: 600px) {
+  .campana__panel { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; }
+}

@@ -19,7 +19,7 @@ Fase 2 del pipeline AI-SDLC (16-10-2026). Aprobados por el usuario. Se trabaja l
 | [TICKET-13](13-historial-y-dia-del-hotel.md) | Historial de turnos y resumen por día del hotel | 11 | **done** |
 | [TICKET-14](14-usuarios-pin-y-auditoria.md) | Usuarios, PIN y auditoría (administración) | 01 | **done** |
 | [TICKET-15](15-configuracion-tarifas-y-catalogo.md) | Configuración: tarifas, reglas y catálogo | 02, 06 | **done** |
-| [TICKET-16](16-avisos.md) | Avisos en pantalla | 05, 08 | ready-for-agent |
+| [TICKET-16](16-avisos.md) | Avisos en pantalla | 05, 08 | **done** |
 | [TICKET-17](17-anonimizar-a-90-dias.md) | Anonimizar los datos de huéspedes a los 90 días | 04 | ready-for-agent |
 | [TICKET-18](18-registro-tardio.md) | Registro tardío (contingencia) | 04 | ready-for-agent |
 | [TICKET-19](19-desplegar-en-vps.md) | Desplegar el esqueleto en el VPS por la red privada | 01 | ready-for-agent |
