@@ -1,0 +1,62 @@
+// Avisos en pantalla (TICKET-16, FR-23, RN-04). Se calculan en la PWA con GET /habitaciones y GET /reglas:
+// el vencimiento se compara con la hora actual, así que una salida vencida aparece sin recargar.
+// Solo número de habitación y valores: nunca el nombre del huésped.
+import type { Habitacion } from './api.ts';
+import { pesos } from './logica.ts';
+import { textoHora, type Reglas } from './ajustes.ts';
+
+export type TipoAviso = 'VENCIDA' | 'POR_VERIFICAR' | 'POR_REVISAR' | 'LIMPIEZA';
+export interface Aviso { clave: string; tipo: TipoAviso; tono: 'alerta' | 'aviso' | 'info'; habitacion: string; titulo: string; detalle: string }
+
+const ORDEN: Record<TipoAviso, number> = { VENCIDA: 0, POR_VERIFICAR: 1, POR_REVISAR: 2, LIMPIEZA: 3 };
+
+/** «1 h 20 min», «5 min», «2 h», «menos de 1 min»; desde un día, «3 días y 8 h» (sin minutos). */
+export function haceCuanto(desde: number, ahora: number): string {
+  const min = Math.floor((ahora - desde) / 60_000);
+  if (min < 1) return 'menos de 1 min';
+  if (min >= 24 * 60) {
+    const dias = Math.floor(min / (24 * 60));
+    const horas = Math.floor((min % (24 * 60)) / 60);
+    const texto = `${dias} día${dias === 1 ? '' : 's'}`;
+    return horas ? `${texto} y ${horas} h` : texto;
+  }
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${m} min`;
+}
+
+function detalleVencida(reglas: Pick<Reglas, 'valor_hora' | 'hora_noche_completa'> | null): string {
+  if (!reglas) return 'Extienda o dé salida.';
+  return `Corre ${pesos(reglas.valor_hora)} por hora. Desde las ${textoHora(reglas.hora_noche_completa)} se cobra la noche completa. Extienda o dé salida.`;
+}
+
+function avisosDe(h: Habitacion, reglas: Pick<Reglas, 'valor_hora' | 'hora_noche_completa'> | null, ahora: number): Aviso[] {
+  const avisos: Aviso[] = [];
+  const e = h.estadia_activa;
+  if (e) {
+    const salida = Date.parse(e.salida_prevista_en);
+    if (ahora > salida) {
+      avisos.push({ clave: `vencida-${h.numero}`, tipo: 'VENCIDA', tono: 'alerta', habitacion: h.numero,
+        titulo: `Hab. ${h.numero}: la salida venció hace ${haceCuanto(salida, ahora)}`, detalle: detalleVencida(reglas) });
+    }
+    if (e.por_verificar > 0) {
+      avisos.push({ clave: `verificar-${h.numero}`, tipo: 'POR_VERIFICAR', tono: 'aviso', habitacion: h.numero,
+        titulo: `Hab. ${h.numero}: transferencia por verificar de ${pesos(e.por_verificar)}`, detalle: 'La administración debe confirmar si llegó.' });
+    }
+  }
+  if (h.estado === 'POR_REVISAR') {
+    avisos.push({ clave: `revisar-${h.numero}`, tipo: 'POR_REVISAR', tono: 'info', habitacion: h.numero,
+      titulo: `Hab. ${h.numero}: por revisar`, detalle: h.nota ?? 'Revise cómo quedó antes de volver a ocuparla.' });
+  }
+  if (h.estado === 'LIMPIEZA') {
+    avisos.push({ clave: `limpieza-${h.numero}`, tipo: 'LIMPIEZA', tono: 'info', habitacion: h.numero,
+      titulo: `Hab. ${h.numero}: en limpieza`, detalle: h.nota ?? 'Cuando quede lista, márquela como disponible.' });
+  }
+  return avisos;
+}
+
+export function calcularAvisos(habitaciones: Habitacion[], reglas: Pick<Reglas, 'valor_hora' | 'hora_noche_completa'> | null, ahora: number): Aviso[] {
+  return habitaciones.flatMap((h) => avisosDe(h, reglas, ahora))
+    .sort((a, b) => ORDEN[a.tipo] - ORDEN[b.tipo] || a.habitacion.localeCompare(b.habitacion));
+}
