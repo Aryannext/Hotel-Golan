@@ -37,7 +37,7 @@ Especificada en docs/PRD.md v0.4 (RN-19 a RN-23, FR-24 a FR-29) con la tanda 4 d
 | [TICKET-22](22-venta-de-contado.md) | Venta de contado | 21 | **done** |
 | [TICKET-23](23-lavanderia-huespedes.md) | Lavandería para huéspedes | — | **done** |
 | [TICKET-24](24-lavanderia-externos.md) | Lavandería para externos | 22, 23 | **done** |
-| [TICKET-25](25-solicitudes-de-factura.md) | Solicitudes de factura | — | ready-for-agent |
+| [TICKET-25](25-solicitudes-de-factura.md) | Solicitudes de factura | — | **done** |
 
 **En espera:** archivo para el contador (FR-29), hasta hablar con él (T4-7).
 **Frontera:** 20, 23 y 25 pueden empezar ya. Orden propuesto: 20 → 21 → 22 → 23 → 24 → 25.

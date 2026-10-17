@@ -1,6 +1,7 @@
 // Anonimización (FR-21, RN-16, ADR-006): borra nombre, documento y teléfono de los huéspedes cuya última estadía
 // terminó hace más de `retencion_datos_dias` (90 [P/V]), y el nombre de los externos de lavandería entregados hace más
-// de ese plazo (TICKET-24). Importes, cargos, pagos y autorización se conservan.
+// de ese plazo (TICKET-24). Las solicitudes de factura de un huésped anonimizado pierden RUT, correo y teléfono
+// (TICKET-25). Importes, cargos, pagos y autorización se conservan.
 // Es idempotente: un huésped ya anonimizado no se vuelve a tocar ni a auditar.
 import type { Bd } from '../../../scripts/lib/bd.ts';
 import { auditar } from '../comun/auditoria.ts';
@@ -34,7 +35,16 @@ export async function anonimizarVencidos(bd: Bd, ahora: Date): Promise<{ anonimi
     if (externos.length > 0) {
       await auditar(tx, { usuarioId: null, accion: 'ANONIMIZAR', entidad: 'pedidos_lavanderia', entidadId: aBogota(ahora), detalle: { cantidad: String(externos.length) }, ocurrido: ahora });
     }
-    return { anonimizados: filas.length + externos.length };
+    // Solicitudes de factura (TICKET-25): siguen a su huésped; se conservan el estado y las fechas.
+    const solicitudes = await tx.consultar<{ id: string }>(
+      `UPDATE solicitudes_factura s SET documento = NULL, correo = NULL, telefono = NULL, anonimizado_en = $1
+         FROM estadias e JOIN huespedes h ON h.id = e.huesped_id
+        WHERE e.id = s.estadia_id AND h.anonimizado_en IS NOT NULL AND s.anonimizado_en IS NULL
+        RETURNING s.id`, [ahora]);
+    if (solicitudes.length > 0) {
+      await auditar(tx, { usuarioId: null, accion: 'ANONIMIZAR', entidad: 'solicitudes_factura', entidadId: aBogota(ahora), detalle: { cantidad: String(solicitudes.length) }, ocurrido: ahora });
+    }
+    return { anonimizados: filas.length + externos.length + solicitudes.length };
   });
 }
 

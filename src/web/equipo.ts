@@ -100,6 +100,12 @@ const FRASES: Record<string, Frase> = {
   'ACTUALIZAR reglas': (d) => 'Cambió ' + Object.entries(d).map(([k, v]) => textoRegla(k, Number(v))).join('; '),
   'CREAR productos': (d) => `Agregó un producto de ${valor(d, 'precio')} al catálogo`,
   'ACTUALIZAR productos': textoProducto,
+  'CREAR solicitudes_factura': () => 'Anotó una solicitud de factura',
+  'ACTUALIZAR solicitudes_factura': (d) => d.estado === 'ENTREGADA' ? 'Marcó una factura como entregada al huésped' : 'Pasó una solicitud de factura al contador',
+  'ANONIMIZAR solicitudes_factura': (d) => {
+    const n = Number(d.cantidad ?? 0);
+    return `Borró los datos de ${n} solicitud${n === 1 ? '' : 'es'} de factura (plazo de retención cumplido)`;
+  },
 };
 
 const VERBOS: Record<string, string> = { CREAR: 'Creó', ACTUALIZAR: 'Cambió', ANULAR: 'Anuló' };

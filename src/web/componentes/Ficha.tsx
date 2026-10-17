@@ -11,12 +11,13 @@ import {
 import { Ico } from './Ico.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { SelectorProductos } from './SelectorProductos.tsx';
+import { VistaFactura } from './SolicitudesFactura.tsx';
 import { textoTardio } from '../tardio.ts';
 import type { Reglas } from '../ajustes.ts';
 import { ayudaHoras } from '../textosConfig.ts';
 import { cuantos, pillEstadoPago, textoCambio, textoDesistimiento, textoDevolucion, tituloFicha } from '../presentacion.ts';
 
-type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion' | 'lavanderia';
+type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion' | 'lavanderia' | 'factura';
 type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 type MotivoDev = 'SOLO_MIRO' | 'YA_USO';
@@ -57,6 +58,7 @@ function VistaCuenta({ e, esAdmin, numero, ir, alAnular }: {
     <div class="acciones">
       <button type="button" class="btn btn--secundario" onClick={() => ir('extender')}><Ico id="reloj" clase="ico--s" />Extender</button>
       <button type="button" class="btn btn--secundario" onClick={() => ir('lavanderia')}><Ico id="lavanderia" clase="ico--s" />Lavandería</button>
+      <button type="button" class="btn btn--secundario" onClick={() => ir('factura')}><Ico id="facturacion" clase="ico--s" />Factura</button>
       <button type="button" class="btn btn--secundario" onClick={() => ir('devolucion')}><Ico id="devolver" clase="ico--s" />Desiste</button>
       <button type="button" class="btn btn--secundario" onClick={() => ir('salida')}><Ico id="salida" clase="ico--s" />Dar salida</button>
     </div>
@@ -257,6 +259,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
         pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
           alTocar={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie> };
     }
+    if (sub === 'factura') return { cuerpo: <VistaFactura estadiaId={id} />, pie: null };
     if (!e) return { cuerpo: null, pie: null };
     switch (sub) {
       case 'pago':

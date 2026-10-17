@@ -127,9 +127,9 @@ function Asistente({ paso }: { paso: number }) {
   </Fragment>)}</div>;
 }
 
-/** Campo de texto del titular con su etiqueta y su error. */
-function CampoTexto({ id, etiqueta, req = false, valor, error, alEscribir, ...extra }: {
-  id: string; etiqueta: string; req?: boolean; valor: string; error?: string; alEscribir: (v: string) => void; inputmode?: 'tel'; placeholder?: string;
+/** Campo de texto con su etiqueta y su error (titular y solicitud de factura). */
+export function CampoTexto({ id, etiqueta, req = false, valor, error, alEscribir, ...extra }: {
+  id: string; etiqueta: string; req?: boolean; valor: string; error?: string; alEscribir: (v: string) => void; inputmode?: 'tel' | 'email'; placeholder?: string;
 }) {
   return <div class={`campo${error ? ' campo--error' : ''}`}><label htmlFor={id}>{etiqueta}{req && <> <span class="req">*</span></>}</label>
     <input id={id} autocomplete="off" value={valor} onInput={(e) => alEscribir((e.target as HTMLInputElement).value)} {...extra} />

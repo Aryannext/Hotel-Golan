@@ -14,6 +14,7 @@ import { Campana, Pendientes, useAhora } from './componentes/Avisos.tsx';
 import { avisosExistencias, calcularAvisos, ordenarAvisos, type Aviso as AvisoPendiente, type Existencia } from './avisos.ts';
 import type { Reglas } from './ajustes.ts';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
+import { SolicitudesFactura } from './componentes/SolicitudesFactura.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
 import { PanelEstado } from './componentes/PanelEstado.tsx';
 import { Ico } from './componentes/Ico.tsx';
@@ -105,7 +106,10 @@ export function App() {
 
   // Lo que se ve debajo de las pestañas: una vista por pestaña; en Habitaciones, el asistente de entrada o el mapa.
   function vistaActual() {
-    if (vista === 'confirmar') return <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />;
+    if (vista === 'confirmar') return <>
+      <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />
+      {esAdmin && <SolicitudesFactura recarga={recarga} />}
+    </>;
     if (vista === 'historial' && esAdmin) return <Historial recarga={recarga} />;
     if (vista === 'equipo' && esAdmin) return <Equipo recarga={recarga} yo={u.id} />;
     if (vista === 'ajustes' && esAdmin) return <Ajustes key={ajustesInicial} inicial={ajustesInicial} alCambiar={() => setRecarga((n) => n + 1)} />;

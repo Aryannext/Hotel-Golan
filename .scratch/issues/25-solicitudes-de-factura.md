@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Invariantes de negocio
 - El sistema NO emite ni simula facturas electrónicas ni se conecta con Factus (SOW §5).
@@ -19,10 +19,10 @@
 - Reglas de negocio evaluadas en America/Bogota; la base guarda timestamptz.
 
 ## Criterios de aceptación
-- [ ] Desde la ficha se anota una solicitud; queda PENDIENTE con quién la registró.
-- [ ] La administración ve las solicitudes pendientes y las avanza de estado; cada cambio queda auditado sin los datos personales.
-- [ ] Una solicitud registrada un viernes muestra como fecha prevista el lunes siguiente.
-- [ ] Los datos de la solicitud se borran con la anonimización.
+- [x] Desde la ficha se anota una solicitud; queda PENDIENTE con quién la registró.
+- [x] La administración ve las solicitudes pendientes y las avanza de estado; cada cambio queda auditado sin los datos personales.
+- [x] Una solicitud registrada un viernes muestra como fecha prevista el lunes siguiente.
+- [x] Los datos de la solicitud se borran con la anonimización.
 
 ## Módulos a tocar
 nuevo módulo de facturación (solo solicitudes), privacidad, PWA (ficha y vista de la administración).

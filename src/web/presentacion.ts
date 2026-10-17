@@ -65,7 +65,7 @@ export const pistaCuarto = (a: AccionCuarto | null) => (a ? PISTA[a] : '');
 
 const TITULO_FICHA: Record<string, string> = {
   devolucion: 'Devolución por desistimiento', extender: 'Extender estadía', cargo: 'Agregar cargos', pago: 'Registrar pago', salida: 'Dar salida',
-  lavanderia: 'Recibir lavandería',
+  lavanderia: 'Recibir lavandería', factura: 'Solicitud de factura',
 };
 export const tituloFicha = (sub: string, numero: string) => TITULO_FICHA[sub] ?? `Hab. ${numero}`;
 

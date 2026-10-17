@@ -3,6 +3,7 @@ import type { RegistroActividad, UsuarioAdmin } from './equipo.ts';
 import type { Reglas, Tarifa, TarifaInput } from './ajustes.ts';
 import type { Existencia } from './avisos.ts';
 import type { PedidoLavanderia } from './lavanderia.ts';
+import type { EstadoFactura, SolicitudFactura, SolicitudInput } from './facturas.ts';
 
 // Cliente de la API. La sesión viaja en la cookie HttpOnly; el navegador la envía sola (same-origin).
 export interface Usuario { id: string; nombre: string; usuario: string; rol: 'RECEPCION' | 'ADMINISTRACION'; activo: boolean }
@@ -135,6 +136,11 @@ export const api = {
   cobrarLavanderia: (id: string, medio: MedioPago) => pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/cobro`, { medio }),
   entregarLavanderia: (id: string, cuerpo: { cobro?: { medio: MedioPago }; sin_pago_autorizado?: boolean }) =>
     pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/entrega`, cuerpo),
+  // TICKET-25 · solicitudes de factura: recepción las anota; la administración las avanza.
+  solicitarFactura: (estadiaId: string, datos: SolicitudInput) => pedir<SolicitudFactura>('POST', `/estadias/${estadiaId}/solicitudes-factura`, datos),
+  solicitudesFacturaDeEstadia: (estadiaId: string) => pedir<{ items: SolicitudFactura[] }>('GET', `/estadias/${estadiaId}/solicitudes-factura`),
+  solicitudesFacturaAbiertas: () => pedir<{ items: SolicitudFactura[] }>('GET', '/solicitudes-factura?estado=PENDIENTE&estado=ENVIADA_AL_CONTADOR'),
+  avanzarSolicitudFactura: (id: string, estado: EstadoFactura) => pedir<SolicitudFactura>('PATCH', `/solicitudes-factura/${id}`, { estado }),
   // TICKET-22 · venta de contado (sin habitación).
   venderContado: (items: Array<{ producto_id: string; cantidad: number }>, medio: MedioPago, clave: string) =>
     pedir<{ id: string; total: number; pago: Pago }>('POST', '/ventas', { items, medio }, { 'idempotency-key': clave }),

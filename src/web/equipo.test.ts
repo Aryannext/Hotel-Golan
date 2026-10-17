@@ -73,6 +73,10 @@ describe('FR-20 — actividad en palabras', () => {
       [r('ACTUALIZAR', 'productos', { activo: 'no' }), 'Quitó un producto del catálogo'],
       [r('ACTUALIZAR', 'productos', { activo: 'si' }), 'Volvió a poner un producto en el catálogo'],
       [r('ACTUALIZAR', 'productos', { nombre: 'Agua grande' }), 'Cambió el producto «Agua grande» del catálogo'],
+      [r('CREAR', 'solicitudes_factura', { estado: 'PENDIENTE' }), 'Anotó una solicitud de factura'],
+      [r('ACTUALIZAR', 'solicitudes_factura', { estado: 'ENVIADA_AL_CONTADOR' }), 'Pasó una solicitud de factura al contador'],
+      [r('ACTUALIZAR', 'solicitudes_factura', { estado: 'ENTREGADA' }), 'Marcó una factura como entregada al huésped'],
+      [r('ANONIMIZAR', 'solicitudes_factura', { cantidad: '2' }), 'Borró los datos de 2 solicitudes de factura (plazo de retención cumplido)'],
     ];
     for (const [registro, texto] of casos) assert.equal(textoActividad(registro, nombres), texto, `${registro.accion} ${registro.entidad}`);
   });
