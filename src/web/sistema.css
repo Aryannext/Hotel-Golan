@@ -81,3 +81,14 @@
   .pestanas { flex-wrap: nowrap; overflow-x: auto; }
   .pestana { flex: none; }
 }
+
+/* Equipo (TICKET-14): personas en tarjetas y campos de PIN que caben en el celular. */
+.personas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.persona__txt { min-width: 0; }
+.persona__txt h3 { margin: 0; font: 700 15px/1.3 var(--f-ui); overflow-wrap: anywhere; }
+.persona__acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.persona__form { display: flex; flex-direction: column; gap: 10px; }
+.persona--inactiva { background: var(--crema-2); box-shadow: none; }
+.doble--igual { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.doble--igual .campo input.pin { letter-spacing: 8px; font-size: 20px; padding-inline: 6px; }
+@media (max-width: 360px) { .doble--igual { grid-template-columns: 1fr; } }

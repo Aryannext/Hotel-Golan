@@ -1,5 +1,5 @@
 // Raíz de la PWA: inicio de sesión, recibir el turno si está por recibir (TICKET-03), las vistas Habitaciones y Caja,
-// «Por confirmar» para la administración y la actualización en vivo (TICKET-05).
+// «Por confirmar» para la administración y la actualización en vivo (TICKET-05); Historial (TICKET-13) y Equipo (TICKET-14).
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion, type Pago, type SesionActual } from './api.ts';
 import { Acceso } from './componentes/Acceso.tsx';
@@ -8,6 +8,7 @@ import { Entrada } from './componentes/Entrada.tsx';
 import { RecibirTurno } from './componentes/RecibirTurno.tsx';
 import { Caja } from './componentes/Caja.tsx';
 import { Historial } from './componentes/Historial.tsx';
+import { Equipo } from './componentes/Equipo.tsx';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
 import { PanelEstado } from './componentes/PanelEstado.tsx';
@@ -15,7 +16,7 @@ import { Ico } from './componentes/Ico.tsx';
 import { avisoEvento, iniciales } from './logica.ts';
 import { useEnVivo } from './enVivo.ts';
 
-type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial';
+type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial' | 'equipo';
 interface Aviso { tono: 'exito' | 'alerta' | 'info'; texto: string }
 
 export function App() {
@@ -76,7 +77,7 @@ export function App() {
   const vistas: Array<[Vista, string, string]> = [
     ...(esAdmin ? [['confirmar', 'Por confirmar', 'transferencia'] as [Vista, string, string]] : []),
     ['mapa', 'Habitaciones', 'habitaciones'], ['caja', 'Caja', 'caja'],
-    ...(esAdmin ? [['historial', 'Historial', 'calendario'] as [Vista, string, string]] : []),
+    ...(esAdmin ? [['historial', 'Historial', 'calendario'], ['equipo', 'Equipo', 'huespedes']] as Array<[Vista, string, string]> : []),
   ];
   return (
     <div class="app">
@@ -106,6 +107,7 @@ export function App() {
               </div>}
               {vista === 'confirmar' ? <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />
                 : vista === 'historial' && esAdmin ? <Historial recarga={recarga} />
+                : vista === 'equipo' && esAdmin ? <Equipo recarga={recarga} yo={u.id} />
                 : vista === 'caja' ? <Caja recarga={recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={(texto) => setAviso({ tono: 'exito', texto })}
                   alEntregar={(texto) => { setSesion(null); setAviso(null); setMensaje(texto); }} />
                 : error ? <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>

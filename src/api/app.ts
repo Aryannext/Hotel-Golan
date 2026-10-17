@@ -6,6 +6,8 @@ import estaticos from '@fastify/static';
 import type { Bd } from '../../scripts/lib/bd.ts';
 import { ErrorApi } from './comun/errores.ts';
 import { rutasIdentidad } from './identidad/rutas.ts';
+import { rutasUsuarios } from './identidad/usuarios.ts';
+import { rutasAuditoria } from './auditoria/rutas.ts';
 import { rutasHabitaciones } from './habitaciones/rutas.ts';
 import { rutasCotizaciones } from './estadias/cotizaciones.ts';
 import { rutasTurnos } from './caja/turnos.ts';
@@ -68,6 +70,8 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
 
   await app.register(async (api) => {
     rutasIdentidad(api, o.bd, ahora);
+    rutasUsuarios(api, o.bd, ahora);
+    rutasAuditoria(api, o.bd, ahora);
     rutasHabitaciones(api, o.bd, ahora);
     rutasCotizaciones(api, o.bd, ahora);
     rutasTurnos(api, o.bd, ahora);
