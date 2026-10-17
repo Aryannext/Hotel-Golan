@@ -237,43 +237,43 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
   const pago = valorPago(medio, saldo, escrito);
   const devolucion = e ? devolucionPosible(e.pagos, motivoDev, esAdmin) : null;
 
-  function vista(): [ComponentChildren, ComponentChildren] {
+  function vista(): { cuerpo: ComponentChildren; pie: ComponentChildren } {
     if (sub === 'cargo') {
       const texto = sel.items.length ? `Agregar ${cuantos(sel.items.length, 'producto', 'productos')} · ${pesos(sel.total)}` : 'Elija productos';
-      return [<SelectorProductos catalogo={catalogo} cantidades={cantidades} sel={sel} sumar={sumar} />,
-        <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
-          alTocar={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie>];
+      return { cuerpo: <SelectorProductos catalogo={catalogo} cantidades={cantidades} sel={sel} sumar={sumar} />,
+        pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
+          alTocar={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie> };
     }
-    if (!e) return [null, null];
+    if (!e) return { cuerpo: null, pie: null };
     switch (sub) {
       case 'pago':
-        return [<VistaPago medio={medio} alMedio={setMedio} valor={valor} alValor={setValor} saldo={saldo} escrito={escrito} pago={pago} />,
-          <BotonPie icono="check" deshabilitado={enviando || pago.valor < 1} alTocar={() => enviar(() => api.registrarPago(id, medio, pago.valor, clave))}>
-            Registrar pago de {pesos(pago.valor)}</BotonPie>];
+        return { cuerpo: <VistaPago medio={medio} alMedio={setMedio} valor={valor} alValor={setValor} saldo={saldo} escrito={escrito} pago={pago} />,
+          pie: <BotonPie icono="check" deshabilitado={enviando || pago.valor < 1} alTocar={() => enviar(() => api.registrarPago(id, medio, pago.valor, clave))}>
+            Registrar pago de {pesos(pago.valor)}</BotonPie> };
       case 'salida':
-        return [<VistaSalida c={e.cuenta} ir={ir} />,
-          <BotonPie icono="salida" deshabilitado={e.cuenta.saldo > 0 || enviando}
+        return { cuerpo: <VistaSalida c={e.cuenta} ir={ir} />,
+          pie: <BotonPie icono="salida" deshabilitado={e.cuenta.saldo > 0 || enviando}
             alTocar={() => enviar(() => api.darSalida(id), () => alSalir(`Salida registrada. La habitación ${habitacion.numero} queda por revisar.`),
-              async () => setEst(await api.estadia(id).catch(() => e)))}>{e.cuenta.saldo > 0 ? 'Primero cobre el saldo' : 'Dar salida'}</BotonPie>];
+              async () => setEst(await api.estadia(id).catch(() => e)))}>{e.cuenta.saldo > 0 ? 'Primero cobre el saldo' : 'Dar salida'}</BotonPie> };
       case 'extender':
-        return [<VistaExtender modExt={modExt} alModExt={setModExt} horas={horas} alHoras={setHoras} cotExt={cotExt} reglas={reglas} />,
-          <BotonPie icono="reloj" deshabilitado={!cotExt || enviando}
+        return { cuerpo: <VistaExtender modExt={modExt} alModExt={setModExt} horas={horas} alHoras={setHoras} cotExt={cotExt} reglas={reglas} />,
+          pie: <BotonPie icono="reloj" deshabilitado={!cotExt || enviando}
             alTocar={() => enviar(() => api.extender(id, modExt === 'POR_HORAS' ? { modalidad: modExt, horas } : { modalidad: modExt }, clave))}>
-            {cotExt ? `Extender · ${pesos(cotExt.valor)}` : 'Calculando…'}</BotonPie>];
+            {cotExt ? `Extender · ${pesos(cotExt.valor)}` : 'Calculando…'}</BotonPie> };
       case 'devolucion': {
         const d = devolucion!;
-        return [<VistaDevolucion d={d} motivo={motivoDev} alMotivo={setMotivoDev} medio={medioDev} alMedio={setMedioDev} esAdmin={esAdmin} />,
-          <BotonPie peligro icono="devolver" deshabilitado={!!d.bloqueo || enviando}
+        return { cuerpo: <VistaDevolucion d={d} motivo={motivoDev} alMotivo={setMotivoDev} medio={medioDev} alMedio={setMedioDev} esAdmin={esAdmin} />,
+          pie: <BotonPie peligro icono="devolver" deshabilitado={!!d.bloqueo || enviando}
             alTocar={() => enviar(() => api.desistir(id, { motivo: motivoDev, medio: medioDev }, clave),
               (r) => alSalir(textoDesistimiento(habitacion.numero, r as { valor: number; medio: string | null })))}>
-            {d.valor && !d.bloqueo ? `Registrar devolución de ${pesos(d.valor)}` : 'Registrar desistimiento'}</BotonPie>];
+            {d.valor && !d.bloqueo ? `Registrar devolución de ${pesos(d.valor)}` : 'Registrar desistimiento'}</BotonPie> };
       }
       default:
-        return [<VistaCuenta e={e} esAdmin={esAdmin} numero={habitacion.numero} ir={ir} alAnular={setAnulando} />, null];
+        return { cuerpo: <VistaCuenta e={e} esAdmin={esAdmin} numero={habitacion.numero} ir={ir} alAnular={setAnulando} />, pie: null };
     }
   }
 
-  const [cuerpo, pie] = vista();
+  const { cuerpo, pie } = vista();
   const enCuenta = sub === 'cuenta';
   return (
     <div class="capa-panel">

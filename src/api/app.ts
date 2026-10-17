@@ -65,7 +65,10 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
   // Tiempo real (ADR-005): después de cada cambio se publica lo que quedó en la bandeja de salida.
   const publicador = new Publicador(o.bd, (e) => app.log.error(e));
   const conexionesVivas = new Set<() => void>();
-  app.addHook('onResponse', (req, _rep, listo) => { if (req.method !== 'GET') publicador.despertar(); listo(); });
+  app.addHook('onResponse', (req, _rep, listo) => {
+    if (req.method !== 'GET') publicador.despertar();
+    listo();
+  });
   // Las conexiones SSE no terminan solas: se cierran antes de apagar el servidor.
   // Cada cierre se quita del Set; borrar el elemento actual mientras se recorre un Set es seguro.
   app.addHook('preClose', (listo) => {
@@ -74,7 +77,8 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     listo();
   });
 
-  await app.register(async (api) => {
+  // El registro de rutas es síncrono: plugin con callback, sin async.
+  await app.register((api, _opciones, listo) => {
     rutasIdentidad(api, o.bd, ahora);
     rutasUsuarios(api, o.bd, ahora);
     rutasAuditoria(api, o.bd, ahora);
@@ -95,6 +99,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rutasInventario(api, o.bd, ahora);
     rutasVentas(api, o.bd, ahora);
     rutasEventos(api, o.bd, ahora, publicador, conexionesVivas);
+    listo();
   }, { prefix: '/api/v1' });
 
   const conWeb = !!o.dirWeb && existsSync(o.dirWeb);
