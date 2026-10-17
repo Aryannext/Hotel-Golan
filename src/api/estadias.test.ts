@@ -175,10 +175,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
     assert.equal(conValor.statusCode, 400);
   });
 
-  it('el registro tardío (talonario) todavía no está disponible: 400', async () => {
-    const r = await registrar(entrada({ habitacion_numero: '209', registro_tardio: true, entrada_en: '2026-10-13T18:00:00-05:00' }));
-    assert.equal(r.statusCode, 400);
-  });
+  // El registro tardío (talonario, ADR-010) se prueba en registro-tardio.test.ts (TICKET-18).
 });
 
 describe('FR-03 — Idempotencia: un doble toque no duplica el registro', () => {

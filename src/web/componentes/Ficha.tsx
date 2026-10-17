@@ -8,6 +8,7 @@ import {
 } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
+import { textoTardio } from '../tardio.ts';
 
 type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion';
 type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
@@ -91,6 +92,7 @@ export function Ficha({ habitacion, recarga, esAdmin = false, alCerrar, alCambia
   if (e && sub === 'cuenta') {
     const s = estadoSaldo(e.cuenta);
     cuerpo = <>
+      {e.registro_tardio && <div class="nota"><Ico id="talonario" clase="ico--s" /><p>{textoTardio(e)}</p></div>}
       <section class="tarjeta"><div class="tarjeta__cab"><h3>Cargos</h3>
         <button type="button" class="enlace" onClick={() => ir('cargo')}><Ico id="mas" clase="ico--xs" />Agregar</button></div>
         {e.cargos.filter((c) => !c.anulado).map((c) => <div class="fila"><div class="fila__txt"><div class="fila__concepto">{c.concepto}{c.cantidad > 1 && c.tipo !== 'ALOJAMIENTO' && c.tipo !== 'DESCUENTO' ? ` × ${c.cantidad}` : ''}</div>

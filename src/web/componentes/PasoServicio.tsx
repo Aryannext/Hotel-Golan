@@ -2,9 +2,11 @@
 import type { Cotizacion, Habitacion } from '../api.ts';
 import { ajustarPersonas, hoyBogota, maxPersonas, pesos, textoSalida, type Modalidad } from '../logica.ts';
 import { Ico } from './Ico.tsx';
+import { errorTardio, limitesTardio } from '../tardio.ts';
 
-export interface Servicio { modalidad: Modalidad; personas: number; noches: number; descuento: boolean }
-export const SERVICIO_INICIAL: Servicio = { modalidad: 'NOCHE', personas: 1, noches: 1, descuento: false };
+/** `tardio` y `entrada` (hora real en Bogotá, «AAAA-MM-DDTHH:mm») son para pasar lo anotado en el talonario (ADR-010). */
+export interface Servicio { modalidad: Modalidad; personas: number; noches: number; descuento: boolean; tardio: boolean; entrada: string }
+export const SERVICIO_INICIAL: Servicio = { modalidad: 'NOCHE', personas: 1, noches: 1, descuento: false, tardio: false, entrada: '' };
 
 const MODALIDADES: Array<[Modalidad, string]> = [['NOCHE', 'Noche'], ['TRES_HORAS', '3 horas']];
 
@@ -17,6 +19,9 @@ export function PasoServicio({ habitacion, servicio: s, alCambiar, cot, error }:
   habitacion: Habitacion; servicio: Servicio; alCambiar: (s: Servicio) => void; cot: Cotizacion | null; error: string;
 }) {
   const max = maxPersonas(s.modalidad);
+  const ahora = Date.now();
+  const limites = limitesTardio(ahora);
+  const errorEntrada = s.tardio ? errorTardio(s.entrada, ahora) : null;
   return (
     <>
       <section class="tarjeta">
@@ -47,6 +52,16 @@ export function PasoServicio({ habitacion, servicio: s, alCambiar, cot, error }:
             <button type="button" class="opcion" aria-pressed={!s.descuento} onClick={() => alCambiar({ ...s, descuento: false })}>Sin descuento</button>
             <button type="button" class="opcion" aria-pressed={s.descuento} onClick={() => alCambiar({ ...s, descuento: true })}>− $5.000 por noche</button>
           </div>
+        </div>}
+        <label class="casilla">
+          <input type="checkbox" checked={s.tardio} onChange={(e) => alCambiar({ ...s, tardio: (e.target as HTMLInputElement).checked })} />
+          <span>Viene del talonario: entró cuando el sistema no funcionaba (registro tardío)</span></label>
+        {s.tardio && <div class="campo">
+          <label htmlFor="entrada-real">Día y hora real de entrada (como está en el talonario)</label>
+          <input id="entrada-real" type="datetime-local" min={limites.min} max={limites.max} value={s.entrada} aria-invalid={!!errorEntrada}
+            onInput={(e) => alCambiar({ ...s, entrada: (e.target as HTMLInputElement).value })} />
+          {errorEntrada ? <span class="campo__error">{errorEntrada}</span>
+            : <span class="ayuda">El precio y la salida se calculan con esa hora. Quedará marcado como registro tardío, con su usuario y la hora en que lo digita.</span>}
         </div>}
       </section>
 
