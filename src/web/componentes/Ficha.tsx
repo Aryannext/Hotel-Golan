@@ -16,7 +16,7 @@ import type { Reglas } from '../ajustes.ts';
 import { ayudaHoras } from '../textosConfig.ts';
 import { cuantos, pillEstadoPago, textoCambio, textoDesistimiento, textoDevolucion, tituloFicha } from '../presentacion.ts';
 
-type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion';
+type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion' | 'lavanderia';
 type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 type MotivoDev = 'SOLO_MIRO' | 'YA_USO';
@@ -56,6 +56,7 @@ function VistaCuenta({ e, esAdmin, numero, ir, alAnular }: {
     <div class={`saldo saldo--${s.tono}`}><div><b>{s.titulo}</b><p>{s.detalle}</p></div><strong>{pesos(s.valor)}</strong></div>
     <div class="acciones">
       <button type="button" class="btn btn--secundario" onClick={() => ir('extender')}><Ico id="reloj" clase="ico--s" />Extender</button>
+      <button type="button" class="btn btn--secundario" onClick={() => ir('lavanderia')}><Ico id="lavanderia" clase="ico--s" />Lavandería</button>
       <button type="button" class="btn btn--secundario" onClick={() => ir('devolucion')}><Ico id="devolver" clase="ico--s" />Desiste</button>
       <button type="button" class="btn btn--secundario" onClick={() => ir('salida')}><Ico id="salida" clase="ico--s" />Dar salida</button>
     </div>
@@ -182,7 +183,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
   const [medioDev, setMedioDev] = useState<MedioDev>('EFECTIVO');
 
   useEffect(() => { api.estadia(id).then(setEst).catch((e: Error) => setError(e.message)); }, [id, recarga]);
-  useEffect(() => { if (sub === 'cargo' && catalogo.length === 0) api.productos().then((r) => setCatalogo(r.items)).catch((e: Error) => setError(e.message)); }, [sub]);
+  useEffect(() => { if ((sub === 'cargo' || sub === 'lavanderia') && catalogo.length === 0) api.productos().then((r) => setCatalogo(r.items)).catch((e: Error) => setError(e.message)); }, [sub]);
   // Cotización de la extensión con la misma regla del servidor (RN-04): valor, nueva salida y aviso de las 4:00 p. m.
   useEffect(() => {
     if (sub !== 'extender') return;
@@ -204,7 +205,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
     setSub(s);
     setError('');
     setClave(nuevaClave());
-    if (s === 'cargo') setCantidades({});
+    if (s === 'cargo' || s === 'lavanderia') setCantidades({});
     if (s === 'pago') { setMedio('EFECTIVO'); setValor(''); }
     if (s === 'extender') { setModExt('POR_HORAS'); setHoras(1); }
     if (s === 'devolucion') { setMotivoDev('SOLO_MIRO'); setMedioDev('EFECTIVO'); }
@@ -231,16 +232,28 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
   const sumar = (pid: string, paso: number) => setCantidades({ ...cantidades, [pid]: Math.max(0, Math.min(20, (cantidades[pid] ?? 0) + paso)) });
   const e = est;
   const subtitulo = e ? `${e.huesped.nombre_mostrado} · ${cuantos(e.personas, 'persona', 'personas')} · sale ${cuando(e.salida_prevista_en)}` : '';
-  const sel = resumenSeleccion(catalogo, cantidades);
+  // Las prendas van como pedido de lavandería (TICKET-23); el resto, como cargo.
+  const prendas = catalogo.filter((p) => p.grupo === 'LAVANDERIA');
+  const otros = catalogo.filter((p) => p.grupo !== 'LAVANDERIA');
+  const sel = resumenSeleccion(sub === 'lavanderia' ? prendas : otros, cantidades);
   const saldo = e?.cuenta.saldo ?? 0;
   const escrito = leerPesos(valor) ?? saldo;
   const pago = valorPago(medio, saldo, escrito);
   const devolucion = e ? devolucionPosible(e.pagos, motivoDev, esAdmin) : null;
 
   function vista(): { cuerpo: ComponentChildren; pie: ComponentChildren } {
+    if (sub === 'lavanderia') {
+      const texto = sel.items.length ? `Recibir ropa · ${pesos(sel.total)}` : 'Elija las prendas';
+      return { cuerpo: <>
+        <div class="nota nota--info"><Ico id="info" clase="ico--s" /><p>El lavado se carga a la cuenta de la habitación. Cuando el huésped recoja la ropa en recepción, se cobra al entregarla.</p></div>
+        <SelectorProductos catalogo={prendas} cantidades={cantidades} sel={sel} sumar={sumar} />
+      </>,
+        pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
+          alTocar={() => enviar(() => api.pedirLavanderia(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad }))))}>{texto}</BotonPie> };
+    }
     if (sub === 'cargo') {
       const texto = sel.items.length ? `Agregar ${cuantos(sel.items.length, 'producto', 'productos')} · ${pesos(sel.total)}` : 'Elija productos';
-      return { cuerpo: <SelectorProductos catalogo={catalogo} cantidades={cantidades} sel={sel} sumar={sumar} />,
+      return { cuerpo: <SelectorProductos catalogo={otros} cantidades={cantidades} sel={sel} sumar={sumar} />,
         pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
           alTocar={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie> };
     }

@@ -5,6 +5,8 @@ import { api, ErrorApi, type Turno } from '../api.ts';
 import { horaBogota, lineasDelTurno, nombreTurno, pesos, puedeAnular, type LineaTurno } from '../logica.ts';
 import { SalidaDinero } from './SalidaDinero.tsx';
 import { VentaContado } from './VentaContado.tsx';
+import { EntregarLavanderia } from './EntregarLavanderia.tsx';
+import { quienPidio, type PedidoLavanderia } from '../lavanderia.ts';
 import { EntregarTurno } from './EntregarTurno.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { Ico } from './Ico.tsx';
@@ -21,6 +23,8 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
   const [error, setError] = useState('');
   const [saliendo, setSaliendo] = useState(false);
   const [vendiendo, setVendiendo] = useState(false);
+  const [lavanderia, setLavanderia] = useState<PedidoLavanderia[]>([]);
+  const [entregandoRopa, setEntregandoRopa] = useState<PedidoLavanderia | null>(null);
   const [entregando, setEntregando] = useState(false);
   const [anulando, setAnulando] = useState<QueAnular | null>(null);
   const [propia, setPropia] = useState(0);
@@ -29,8 +33,9 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
     api.turnoActual().then(async (t) => {
       setTurno(t);
       setError('');
-      const [p, m] = await Promise.all([api.pagosDelTurno(t.id), api.salidasDelTurno(t.id)]);
+      const [p, m, l] = await Promise.all([api.pagosDelTurno(t.id), api.salidasDelTurno(t.id), api.lavanderiaPorEntregar()]);
       setLineas(lineasDelTurno(p.items, m.items));
+      setLavanderia(l.items);
     }).catch((e) =>
       setError(e instanceof ErrorApi && e.estado === 404 ? 'No hay un turno activo en este momento.' : e.message));
   }, [recarga, propia]);
@@ -63,6 +68,15 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
         </div>}
       </section>
 
+      {!porRecibir && lavanderia.length > 0 && <section class="tarjeta"><div class="tarjeta__cab"><h2><Ico id="lavanderia" clase="ico--s" />Lavandería por entregar</h2></div>
+        {lavanderia.map((p) => <div class="mov" key={p.id}>
+          <div class="mov__txt"><div class="mov__titulo">{quienPidio(p)} · {p.detalle}</div>
+            <div class="mov__detalle">Recibida {horaBogota(p.registrado_en)} · {p.registrado_por}</div></div>
+          <div class="mov__der"><span class="mov__valor">{pesos(p.total)}</span>
+            <button type="button" class="btn btn--secundario btn--mini" onClick={() => setEntregandoRopa(p)}>Entregar</button></div>
+        </div>)}
+      </section>}
+
       {!porRecibir && <section class="tarjeta"><div class="tarjeta__cab"><h2>Lo de este turno</h2></div>
         {lineas.length === 0 ? <p class="vacio">Todavía no hay cobros ni salidas en este turno.</p> : lineas.map((l) => (
           <div class={`mov${l.anulado ? ' mov--anulado' : ''}`} key={l.id}>
@@ -83,6 +97,8 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
         <p class="ayuda" style="text-align:center">Entregue al terminar su horario, cuando llegue quien lo recibe.</p>
       </>}
 
+      {entregandoRopa && <EntregarLavanderia pedido={entregandoRopa} alCerrar={() => setEntregandoRopa(null)}
+        alEntregar={(texto) => { setEntregandoRopa(null); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
       {vendiendo && <VentaContado alCerrar={() => setVendiendo(false)}
         alRegistrar={(texto) => { setVendiendo(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
       {saliendo && <SalidaDinero debeHaber={c.debe_haber} alCerrar={() => setSaliendo(false)}

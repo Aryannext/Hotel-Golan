@@ -2,6 +2,7 @@ import type { CotizacionExtension, Producto, SalidaTurno, TipoSalida } from './l
 import type { RegistroActividad, UsuarioAdmin } from './equipo.ts';
 import type { Reglas, Tarifa, TarifaInput } from './ajustes.ts';
 import type { Existencia } from './avisos.ts';
+import type { PedidoLavanderia } from './lavanderia.ts';
 
 // Cliente de la API. La sesión viaja en la cookie HttpOnly; el navegador la envía sola (same-origin).
 export interface Usuario { id: string; nombre: string; usuario: string; rol: 'RECEPCION' | 'ADMINISTRACION'; activo: boolean }
@@ -120,6 +121,12 @@ export const api = {
   guardarTarifas: (items: TarifaInput[]) => pedir<{ items: Tarifa[] }>('PUT', '/tarifas', { items }),
   reglas: () => pedir<Reglas>('GET', '/reglas'),
   guardarReglas: (cambios: Partial<Reglas>) => pedir<Reglas>('PATCH', '/reglas', cambios),
+  // TICKET-23 · lavandería.
+  pedirLavanderia: (estadiaId: string, items: Array<{ producto_id: string; cantidad: number }>) =>
+    pedir<PedidoLavanderia>('POST', `/estadias/${estadiaId}/lavanderia`, { items }),
+  lavanderiaPorEntregar: () => pedir<{ items: PedidoLavanderia[] }>('GET', '/lavanderia?estado=RECIBIDO'),
+  entregarLavanderia: (id: string, cuerpo: { cobro?: { medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' }; sin_pago_autorizado?: boolean }) =>
+    pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/entrega`, cuerpo),
   // TICKET-22 · venta de contado (sin habitación).
   venderContado: (items: Array<{ producto_id: string; cantidad: number }>, medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA', clave: string) =>
     pedir<{ id: string; total: number; pago: Pago }>('POST', '/ventas', { items, medio }, { 'idempotency-key': clave }),

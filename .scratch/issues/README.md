@@ -35,7 +35,7 @@ Especificada en docs/PRD.md v0.4 (RN-19 a RN-23, FR-24 a FR-29) con la tanda 4 d
 | [TICKET-20](20-catalogo-completo.md) | Catálogo completo en Ajustes | — | **done** |
 | [TICKET-21](21-surtido-y-existencias.md) | Surtido y existencias | 20 | **done** |
 | [TICKET-22](22-venta-de-contado.md) | Venta de contado | 21 | **done** |
-| [TICKET-23](23-lavanderia-huespedes.md) | Lavandería para huéspedes | — | ready-for-agent |
+| [TICKET-23](23-lavanderia-huespedes.md) | Lavandería para huéspedes | — | **done** |
 | [TICKET-24](24-lavanderia-externos.md) | Lavandería para externos | 22, 23 | ready-for-agent |
 | [TICKET-25](25-solicitudes-de-factura.md) | Solicitudes de factura | — | ready-for-agent |
 

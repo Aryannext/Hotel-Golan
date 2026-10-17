@@ -51,13 +51,15 @@ export function rutasCargos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'agregarCargos', async (tx) => {
       const momento = ahora();
       const est = await estadiaActiva(tx, req.params.id);
-      const productos = new Map((await tx.consultar<{ id: string; nombre: string; precio: number; activo: boolean }>(
-        'SELECT id, nombre, precio, activo FROM productos WHERE id = ANY($1::uuid[])', [req.body.items.map((i) => i.producto_id)],
+      const productos = new Map((await tx.consultar<{ id: string; nombre: string; grupo: string; precio: number; activo: boolean }>(
+        'SELECT id, nombre, grupo, precio, activo FROM productos WHERE id = ANY($1::uuid[])', [req.body.items.map((i) => i.producto_id)],
       )).map((p) => [p.id, p]));
       const filas = req.body.items.map((item) => {
         const p = productos.get(item.producto_id);
         if (!p) throw new ErrorApi(404, 'NO_ENCONTRADO', 'Ese producto no existe en el catálogo.');
         if (!p.activo) throw new ErrorApi(409, 'CONFLICTO', `«${p.nombre}» ya no está a la venta.`);
+        // Las prendas se registran como pedido de lavandería, para seguir su entrega (TICKET-23).
+        if (p.grupo === 'LAVANDERIA') throw new ErrorApi(409, 'CONFLICTO', `«${p.nombre}» es de lavandería: regístrelo como pedido de lavandería.`);
         return { p, tipo: tipoDeCargo(p.nombre), cantidad: item.cantidad, valor: p.precio * item.cantidad };
       });
       const creados = await tx.consultar<{ id: string }>(
