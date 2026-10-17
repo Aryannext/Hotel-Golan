@@ -24,16 +24,17 @@ export function rutasAnulaciones(app: FastifyInstance, bd: Bd, ahora: () => Date
     const u = req.usuario!;
     const momento = ahora();
     await bd.transaccion(async (tx) => {
-      const [p] = await tx.consultar<{ medio: string; valor: number; anulado_en: Date | null; habitacion: string; estadia_id: string }>(
+      // El pago puede ser de una venta de contado (sin habitación, TICKET-22): anularlo anula la venta.
+      const [p] = await tx.consultar<{ medio: string; valor: number; anulado_en: Date | null; habitacion: string | null; estadia_id: string | null }>(
         `SELECT p.medio, p.valor, p.anulado_en, e.habitacion_numero AS habitacion, p.estadia_id
-           FROM pagos p JOIN estadias e ON e.id = p.estadia_id WHERE p.id = $1 FOR UPDATE OF p`, [req.params.id]);
+           FROM pagos p LEFT JOIN estadias e ON e.id = p.estadia_id WHERE p.id = $1 FOR UPDATE OF p`, [req.params.id]);
       if (!p) throw new ErrorApi(404, 'NO_ENCONTRADO', 'El pago no existe.');
       if (p.anulado_en) throw new ErrorApi(409, 'CONFLICTO', 'Ese pago ya estaba anulado.');
       await tx.consultar('UPDATE pagos SET anulado_en = $2, anulado_por = $3, motivo_anulacion = $4 WHERE id = $1',
         [req.params.id, momento, u.id, req.body.motivo.trim()]);
       // El motivo queda en el registro; la auditoría guarda solo el valor (el texto libre podría traer datos personales).
       await auditar(tx, { usuarioId: u.id, accion: 'ANULAR', entidad: 'pagos', entidadId: req.params.id, detalle: { valor: String(p.valor), medio: p.medio }, ocurrido: momento });
-      await evento(tx, 'habitacion.actualizada', { numero: p.habitacion, entidad_id: p.estadia_id }, momento);
+      if (p.estadia_id) await evento(tx, 'habitacion.actualizada', { numero: p.habitacion, entidad_id: p.estadia_id }, momento);
       if (p.medio === 'EFECTIVO') await evento(tx, 'caja.movimiento', { entidad_id: req.params.id, valor: p.valor, habitacion_numero: p.habitacion }, momento);
     });
     const [pago] = await leerPagos(bd, { id: req.params.id });

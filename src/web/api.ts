@@ -34,7 +34,7 @@ export interface ResumenDia {
 
 export interface Cargo { id: string; tipo: string; concepto: string; cantidad: number; valor_unitario: number; valor: number; creado_por: string; creado_en: string; anulado: boolean }
 export interface Pago {
-  id: string; estadia_id: string; habitacion_numero: string; turno_id: string; medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA'; valor: number;
+  id: string; estadia_id: string | null; habitacion_numero: string | null; venta_id: string | null; venta_detalle: string | null; turno_id: string; medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA'; valor: number;
   estado: string; registrado_por: string; registrado_en: string; verificado_por: string | null; verificado_en: string | null; anulado: boolean;
 }
 export interface Estadia {
@@ -120,6 +120,9 @@ export const api = {
   guardarTarifas: (items: TarifaInput[]) => pedir<{ items: Tarifa[] }>('PUT', '/tarifas', { items }),
   reglas: () => pedir<Reglas>('GET', '/reglas'),
   guardarReglas: (cambios: Partial<Reglas>) => pedir<Reglas>('PATCH', '/reglas', cambios),
+  // TICKET-22 · venta de contado (sin habitación).
+  venderContado: (items: Array<{ producto_id: string; cantidad: number }>, medio: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA', clave: string) =>
+    pedir<{ id: string; total: number; pago: Pago }>('POST', '/ventas', { items, medio }, { 'idempotency-key': clave }),
   // TICKET-21 · surtido y existencias (solo la administración).
   existencias: () => pedir<{ items: Existencia[] }>('GET', '/existencias'),
   registrarSurtido: (producto_id: string, cantidad: number) => pedir<{ id: string; cantidad: number }>('POST', '/surtidos', { producto_id, cantidad }),

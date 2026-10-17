@@ -2,14 +2,15 @@
 // Es el panel del prototipo (abajo en el celular). Se vuelve a pedir con cada evento en vivo (`recarga`).
 // Cada vista (cuenta, cargos, pago, salida, extender, desistimiento) es un componente aparte; la ficha solo decide cuál mostrar.
 import { useEffect, useState } from 'preact/hooks';
-import { Fragment, type ComponentChildren } from 'preact';
+import type { ComponentChildren } from 'preact';
 import { api, ErrorApi, type Estadia, type Habitacion } from '../api.ts';
 import {
-  agruparCatalogo, cambioEfectivo, resumenExtension, devolucionPosible, type CotizacionExtension, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
+  cambioEfectivo, resumenExtension, devolucionPosible, type CotizacionExtension, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
   valorPago, type Producto,
 } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
+import { SelectorProductos } from './SelectorProductos.tsx';
 import { textoTardio } from '../tardio.ts';
 import type { Reglas } from '../ajustes.ts';
 import { ayudaHoras } from '../textosConfig.ts';
@@ -20,7 +21,6 @@ type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 type MotivoDev = 'SOLO_MIRO' | 'YA_USO';
 type MedioDev = 'EFECTIVO' | 'TRANSFERENCIA';
-type Seleccion = ReturnType<typeof resumenSeleccion>;
 
 const MODALIDADES_EXT: Array<[ModExt, string]> = [['NOCHE', 'Otra noche'], ['TRES_HORAS', '3 horas'], ['POR_HORAS', 'Por horas']];
 const MEDIOS: Medio[] = ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'];
@@ -74,35 +74,6 @@ function MovPago({ p, esAdmin, numero, alAnular }: { p: Estadia['pagos'][number]
       {esAdmin && !p.anulado && <button type="button" class="accion-icono accion-icono--rojo" aria-label={`Anular pago de ${pesos(p.valor)}`} title="Anular"
         onClick={() => alAnular({ id: p.id, origen: 'PAGO', concepto: `Cobro · Hab. ${numero} · ${textoMedio(p.medio)}`, valor: p.valor })}><Ico id="papelera" clase="ico--s" /></button>}</div>
   </div>;
-}
-
-/** «Agregar Agua» o, si ya eligió, «Agregar Agua, van 2». */
-const etiquetaProducto = (nombre: string, n: number) => (n ? `Agregar ${nombre}, van ${n}` : `Agregar ${nombre}`);
-
-function VistaCargo({ catalogo, cantidades, sel, sumar }: {
-  catalogo: Producto[]; cantidades: Record<string, number>; sel: Seleccion; sumar: (pid: string, paso: number) => void;
-}) {
-  return <>
-    {agruparCatalogo(catalogo).map(([grupo, productos]) => <Fragment key={grupo}>
-      <p class="subtitulo">{grupo}</p>
-      <div class="catalogo">{productos.map((p) => {
-        const n = cantidades[p.id] ?? 0;
-        return <button key={p.id} type="button" class="producto" aria-pressed={n > 0} aria-label={etiquetaProducto(p.nombre, n)} onClick={() => sumar(p.id, 1)}>
-          <strong>{p.nombre}</strong><span>{pesos(p.precio)}</span>{n > 0 && <em class="producto__n">{n}</em>}</button>;
-      })}</div>
-    </Fragment>)}
-    {sel.items.length === 0
-      ? <p class="ayuda">Toque los productos para agregarlos. Puede elegir varios y tocar de nuevo para sumar cantidad.</p>
-      : <section class="tarjeta tarjeta--oro"><div class="tarjeta__cab"><h3>Seleccionados</h3></div>
-        {sel.items.map((x) => <div key={x.producto.id} class="item-sel"><span class="item-sel__nombre">{x.producto.nombre}</span>
-          <div class="contador contador--mini">
-            <button type="button" aria-label={`Quitar uno de ${x.producto.nombre}`} onClick={() => sumar(x.producto.id, -1)}>−</button>
-            <output>{x.cantidad}</output>
-            <button type="button" aria-label={`Agregar uno de ${x.producto.nombre}`} onClick={() => sumar(x.producto.id, 1)}>+</button>
-          </div><strong>{pesos(x.subtotal)}</strong></div>)}
-        <Fila concepto="Total" valor={sel.total} total />
-      </section>}
-  </>;
 }
 
 function VistaPago({ medio, alMedio, valor, alValor, saldo, escrito, pago }: {
@@ -269,7 +240,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
   function vista(): { cuerpo: ComponentChildren; pie: ComponentChildren } {
     if (sub === 'cargo') {
       const texto = sel.items.length ? `Agregar ${cuantos(sel.items.length, 'producto', 'productos')} · ${pesos(sel.total)}` : 'Elija productos';
-      return { cuerpo: <VistaCargo catalogo={catalogo} cantidades={cantidades} sel={sel} sumar={sumar} />,
+      return { cuerpo: <SelectorProductos catalogo={catalogo} cantidades={cantidades} sel={sel} sumar={sumar} />,
         pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
           alTocar={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie> };
     }

@@ -23,9 +23,9 @@ export async function verificarPago(
       'SELECT respuesta FROM solicitudes_idempotentes WHERE clave = $1', [entrada.clave]);
     if (previa) return { ...previa.respuesta, repetida: true };
 
-    const [pago] = await tx.consultar<{ id: string; estado: string; valor: number; habitacion: string; anulado_en: string | null }>(
+    const [pago] = await tx.consultar<{ id: string; estado: string; valor: number; habitacion: string | null; anulado_en: string | null }>(
       `SELECT p.id, p.estado, p.valor, e.habitacion_numero AS habitacion, p.anulado_en
-         FROM pagos p JOIN estadias e ON e.id = p.estadia_id
+         FROM pagos p LEFT JOIN estadias e ON e.id = p.estadia_id
         WHERE p.id = $1 FOR UPDATE OF p`, [entrada.pagoId]);
     if (!pago) throw new Error('NO_ENCONTRADO: el pago no existe');
     if (pago.estado !== 'POR_VERIFICAR' || pago.anulado_en) throw new Error(`CONFLICTO: el pago está ${pago.estado}`);

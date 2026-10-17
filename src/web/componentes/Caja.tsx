@@ -4,6 +4,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Turno } from '../api.ts';
 import { horaBogota, lineasDelTurno, nombreTurno, pesos, puedeAnular, type LineaTurno } from '../logica.ts';
 import { SalidaDinero } from './SalidaDinero.tsx';
+import { VentaContado } from './VentaContado.tsx';
 import { EntregarTurno } from './EntregarTurno.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { Ico } from './Ico.tsx';
@@ -19,6 +20,7 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
   const [lineas, setLineas] = useState<LineaTurno[]>([]);
   const [error, setError] = useState('');
   const [saliendo, setSaliendo] = useState(false);
+  const [vendiendo, setVendiendo] = useState(false);
   const [entregando, setEntregando] = useState(false);
   const [anulando, setAnulando] = useState<QueAnular | null>(null);
   const [propia, setPropia] = useState(0);
@@ -55,7 +57,8 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
             {c.por_verificar_cantidad > 0 && ` · ${c.por_verificar_cantidad} por verificar`}</span>
           {!porRecibir && <span><Ico id="efectivo" clase="ico--s" /> Pago del turno al entregar: <b>{pesos(c.pago_turno)}</b></span>}
         </div>
-        {!porRecibir && <div class="caja-grande__botones caja-grande__botones--uno">
+        {!porRecibir && <div class="caja-grande__botones">
+          <button type="button" class="btn btn--secundario btn--l" onClick={() => setVendiendo(true)}><Ico id="vitrina" clase="ico--s" />Venta de contado</button>
           <button type="button" class="btn btn--secundario btn--l" onClick={() => setSaliendo(true)}><Ico id="baja" clase="ico--s" />Salió plata</button>
         </div>}
       </section>
@@ -80,6 +83,8 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
         <p class="ayuda" style="text-align:center">Entregue al terminar su horario, cuando llegue quien lo recibe.</p>
       </>}
 
+      {vendiendo && <VentaContado alCerrar={() => setVendiendo(false)}
+        alRegistrar={(texto) => { setVendiendo(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
       {saliendo && <SalidaDinero debeHaber={c.debe_haber} alCerrar={() => setSaliendo(false)}
         alRegistrar={(texto) => { setSaliendo(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
       {anulando && <Anular que={anulando} alCerrar={() => setAnulando(null)} alAnular={(texto) => { setAnulando(null); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
