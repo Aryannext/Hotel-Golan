@@ -3,6 +3,8 @@ import type { Cotizacion, Habitacion } from '../api.ts';
 import { ajustarPersonas, hoyBogota, maxPersonas, pesos, textoSalida, type Modalidad } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 import { errorTardio, limitesTardio } from '../tardio.ts';
+import type { Reglas, Tarifa } from '../ajustes.ts';
+import { ayudaPersonas, textoDescuento } from '../textosConfig.ts';
 
 /** `tardio` y `entrada` (hora real en Bogotá, «AAAA-MM-DDTHH:mm») son para pasar lo anotado en el talonario (ADR-010). */
 export interface Servicio { modalidad: Modalidad; personas: number; noches: number; descuento: boolean; tardio: boolean; entrada: string }
@@ -15,13 +17,16 @@ export function cambiarModalidad(s: Servicio, m: Modalidad): Servicio {
   return { ...s, modalidad: m, personas: ajustarPersonas(s.personas, m), descuento: m === 'NOCHE' && s.descuento };
 }
 
-export function PasoServicio({ habitacion, servicio: s, alCambiar, cot, error }: {
+/** `reglas` y `tarifas` (de Ajustes) dan los importes de las ayudas; mientras no lleguen, los textos no llevan importe. */
+export function PasoServicio({ habitacion, servicio: s, alCambiar, cot, error, reglas, tarifas }: {
   habitacion: Habitacion; servicio: Servicio; alCambiar: (s: Servicio) => void; cot: Cotizacion | null; error: string;
+  reglas: Pick<Reglas, 'descuento_noche'> | null; tarifas: Tarifa[] | null;
 }) {
   const max = maxPersonas(s.modalidad);
   const ahora = Date.now();
   const limites = limitesTardio(ahora);
   const errorEntrada = s.tardio ? errorTardio(s.entrada, ahora) : null;
+  const descuento = textoDescuento(reglas);
   return (
     <>
       <section class="tarjeta">
@@ -37,7 +42,7 @@ export function PasoServicio({ habitacion, servicio: s, alCambiar, cot, error }:
               <output>{s.personas} {s.personas === 1 ? 'persona' : 'personas'}</output>
               <button type="button" aria-label="Sumar persona" disabled={s.personas >= max} onClick={() => alCambiar({ ...s, personas: s.personas + 1 })}>+</button>
             </div>
-            <span class="ayuda">{s.modalidad === 'NOCHE' ? 'Máximo 3: la tercera paga $25.000. Con 4, ofrezca dos habitaciones.' : 'En tres horas entran máximo 2, sin adicional.'}</span>
+            <span class="ayuda">{ayudaPersonas(s.modalidad, habitacion.tipo, tarifas)}</span>
           </div>
           {s.modalidad === 'NOCHE' && <div class="campo"><span>Noches</span>
             <div class="contador">
@@ -47,10 +52,10 @@ export function PasoServicio({ habitacion, servicio: s, alCambiar, cot, error }:
             </div>
           </div>}
         </div>
-        {s.modalidad === 'NOCHE' && <div class="campo"><span>¿El cliente pidió rebaja?</span>
+        {s.modalidad === 'NOCHE' && descuento && <div class="campo"><span>¿El cliente pidió rebaja?</span>
           <div class="segmentado">
             <button type="button" class="opcion" aria-pressed={!s.descuento} onClick={() => alCambiar({ ...s, descuento: false })}>Sin descuento</button>
-            <button type="button" class="opcion" aria-pressed={s.descuento} onClick={() => alCambiar({ ...s, descuento: true })}>− $5.000 por noche</button>
+            <button type="button" class="opcion" aria-pressed={s.descuento} onClick={() => alCambiar({ ...s, descuento: true })}>{descuento}</button>
           </div>
         </div>}
         <label class="casilla">
