@@ -1,5 +1,6 @@
 // Anonimización (FR-21, RN-16, ADR-006): borra nombre, documento y teléfono de los huéspedes cuya última estadía
-// terminó hace más de `retencion_datos_dias` (90 [P/V]). Importes, cargos, pagos y autorización se conservan.
+// terminó hace más de `retencion_datos_dias` (90 [P/V]), y el nombre de los externos de lavandería entregados hace más
+// de ese plazo (TICKET-24). Importes, cargos, pagos y autorización se conservan.
 // Es idempotente: un huésped ya anonimizado no se vuelve a tocar ni a auditar.
 import type { Bd } from '../../../scripts/lib/bd.ts';
 import { auditar } from '../comun/auditoria.ts';
@@ -24,7 +25,16 @@ export async function anonimizarVencidos(bd: Bd, ahora: Date): Promise<{ anonimi
       // Una entrada por corrida, sin usuario (tarea programada) y sin el dato borrado: solo la cantidad.
       await auditar(tx, { usuarioId: null, accion: 'ANONIMIZAR', entidad: 'huespedes', entidadId: aBogota(ahora), detalle: { cantidad: String(filas.length) }, ocurrido: ahora });
     }
-    return { anonimizados: filas.length };
+    // Externos de lavandería (TICKET-24): solo su nombre, con el mismo plazo, contado desde la entrega [P/V].
+    const externos = await tx.consultar<{ id: string }>(
+      `UPDATE pedidos_lavanderia SET cliente_nombre = 'Externo anonimizado', anonimizado_en = $1
+        WHERE cliente_nombre IS NOT NULL AND anonimizado_en IS NULL AND estado = 'ENTREGADO'
+          AND entregado_en < $1::timestamptz - make_interval(days => $2::int)
+        RETURNING id`, [ahora, dias]);
+    if (externos.length > 0) {
+      await auditar(tx, { usuarioId: null, accion: 'ANONIMIZAR', entidad: 'pedidos_lavanderia', entidadId: aBogota(ahora), detalle: { cantidad: String(externos.length) }, ocurrido: ahora });
+    }
+    return { anonimizados: filas.length + externos.length };
   });
 }
 
