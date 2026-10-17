@@ -33,7 +33,13 @@ npm run api:dev               # API y PWA en http://127.0.0.1:3000
 npm test                      # todas las pruebas (API, reglas y lógica de la PWA), en PGlite: no necesitan Docker
 npm run tipos                 # revisión de tipos con tsc
 npm run db:verificar          # migración + semilla + restricciones + simulador
+npm run lint                  # ESLint para TypeScript y configuración
+npm run test:coverage         # pruebas y reporte coverage/lcov.info
 ```
+
+## Calidad y seguridad automatizadas
+
+GitHub Actions valida código, tipos, pruebas con cobertura y compilación; CodeQL, Dependency Review, npm audit, Gitleaks, actionlint y Zizmor revisan seguridad. Dependabot propone actualizaciones de npm y Actions. SonarQube Cloud conserva su integración actual. La configuración, los límites de cobertura y cómo resolver fallos están en [docs/automatizacion.md](docs/automatizacion.md).
 
 ## Estructura
 | Ruta | Contenido |

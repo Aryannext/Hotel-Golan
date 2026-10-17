@@ -1,0 +1,87 @@
+name: Seguridad
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '43 12 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    name: Dependencias nuevas
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Revisar vulnerabilidades introducidas por el PR
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: never
+          retry-on-snapshot-warnings: true
+
+  npm-audit:
+    name: Auditoría npm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Auditar todo el lockfile, incluyendo herramientas de desarrollo
+        run: npm audit --audit-level=moderate
+
+  secrets:
+    name: Secretos (Gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detectar secretos en los commits
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_ENABLE_COMMENTS: 'false'
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+
+  workflows:
+    name: Workflows (actionlint y Zizmor)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Revisar sintaxis con actionlint verificado por SHA-256
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          archivo="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archivo}" \
+            --output "$RUNNER_TEMP/$archivo"
+          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$archivo" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archivo" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+      - name: Revisar seguridad de los workflows
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        with:
+          advanced-security: false
+          annotations: true
