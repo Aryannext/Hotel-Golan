@@ -22,7 +22,8 @@ const cargar = (estadia: string, items: unknown[], clave?: string) => e.app.inje
 const pagar = (estadia: string, medio: string, valor: number, clave?: string, c = cookie) => e.app.inject({
   method: 'POST', url: `/api/v1/estadias/${estadia}/pagos`, payload: { medio, valor }, headers: { cookie: c, ...(clave ? { 'idempotency-key': clave } : {}) },
 });
-const cuenta = async (id = e211) => (await e.app.inject({ method: 'GET', url: `/api/v1/estadias/${id}`, headers: { cookie } })).json().cuenta;
+const detalle = async (id = e211) => (await e.app.inject({ method: 'GET', url: `/api/v1/estadias/${id}`, headers: { cookie } })).json();
+const cuenta = async (id = e211) => (await detalle(id)).cuenta;
 const caja = async () => (await e.app.inject({ method: 'GET', url: '/api/v1/turnos/actual', headers: { cookie } })).json().caja;
 
 describe('FR-06 — Catálogo de productos para cargos', () => {
@@ -49,9 +50,14 @@ describe('FR-06, RN-18, RN-14 — Cargos a la cuenta', () => {
   });
 
   it('varios productos con cantidad y la llave perdida: cada cargo guarda precio unitario y cantidad', async () => {
+    const idsAntes = new Set<string>((await detalle()).cargos.map((c: { id: string }) => c.id));
     const r = await cargar(e211, [{ producto_id: producto['Coca-Cola'], cantidad: 2 }, { producto_id: producto['Llave perdida'], cantidad: 1 }]);
     assert.equal(r.statusCode, 201);
-    const nuevos = r.json().cargos.slice(-2).map((c: Record<string, unknown>) => [c.tipo, c.concepto, c.cantidad, c.valor_unitario, c.valor, c.creado_por]);
+    // Con la misma hora de creación, SQL no garantiza el orden entre cargos.
+    const nuevos = r.json().cargos
+      .filter((c: { id: string }) => !idsAntes.has(c.id))
+      .sort((a: { concepto: string }, b: { concepto: string }) => a.concepto.localeCompare(b.concepto))
+      .map((c: Record<string, unknown>) => [c.tipo, c.concepto, c.cantidad, c.valor_unitario, c.valor, c.creado_por]);
     assert.deepEqual(nuevos, [['PRODUCTO', 'Coca-Cola', 2, 4000, 8000, 'recepcion2'], ['LLAVE', 'Llave perdida', 1, 40000, 40000, 'recepcion2']]);
     assert.deepEqual(r.json().cuenta, { total_cargos: 132000, pagado: 26000, por_verificar: 30000, saldo: 76000, a_favor: 0 });
   });
@@ -64,13 +70,16 @@ describe('FR-06, RN-18, RN-14 — Cargos a la cuenta', () => {
   });
 
   it('el recargo de aseo extremo queda como cargo RECARGO_ASEO de $20.000 y se audita', async () => {
-    const antes = await cuenta();
+    const antes = await detalle();
+    const idsAntes = new Set<string>(antes.cargos.map((c: { id: string }) => c.id));
     const r = await cargar(e211, [{ producto_id: producto['Recargo aseo extremo'], cantidad: 1 }]);
     assert.equal(r.statusCode, 201);
-    const ultimo = r.json().cargos.at(-1);
-    assert.deepEqual([ultimo.tipo, ultimo.valor], ['RECARGO_ASEO', 20000]);
-    assert.equal(r.json().cuenta.saldo, antes.saldo + 20000);
-    const [a] = await e.bd.consultar<{ n: number }>(`SELECT count(*)::int AS n FROM auditoria WHERE accion = 'CREAR' AND entidad = 'cargos' AND entidad_id = $1`, [ultimo.id]);
+    const nuevos = r.json().cargos.filter((c: { id: string }) => !idsAntes.has(c.id));
+    assert.equal(nuevos.length, 1);
+    const [recargo] = nuevos;
+    assert.deepEqual([recargo.tipo, recargo.valor], ['RECARGO_ASEO', 20000]);
+    assert.equal(r.json().cuenta.saldo, antes.cuenta.saldo + 20000);
+    const [a] = await e.bd.consultar<{ n: number }>(`SELECT count(*)::int AS n FROM auditoria WHERE accion = 'CREAR' AND entidad = 'cargos' AND entidad_id = $1`, [recargo.id]);
     assert.equal(a.n, 1);
   });
 
