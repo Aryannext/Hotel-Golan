@@ -15,15 +15,18 @@ import { leerEstadia } from '../estadias/estadias.ts';
 import { publicarEventos } from '../comun/eventos.ts';
 
 interface FilaPago {
-  id: string; estadia_id: string; habitacion_numero: string; turno_id: string; medio: string; valor: number; estado: string;
+  id: string; estadia_id: string | null; habitacion_numero: string | null; venta_id: string | null; venta_detalle: string | null; turno_id: string; medio: string; valor: number; estado: string;
   registrado_por: string; registrado_en: Date; verificado_por: string | null; verificado_en: Date | null; anulado: boolean;
 }
 
 export async function leerPagos(bd: Bd, filtro: { id?: string; estado?: string; turnoId?: string }) {
   const filas = await bd.consultar<FilaPago>(
-    `SELECT p.id, p.estadia_id, e.habitacion_numero, p.turno_id, p.medio, p.valor, p.estado, r.usuario AS registrado_por, p.registrado_en,
+    // Un pago es de una estadía (con habitación) o de una venta de contado (TICKET-22), con su detalle.
+    `SELECT p.id, p.estadia_id, e.habitacion_numero, p.venta_id,
+            (SELECT string_agg(vi.concepto || ' × ' || vi.cantidad, ', ' ORDER BY vi.orden) FROM ventas_items vi WHERE vi.venta_id = p.venta_id) AS venta_detalle,
+            p.turno_id, p.medio, p.valor, p.estado, r.usuario AS registrado_por, p.registrado_en,
             v.usuario AS verificado_por, p.verificado_en, p.anulado_en IS NOT NULL AS anulado
-       FROM pagos p JOIN estadias e ON e.id = p.estadia_id JOIN usuarios r ON r.id = p.registrado_por
+       FROM pagos p LEFT JOIN estadias e ON e.id = p.estadia_id JOIN usuarios r ON r.id = p.registrado_por
        LEFT JOIN usuarios v ON v.id = p.verificado_por
       WHERE ($1::uuid IS NULL OR p.id = $1) AND ($2::text IS NULL OR p.estado = $2) AND ($3::uuid IS NULL OR p.turno_id = $3)
       ORDER BY p.registrado_en, p.id`,

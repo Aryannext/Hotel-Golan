@@ -48,7 +48,7 @@ describe('RN-12, FR-15 — Pagos por confirmar', () => {
     const items = r.json().items;
     assert.equal(items.length, 1);
     assert.deepEqual(items[0], {
-      id: e.semilla.pagoPorVerificarId, estadia_id: items[0].estadia_id, habitacion_numero: '211', turno_id: e.semilla.turnoId,
+      id: e.semilla.pagoPorVerificarId, estadia_id: items[0].estadia_id, habitacion_numero: '211', venta_id: null, venta_detalle: null, turno_id: e.semilla.turnoId,
       medio: 'BANCOLOMBIA', valor: 30000, estado: 'POR_VERIFICAR', registrado_por: 'recepcion2', registrado_en: '2026-10-12T20:12:00-05:00',
       verificado_por: null, verificado_en: null, anulado: false,
     });

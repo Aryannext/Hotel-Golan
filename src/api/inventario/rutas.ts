@@ -11,9 +11,12 @@ import { ErrorApi } from '../comun/errores.ts';
 /** Grupos que se cuentan; lavandería, llave y recargos no tienen existencias. */
 export const GRUPOS_CON_EXISTENCIAS = ['NEVERA', 'VITRINA_PASABOCAS', 'VITRINA_ASEO'];
 
-/** Unidades vendidas por producto: cargos de producto vigentes. */
-const VENDIDO = `SELECT producto_id, sum(cantidad)::int AS total FROM cargos
-                  WHERE anulado_en IS NULL AND producto_id IS NOT NULL GROUP BY producto_id`;
+/** Unidades vendidas por producto: cargos de producto vigentes y ventas de contado cuyo pago no está anulado (TICKET-22). */
+const VENDIDO = `SELECT producto_id, sum(cantidad)::int AS total FROM (
+                   SELECT producto_id, cantidad FROM cargos WHERE anulado_en IS NULL AND producto_id IS NOT NULL
+                   UNION ALL
+                   SELECT vi.producto_id, vi.cantidad FROM ventas_items vi JOIN pagos p ON p.venta_id = vi.venta_id WHERE p.anulado_en IS NULL
+                 ) vendido GROUP BY producto_id`;
 
 export function rutasInventario(app: FastifyInstance, bd: Bd, ahora: () => Date) {
   const soloAdministracion = requiere(bd, ahora, ['ADMINISTRACION']);
