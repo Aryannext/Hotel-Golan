@@ -1,0 +1,6 @@
+# Revisión de la automatización y sus dependencias por el mantenedor.
+/.github/ @Aryannext
+/package.json @Aryannext
+/package-lock.json @Aryannext
+/eslint.config.mjs @Aryannext
+/SECURITY.md @Aryannext
