@@ -12,7 +12,7 @@ export interface Cotizacion {
   tarifa: number; descuento: number; total: number; salida_prevista_en: string; permite_pago_al_salir: boolean;
   franja_salida: 'MADRUGADA_MISMO_DIA' | 'VEINTICUATRO_HORAS' | 'MEDIODIA_SIGUIENTE' | 'TRES_HORAS';
 }
-export interface PedidoCotizacion { habitacion_numero: string; modalidad: 'NOCHE' | 'TRES_HORAS'; personas: number; noches: number; aplicar_descuento: boolean }
+export interface PedidoCotizacion { habitacion_numero: string; modalidad: 'NOCHE' | 'TRES_HORAS'; personas: number; noches: number; aplicar_descuento: boolean; entrada_en?: string }
 
 export interface ResumenCaja {
   base_recibida: number; efectivo: number; salidas: number; debe_haber: number;
@@ -38,12 +38,13 @@ export interface Pago {
 }
 export interface Estadia {
   id: string; habitacion_numero: string; modalidad: string; personas: number; noches: number; entrada_en: string; salida_prevista_en: string;
-  estado: string; forma_cobro: 'ANTICIPADO' | 'AL_SALIR';
+  estado: string; forma_cobro: 'ANTICIPADO' | 'AL_SALIR'; registro_tardio: boolean; registrada_por: string; registrada_en: string;
   huesped: { id: string; nombre_mostrado: string; tipo_documento: string | null; documento_enmascarado: string | null; nacionalidad: string | null; anonimizado: boolean };
   cargos: Cargo[]; pagos: Pago[]; cuenta: { total_cargos: number; pagado: number; por_verificar: number; saldo: number; a_favor: number };
 }
 export type FormaPago = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' | 'AL_SALIR';
 export interface PedidoEntrada extends PedidoCotizacion {
+  registro_tardio?: boolean;
   huesped: Record<string, unknown>;
   autorizacion: { otorgada: boolean; version_aviso: string };
   pago: { forma: FormaPago; valor_recibido?: number };

@@ -23,14 +23,15 @@ interface FilaEstadia {
   id: string; habitacion_numero: string; modalidad: string; personas: number; noches: number; entrada_en: Date;
   salida_prevista_en: Date; salida_real_en: Date | null; estado: string; forma_cobro: string;
   huesped_id: string; nombre: string | null; tipo_documento: string | null; numero_documento: string | null;
-  nacionalidad: string | null; anonimizado_en: Date | null;
+  nacionalidad: string | null; anonimizado_en: Date | null; registro_tardio: boolean; registrada_por: string; creada_en: Date;
 }
 
 export async function leerEstadia(bd: Bd, id: string) {
   const [f] = await bd.consultar<FilaEstadia>(
     `SELECT e.id, e.habitacion_numero, e.modalidad, e.personas, e.noches, e.entrada_en, e.salida_prevista_en, e.salida_real_en,
-            e.estado, e.forma_cobro, h.id AS huesped_id, h.nombre, h.tipo_documento, h.numero_documento, h.nacionalidad, h.anonimizado_en
-       FROM estadias e JOIN huespedes h ON h.id = e.huesped_id WHERE e.id = $1`, [id]);
+            e.estado, e.forma_cobro, h.id AS huesped_id, h.nombre, h.tipo_documento, h.numero_documento, h.nacionalidad, h.anonimizado_en,
+            e.registro_tardio, u.usuario AS registrada_por, e.creada_en
+       FROM estadias e JOIN huespedes h ON h.id = e.huesped_id JOIN usuarios u ON u.id = e.creada_por WHERE e.id = $1`, [id]);
   if (!f) return null;
   const cargos = await bd.consultar<{ id: string; tipo: string; concepto: string; cantidad: number; valor_unitario: number; valor: number; creado_por: string; creado_en: Date; anulado: boolean }>(
     `SELECT c.id, c.tipo, c.concepto, c.cantidad, c.valor_unitario, c.valor, u.usuario AS creado_por, c.creado_en, c.anulado_en IS NOT NULL AS anulado
@@ -58,6 +59,8 @@ export async function leerEstadia(bd: Bd, id: string) {
     entrada_en: aBogota(new Date(f.entrada_en)), salida_prevista_en: aBogota(new Date(f.salida_prevista_en)),
     salida_real_en: f.salida_real_en ? aBogota(new Date(f.salida_real_en)) : null,
     estado: f.estado, forma_cobro: f.forma_cobro,
+    // ADR-010: quién digitó la entrada y cuándo; en un registro tardío difiere de la hora real de entrada.
+    registro_tardio: f.registro_tardio, registrada_por: f.registrada_por, registrada_en: aBogota(new Date(f.creada_en)),
     cargos: cargos.map((c) => ({ ...c, creado_en: aBogota(new Date(c.creado_en)) })),
     pagos: pagos.map((p) => ({
       id: p.id, estadia_id: f.id, habitacion_numero: f.habitacion_numero, turno_id: p.turno_id, medio: p.medio, valor: p.valor,
@@ -128,7 +131,8 @@ function conceptoAlojamiento(modalidad: ModalidadCotizable, tipo: TipoHabitacion
   return `${noches === 1 ? 'Noche' : `${noches} noches`} · ${hab}, ${personas} ${personas === 1 ? 'persona' : 'personas'}`;
 }
 
-async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuario: string }, momento: Date) {
+/** `momento` es cuándo se digita; `entrada` es la hora real (igual a `momento` salvo en un registro tardío, ADR-010). */
+async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuario: string }, momento: Date, entrada: Date) {
   const turnoId = await turnoAbiertoId(tx);
   if (!b.autorizacion.otorgada) {
     throw new ErrorApi(422, 'AUTORIZACION_REQUERIDA', 'Sin la autorización del huésped para el tratamiento de sus datos no se puede registrar la entrada.');
@@ -144,8 +148,8 @@ async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuari
   // El precio y la salida se recalculan aquí; no se confía en lo que muestre el cliente.
   const noches = b.modalidad === 'NOCHE' ? b.noches ?? 1 : 1;
   const c = cotizar({
-    tarifas: await tarifasVigentes(tx, momento), descuentoNoche: await regla(tx, 'descuento_noche'), tipo: h.tipo,
-    modalidad: b.modalidad, personas: b.personas, noches, aplicarDescuento: b.aplicar_descuento ?? false, entrada: momento,
+    tarifas: await tarifasVigentes(tx, entrada), descuentoNoche: await regla(tx, 'descuento_noche'), tipo: h.tipo,
+    modalidad: b.modalidad, personas: b.personas, noches, aplicarDescuento: b.aplicar_descuento ?? false, entrada,
   });
   const alSalir = b.pago.forma === 'AL_SALIR';
   if (alSalir && !c.permitePagoAlSalir) {
@@ -158,15 +162,16 @@ async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuari
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
     [hu.nombre.trim(), hu.tipo_documento ?? null, hu.numero_documento ?? null, hu.nacionalidad.trim(), hu.telefono ?? null, hu.es_menor, hu.acompanante_verificado ?? false]);
   await tx.consultar('INSERT INTO autorizaciones_datos (huesped_id, version_aviso, otorgada_en, registrada_por) VALUES ($1, $2, $3, $4)',
-    [huesped.id, b.autorizacion.version_aviso, momento, usuario.id]);
+    [huesped.id, b.autorizacion.version_aviso, entrada, usuario.id]);
 
   let estadiaId: string;
   try {
     [{ id: estadiaId }] = await tx.consultar<{ id: string }>(
       `INSERT INTO estadias (habitacion_numero, huesped_id, turno_id, modalidad, personas, noches, entrada_en, salida_prevista_en,
-                             forma_cobro, creada_por, creada_en)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $7) RETURNING id`,
-      [b.habitacion_numero, huesped.id, turnoId, b.modalidad, b.personas, noches, momento, c.salida, alSalir ? 'AL_SALIR' : 'ANTICIPADO', usuario.id]);
+                             forma_cobro, creada_por, creada_en, registro_tardio)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+      [b.habitacion_numero, huesped.id, turnoId, b.modalidad, b.personas, noches, entrada, c.salida, alSalir ? 'AL_SALIR' : 'ANTICIPADO', usuario.id,
+        momento, b.registro_tardio ?? false]);
   } catch (error) {
     if ((error as { code?: string }).code === UNICO_VIOLADO) {
       throw new ErrorApi(409, 'HABITACION_NO_DISPONIBLE', `La habitación ${b.habitacion_numero} ya tiene una estadía activa.`);
@@ -202,7 +207,8 @@ async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuari
   // Auditoría sin datos personales (FR-20, ADR-006).
   await auditar(tx, {
     usuarioId: usuario.id, accion: 'CREAR', entidad: 'estadias', entidadId: estadiaId,
-    detalle: { habitacion: b.habitacion_numero, modalidad: b.modalidad, total: String(c.total), pago: b.pago.forma }, ocurrido: momento,
+    detalle: { habitacion: b.habitacion_numero, modalidad: b.modalidad, total: String(c.total), pago: b.pago.forma, ...(b.registro_tardio ? { registro_tardio: 'si' } : {}) },
+    ocurrido: momento,
   });
   for (const [tipo, payload] of [
     ['estadia.creada', { entidad_id: estadiaId, habitacion_numero: b.habitacion_numero }],
@@ -211,6 +217,21 @@ async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuari
     await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)', [tipo, JSON.stringify(payload), momento]);
   }
   return estadiaId;
+}
+
+const LIMITE_TARDIO_MS = 48 * 3600_000;
+
+/** ADR-010: `entrada_en` solo va con `registro_tardio`, y debe estar en las últimas 48 horas (no en el futuro). */
+function horaDeEntrada(b: Cuerpo, momento: Date): Date {
+  if (!b.registro_tardio && !b.entrada_en) return momento;
+  if (!b.registro_tardio) throw new ErrorApi(400, 'INVALID_PAYLOAD', 'La hora de entrada solo se escribe en un registro tardío (lo anotado en el talonario).');
+  if (!b.entrada_en) throw new ErrorApi(400, 'INVALID_PAYLOAD', 'En un registro tardío escriba la hora real en que entró el huésped.');
+  const entrada = new Date(b.entrada_en);
+  if (entrada.getTime() > momento.getTime()) throw new ErrorApi(400, 'INVALID_PAYLOAD', 'La hora de entrada no puede ser posterior a la hora actual.');
+  if (momento.getTime() - entrada.getTime() > LIMITE_TARDIO_MS) {
+    throw new ErrorApi(400, 'INVALID_PAYLOAD', 'El registro tardío solo acepta entradas de las últimas 48 horas. Avise a la administración.');
+  }
+  return entrada;
 }
 
 export function rutasEstadias(app: FastifyInstance, bd: Bd, ahora: () => Date) {
@@ -224,15 +245,14 @@ export function rutasEstadias(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     },
   }, async (req, rep) => {
     const b = req.body;
-    if (b.registro_tardio || b.entrada_en) {
-      throw new ErrorApi(400, 'INVALID_PAYLOAD', 'El registro tardío de lo anotado en el talonario llega en una entrega siguiente.');
-    }
+    const momento = ahora();
+    const entrada = horaDeEntrada(b, momento);
     if (b.pago.valor_recibido !== undefined && b.pago.forma !== 'EFECTIVO') {
       throw new ErrorApi(400, 'INVALID_PAYLOAD', 'El valor recibido solo aplica a pagos en efectivo.');
     }
     const u = req.usuario!;
     const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'crearEstadia', async (tx) => {
-      const id = await registrarEntrada(tx, b, u, ahora());
+      const id = await registrarEntrada(tx, b, u, momento, entrada);
       return { estado: 201, cuerpo: await leerEstadia(tx, id) };
     });
     return rep.code(r.estado).send(r.cuerpo);

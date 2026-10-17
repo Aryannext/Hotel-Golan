@@ -2,11 +2,13 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Cotizacion, type Estadia, type FormaPago, type Habitacion } from '../api.ts';
 import {
-  AVISO_VERSION, HUESPED_VACIO, TIPOS_DOCUMENTO, aHuespedInput, cambioEfectivo, enmascarar, erroresHuesped, hoyBogota, leerPesos, nuevaClave, pesos, textoSalida,
+  AVISO_VERSION, HUESPED_VACIO, TIPOS_DOCUMENTO, aHuespedInput, cambioEfectivo, enmascarar, erroresHuesped, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, textoSalida,
   type FormHuesped,
 } from '../logica.ts';
 import { PasoServicio, SERVICIO_INICIAL, type Servicio } from './PasoServicio.tsx';
 import { Ico } from './Ico.tsx';
+import { entradaIso, errorTardio } from '../tardio.ts';
+import { fechaReporte } from '../reportes.ts';
 
 const PASOS = ['Datos del huésped', 'Habitación y servicio', 'Confirmar'];
 const FORMAS: Array<[FormaPago, string]> = [['EFECTIVO', 'Efectivo'], ['NEQUI', 'Nequi'], ['BANCOLOMBIA', 'Bancolombia'], ['AL_SALIR', 'Paga al salir']];
@@ -30,7 +32,11 @@ export function Entrada({ habitacion, alVolver, alRegistrar }: {
   useEffect(() => {
     let vigente = true;
     const s = servicio;
-    api.cotizar({ habitacion_numero: habitacion.numero, modalidad: s.modalidad, personas: s.personas, noches: s.modalidad === 'NOCHE' ? s.noches : 1, aplicar_descuento: s.descuento })
+    // Registro tardío: sin una hora real válida no se cotiza (el paso no deja seguir).
+    const fallaTardio = s.tardio ? errorTardio(s.entrada, Date.now()) : null;
+    if (fallaTardio) { setCot(null); setErrorCot('Con la hora real de entrada se calculan el precio y la salida.'); return; }
+    const entrada_en = s.tardio ? entradaIso(s.entrada) ?? undefined : undefined;
+    api.cotizar({ habitacion_numero: habitacion.numero, modalidad: s.modalidad, personas: s.personas, noches: s.modalidad === 'NOCHE' ? s.noches : 1, aplicar_descuento: s.descuento, entrada_en })
       .then((c) => { if (vigente) { setCot(c); setErrorCot(''); } })
       .catch((e: Error) => { if (vigente) setErrorCot(e.message); });
     return () => { vigente = false; };
@@ -59,6 +65,7 @@ export function Entrada({ habitacion, alVolver, alRegistrar }: {
       alRegistrar(await api.registrarEntrada({
         habitacion_numero: habitacion.numero, modalidad: servicio.modalidad, personas: servicio.personas,
         noches: servicio.modalidad === 'NOCHE' ? servicio.noches : 1, aplicar_descuento: servicio.descuento,
+        ...(servicio.tardio ? { registro_tardio: true, entrada_en: entradaIso(servicio.entrada) ?? undefined } : {}),
         huesped: aHuespedInput(h), autorizacion: { otorgada: h.autorizo, version_aviso: AVISO_VERSION },
         pago: forma === 'EFECTIVO' ? { forma, valor_recibido: valor } : { forma },
       }, clave));
@@ -133,6 +140,7 @@ export function Entrada({ habitacion, alVolver, alRegistrar }: {
               {h.tipoDocumento && <><dt>Documento</dt><dd>{h.tipoDocumento} {enmascarar(h.numeroDocumento)}</dd></>}
               <dt>Habitación</dt><dd>{habitacion.numero} · {habitacion.tipo === 'AIRE' ? 'Aire' : 'Ventilador'}</dd>
               <dt>Servicio</dt><dd>{servicio.modalidad === 'NOCHE' ? `${servicio.noches} ${servicio.noches === 1 ? 'noche' : 'noches'}` : '3 horas'} · {servicio.personas} {servicio.personas === 1 ? 'persona' : 'personas'}</dd>
+              {servicio.tardio && <><dt>Entró</dt><dd>{fechaReporte(`${servicio.entrada}:00-05:00`)} a las {horaBogota(`${servicio.entrada}:00-05:00`)} (registro tardío)</dd></>}
               <dt>Sale</dt><dd>{textoSalida(cot.salida_prevista_en, hoyBogota())}</dd>
             </dl>
             {cot.descuento > 0 && <>
