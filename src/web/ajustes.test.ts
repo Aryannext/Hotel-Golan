@@ -39,7 +39,7 @@ describe('FR-22 — reglas en la PWA', () => {
   });
 
   it('describe una regla con su valor', () => {
-    assert.equal(textoRegla('descuento_noche', 6000), 'Descuento por noche: $6.000');
+    assert.equal(textoRegla('descuento_noche', 6000), 'Descuento máximo por noche: $6.000');
     assert.equal(textoRegla('hora_noche_completa', 17), 'Desde qué hora se cobra la noche completa: 5:00 p. m.');
     assert.equal(textoRegla('retencion_datos_dias', 90), 'Días que se guardan los datos del huésped: 90');
   });

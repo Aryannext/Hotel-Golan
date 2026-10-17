@@ -1,12 +1,20 @@
 // Textos de ayuda con importes que se configuran en Ajustes (TICKET-15): GET /reglas, GET /tarifas y el catálogo.
 // Sin JSX, se prueba con node --test. Si el valor no se puede deducir con seguridad, el texto no lleva importe.
 import type { Reglas, Tarifa } from './ajustes.ts';
-import { pesos, type Modalidad, type Producto } from './logica.ts';
+import { leerPesos, pesos, type Modalidad, type Producto } from './logica.ts';
 
-/** `null`: con descuento en $0 no hay rebaja que ofrecer. */
+/** `null`: con descuento máximo en $0 no hay rebaja que ofrecer. */
 export function textoDescuento(reglas: Pick<Reglas, 'descuento_noche'> | null): string | null {
   if (!reglas) return 'Con descuento';
-  return reglas.descuento_noche > 0 ? `− ${pesos(reglas.descuento_noche)} por noche` : null;
+  return reglas.descuento_noche > 0 ? `Con descuento (máx. ${pesos(reglas.descuento_noche)})` : null;
+}
+
+/** Lo que recepción escribe como descuento por noche: mayor que $0 y sin pasar del máximo (el servidor lo vuelve a revisar). */
+export function leerDescuento(texto: string, reglas: Pick<Reglas, 'descuento_noche'> | null): { valor: number | null; error: string | null } {
+  const valor = texto.includes('-') ? null : leerPesos(texto);
+  if (!valor) return { valor: null, error: 'Escriba cuánto por noche (mayor que $0).' };
+  if (reglas && valor > reglas.descuento_noche) return { valor: null, error: `El descuento máximo es ${pesos(reglas.descuento_noche)} por noche.` };
+  return { valor, error: null };
 }
 
 /** La única tarifa vigente de la combinación; si falta o hay más de una, no se adivina. */

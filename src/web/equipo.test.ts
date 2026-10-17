@@ -67,7 +67,7 @@ describe('FR-20 — actividad en palabras', () => {
       [r('ACTUALIZAR', 'tarifas', { 'AIRE NOCHE 1': '65000', 'VENTILADOR TRES_HORAS 2': '27000' }),
         'Cambió la tarifa Aire · noche · 1 persona a $65.000; Ventilador · tres horas (1 o 2 personas) a $27.000'],
       [r('ACTUALIZAR', 'reglas', { descuento_noche: '6000', hora_noche_completa: '17' }),
-        'Cambió Descuento por noche: $6.000; Desde qué hora se cobra la noche completa: 5:00 p. m.'],
+        'Cambió Descuento máximo por noche: $6.000; Desde qué hora se cobra la noche completa: 5:00 p. m.'],
       [r('CREAR', 'productos', { precio: '5500' }), 'Agregó un producto de $5.500 al catálogo'],
       [r('ACTUALIZAR', 'productos', { precio: '4500' }), 'Cambió el precio de un producto a $4.500'],
       [r('ACTUALIZAR', 'productos', { activo: 'no' }), 'Quitó un producto del catálogo'],

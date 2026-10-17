@@ -39,7 +39,7 @@ export const textoHora = (hora: number) => horaBogota(`2000-01-01T${String(hora)
 export const REGLAS: Array<{ clave: ClaveRegla; texto: string; ayuda: string; min: number; max: number; pesos: boolean }> = [
   { clave: 'valor_hora', texto: 'Valor de cada hora extra', ayuda: 'Se cobra la hora empezada.', min: 0, max: 1000000, pesos: true },
   { clave: 'hora_noche_completa', texto: 'Desde qué hora se cobra la noche completa', ayuda: 'Al extender por horas desde esta hora, se cobra la noche.', min: 12, max: 23, pesos: false },
-  { clave: 'descuento_noche', texto: 'Descuento por noche', ayuda: 'Solo si el cliente lo pide. No aplica a tres horas ni a horas.', min: 0, max: 1000000, pesos: true },
+  { clave: 'descuento_noche', texto: 'Descuento máximo por noche', ayuda: 'Recepción puede dar menos, nunca más. Solo si el cliente lo pide; no aplica a tres horas ni a horas.', min: 0, max: 1000000, pesos: true },
   { clave: 'pago_turno_dia', texto: 'Pago del turno de día', ayuda: 'Aplica desde el próximo turno que se abra.', min: 0, max: 10000000, pesos: true },
   { clave: 'pago_turno_noche', texto: 'Pago del turno de noche', ayuda: 'Aplica desde el próximo turno que se abra.', min: 0, max: 10000000, pesos: true },
   { clave: 'retencion_datos_dias', texto: 'Días que se guardan los datos del huésped', ayuda: 'Después de la salida; luego se borran el nombre, el documento y el teléfono.', min: 1, max: 3650, pesos: false },

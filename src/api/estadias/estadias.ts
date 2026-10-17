@@ -9,7 +9,7 @@ import { ErrorApi } from '../comun/errores.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
 import { turnoAbiertoId } from '../caja/turnos.ts';
 import { cotizar, type ModalidadCotizable, type TipoHabitacion } from '../reglas/reglas.ts';
-import { regla, tarifasVigentes } from './cotizaciones.ts';
+import { descuentoPedido, regla, tarifasVigentes } from './cotizaciones.ts';
 
 const HABITACIONES = ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '301'];
 const UNICO_VIOLADO = '23505';
@@ -77,7 +77,7 @@ export async function leerEstadia(bd: Bd, id: string) {
 // ---------- Registro de la entrada ----------
 
 interface Cuerpo {
-  habitacion_numero: string; modalidad: ModalidadCotizable; personas: number; noches?: number; aplicar_descuento?: boolean;
+  habitacion_numero: string; modalidad: ModalidadCotizable; personas: number; noches?: number; aplicar_descuento?: boolean; valor_descuento?: number;
   registro_tardio?: boolean; entrada_en?: string;
   huesped: { nombre: string; tipo_documento?: string; numero_documento?: string; nacionalidad: string; telefono?: string; es_menor: boolean; acompanante_verificado?: boolean };
   autorizacion: { otorgada: boolean; version_aviso: string };
@@ -92,6 +92,7 @@ const esquemaCuerpo = {
     personas: { type: 'integer', minimum: 1, maximum: 3 },
     noches: { type: 'integer', minimum: 1, maximum: 30, default: 1 },
     aplicar_descuento: { type: 'boolean', default: false },
+    valor_descuento: { type: 'integer', minimum: 0 },
     registro_tardio: { type: 'boolean', default: false },
     entrada_en: { type: 'string', format: 'date-time' },
     huesped: {
@@ -147,9 +148,10 @@ async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuari
 
   // El precio y la salida se recalculan aquí; no se confía en lo que muestre el cliente.
   const noches = b.modalidad === 'NOCHE' ? b.noches ?? 1 : 1;
+  const maximo = await regla(tx, 'descuento_noche');
   const c = cotizar({
-    tarifas: await tarifasVigentes(tx, entrada), descuentoNoche: await regla(tx, 'descuento_noche'), tipo: h.tipo,
-    modalidad: b.modalidad, personas: b.personas, noches, aplicarDescuento: b.aplicar_descuento ?? false, entrada,
+    tarifas: await tarifasVigentes(tx, entrada), descuentoNoche: maximo, tipo: h.tipo,
+    modalidad: b.modalidad, personas: b.personas, noches, descuentoPorNoche: descuentoPedido(b, maximo), entrada,
   });
   const alSalir = b.pago.forma === 'AL_SALIR';
   if (alSalir && !c.permitePagoAlSalir) {

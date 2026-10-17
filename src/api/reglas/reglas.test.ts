@@ -75,11 +75,21 @@ describe('RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las person
   });
 });
 
-describe('RN-05 — Descuento de $5.000 por noche, solo en la modalidad de noche', () => {
-  it('dos noches: $10.000', () => assert.equal(calcularDescuento('NOCHE', 2, true, 5000), 10000));
-  it('sin pedirlo: $0', () => assert.equal(calcularDescuento('NOCHE', 2, false, 5000), 0));
+describe('RN-05 — Descuento por noche hasta el máximo configurado ($5.000), solo en la modalidad de noche', () => {
+  it('el máximo, dos noches: $10.000', () => assert.equal(calcularDescuento('NOCHE', 2, 5000, 5000), 10000));
+  it('recepción puede dar menos: $3.000 por noche, dos noches = $6.000', () => assert.equal(calcularDescuento('NOCHE', 2, 3000, 5000), 6000));
+  it('sin pedirlo: $0', () => assert.equal(calcularDescuento('NOCHE', 2, 0, 5000), 0));
+  it('más del máximo: DESCUENTO_EXCEDE_MAXIMO, con el máximo en el mensaje', () => {
+    assert.throws(() => calcularDescuento('NOCHE', 1, 5001, 5000),
+      (e: ErrorRegla) => e.codigo === 'DESCUENTO_EXCEDE_MAXIMO' && e.message === 'El descuento máximo es $5.000 por noche.');
+  });
+  it('el máximo sigue lo que la administración configure', () => assert.equal(calcularDescuento('NOCHE', 1, 6000, 6000), 6000));
+  it('descuento negativo o con decimales: no se acepta', () => {
+    assert.throws(() => calcularDescuento('NOCHE', 1, -1000, 5000), (e: ErrorRegla) => e.codigo === 'DESCUENTO_EXCEDE_MAXIMO');
+    assert.throws(() => calcularDescuento('NOCHE', 1, 2500.5, 5000), (e: ErrorRegla) => e.codigo === 'DESCUENTO_EXCEDE_MAXIMO');
+  });
   it('tres horas con descuento: DESCUENTO_NO_PERMITIDO', () => {
-    assert.throws(() => calcularDescuento('TRES_HORAS', 1, true, 5000), (e: ErrorRegla) => e.codigo === 'DESCUENTO_NO_PERMITIDO');
+    assert.throws(() => calcularDescuento('TRES_HORAS', 1, 2000, 5000), (e: ErrorRegla) => e.codigo === 'DESCUENTO_NO_PERMITIDO');
   });
 });
 
@@ -101,13 +111,13 @@ describe('RN-09 — Fin programado del turno (día 6:30 a. m. – 6:30 p. m.; no
 
 describe('Cotización completa', () => {
   it('dos noches con aire, 1 persona y descuento: $120.000 − $10.000 = $110.000; no permite pagar al salir', () => {
-    const c = cotizar({ tarifas: TARIFAS, descuentoNoche: 5000, tipo: 'AIRE', modalidad: 'NOCHE', personas: 1, noches: 2, aplicarDescuento: true, entrada: bogota('2026-10-12 15:00') });
+    const c = cotizar({ tarifas: TARIFAS, descuentoNoche: 5000, tipo: 'AIRE', modalidad: 'NOCHE', personas: 1, noches: 2, descuentoPorNoche: 5000, entrada: bogota('2026-10-12 15:00') });
     assert.deepEqual({ tarifa: c.tarifa, descuento: c.descuento, total: c.total, alSalir: c.permitePagoAlSalir },
       { tarifa: 120000, descuento: 10000, total: 110000, alSalir: false });
     assert.equal(aBogota(c.salida), '2026-10-14T12:00:00-05:00');
   });
   it('una noche sí permite pagar al salir; tres horas no', () => {
-    const base = { tarifas: TARIFAS, descuentoNoche: 5000, tipo: 'VENTILADOR' as const, personas: 2, noches: 1, aplicarDescuento: false, entrada: bogota('2026-10-12 20:00') };
+    const base = { tarifas: TARIFAS, descuentoNoche: 5000, tipo: 'VENTILADOR' as const, personas: 2, noches: 1, descuentoPorNoche: 0, entrada: bogota('2026-10-12 20:00') };
     assert.equal(cotizar({ ...base, modalidad: 'NOCHE' }).permitePagoAlSalir, true);
     assert.equal(cotizar({ ...base, modalidad: 'TRES_HORAS' }).permitePagoAlSalir, false);
   });

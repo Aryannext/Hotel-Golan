@@ -10,6 +10,7 @@ import { Ico } from './Ico.tsx';
 import { entradaIso, errorTardio } from '../tardio.ts';
 import { fechaReporte } from '../reportes.ts';
 import type { Reglas, Tarifa } from '../ajustes.ts';
+import { leerDescuento } from '../textosConfig.ts';
 
 const PASOS = ['Datos del huésped', 'Habitación y servicio', 'Confirmar'];
 const FORMAS: Array<[FormaPago, string]> = [['EFECTIVO', 'Efectivo'], ['NEQUI', 'Nequi'], ['BANCOLOMBIA', 'Bancolombia'], ['AL_SALIR', 'Paga al salir']];
@@ -39,12 +40,15 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
     // Registro tardío: sin una hora real válida no se cotiza (el paso no deja seguir).
     const fallaTardio = s.tardio ? errorTardio(s.entrada, Date.now()) : null;
     if (fallaTardio) { setCot(null); setErrorCot('Con la hora real de entrada se calculan el precio y la salida.'); return; }
+    // Descuento: sin un valor válido (mayor que $0 y hasta el máximo) no se cotiza.
+    const desc = s.modalidad === 'NOCHE' && s.descuento ? leerDescuento(s.valorDescuento, reglas) : { valor: 0, error: null };
+    if (desc.error) { setCot(null); setErrorCot('Corrija el descuento para ver el precio.'); return; }
     const entrada_en = s.tardio ? entradaIso(s.entrada) ?? undefined : undefined;
-    api.cotizar({ habitacion_numero: habitacion.numero, modalidad: s.modalidad, personas: s.personas, noches: s.modalidad === 'NOCHE' ? s.noches : 1, aplicar_descuento: s.descuento, entrada_en })
+    api.cotizar({ habitacion_numero: habitacion.numero, modalidad: s.modalidad, personas: s.personas, noches: s.modalidad === 'NOCHE' ? s.noches : 1, valor_descuento: desc.valor ?? 0, entrada_en })
       .then((c) => { if (vigente) { setCot(c); setErrorCot(''); } })
       .catch((e: Error) => { if (vigente) setErrorCot(e.message); });
     return () => { vigente = false; };
-  }, [habitacion.numero, servicio]);
+  }, [habitacion.numero, servicio, reglas]);
 
   // Si deja de permitirse pagar al salir (más noches o tres horas), vuelve a efectivo.
   useEffect(() => { if (forma === 'AL_SALIR' && cot && !cot.permite_pago_al_salir) setForma('EFECTIVO'); }, [cot]);
@@ -68,7 +72,8 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
     try {
       alRegistrar(await api.registrarEntrada({
         habitacion_numero: habitacion.numero, modalidad: servicio.modalidad, personas: servicio.personas,
-        noches: servicio.modalidad === 'NOCHE' ? servicio.noches : 1, aplicar_descuento: servicio.descuento,
+        noches: servicio.modalidad === 'NOCHE' ? servicio.noches : 1,
+        valor_descuento: servicio.modalidad === 'NOCHE' && servicio.descuento ? leerDescuento(servicio.valorDescuento, reglas).valor ?? 0 : 0,
         ...(servicio.tardio ? { registro_tardio: true, entrada_en: entradaIso(servicio.entrada) ?? undefined } : {}),
         huesped: aHuespedInput(h), autorizacion: { otorgada: h.autorizo, version_aviso: AVISO_VERSION },
         pago: forma === 'EFECTIVO' ? { forma, valor_recibido: valor } : { forma },
