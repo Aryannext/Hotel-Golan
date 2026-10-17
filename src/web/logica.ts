@@ -9,7 +9,13 @@ const TEXTOS: Record<string, string> = {
 export const claseEstado = (estado: string) => CLASES[estado] ?? 'libre';
 export const textoEstado = (estado: string) => TEXTOS[estado] ?? estado;
 
-export const pesos = (n: number) => '$' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+export function pesos(n: number): string {
+  const r = Math.round(n);
+  const digitos = Math.abs(r).toString();
+  const grupos: string[] = [];
+  for (let fin = digitos.length; fin > 0; fin -= 3) grupos.unshift(digitos.slice(Math.max(0, fin - 3), fin));
+  return `$${r < 0 ? '-' : ''}${grupos.join('.')}`;
+}
 
 /** Lee la hora directamente del texto ISO con -05:00, para no depender de la zona horaria del equipo. */
 export function horaBogota(iso: string): string {
@@ -201,11 +207,16 @@ export interface LineaTurno {
   origen: 'PAGO' | 'SALIDA'; devolucion: boolean;
 }
 
+function conceptoSalida(m: SalidaTurno): string {
+  const hab = m.habitacion_numero ? ` · Hab. ${m.habitacion_numero}` : '';
+  return `${TEXTO_SALIDA[m.tipo] ?? m.tipo} · ${m.detalle}${hab}`;
+}
+
 /** Cobros (suman) y salidas (restan) del turno, por hora. Solo el efectivo y las salidas mueven la caja. */
 export function lineasDelTurno(pagos: PagoTurno[], salidas: SalidaTurno[]): LineaTurno[] {
   return [
     ...pagos.map((p) => ({ id: p.id, hora: p.registrado_en, concepto: `Cobro · Hab. ${p.habitacion_numero} · ${textoMedio(p.medio)}`, valor: p.valor, enCaja: p.medio === 'EFECTIVO', estado: p.estado, por: p.registrado_por, anulado: p.anulado, origen: 'PAGO' as const, devolucion: false })),
-    ...salidas.map((m) => ({ id: m.id, hora: m.registrado_en, concepto: `${TEXTO_SALIDA[m.tipo] ?? m.tipo} · ${m.detalle}${m.habitacion_numero ? ` · Hab. ${m.habitacion_numero}` : ''}`, valor: -m.valor, enCaja: true, estado: 'SALIDA', por: m.registrado_por, anulado: m.anulado, origen: 'SALIDA' as const, devolucion: m.tipo === 'DEVOLUCION' })),
+    ...salidas.map((m) => ({ id: m.id, hora: m.registrado_en, concepto: conceptoSalida(m), valor: -m.valor, enCaja: true, estado: 'SALIDA', por: m.registrado_por, anulado: m.anulado, origen: 'SALIDA' as const, devolucion: m.tipo === 'DEVOLUCION' })),
   ].sort((a, b) => a.hora.localeCompare(b.hora));
 }
 

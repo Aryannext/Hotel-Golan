@@ -25,7 +25,7 @@ export function Acceso({ alEntrar, mensaje }: { alEntrar: (s: SesionActual) => v
   }
 
   return (
-    <div class="acceso-pant" role="dialog" aria-modal="true" aria-labelledby="acceso-titulo">
+    <dialog open class="acceso-pant" aria-modal="true" aria-labelledby="acceso-titulo">
       <div class="acceso__caja">
         <div class="acceso__marca">
           <svg class="acceso__logo" role="img" aria-label="Hotel Golán, lugar de refugio"><use href="#logo-golan" /></svg>
@@ -36,12 +36,12 @@ export function Acceso({ alEntrar, mensaje }: { alEntrar: (s: SesionActual) => v
           {mensaje && <div class="nota nota--info"><Ico id="check" clase="ico--s" /><p>{mensaje}</p></div>}
           <form class="pila" style="gap:12px" onSubmit={enviar} noValidate>
             <div class="campo">
-              <label for="usuario">Usuario</label>
+              <label htmlFor="usuario">Usuario</label>
               <input id="usuario" autocomplete="username" autocapitalize="none" value={usuario}
                 onInput={(e) => setUsuario((e.target as HTMLInputElement).value)} required />
             </div>
             <div class={`campo${error ? ' campo--error' : ''}`}>
-              <label for="pin">PIN de 6 dígitos</label>
+              <label htmlFor="pin">PIN de 6 dígitos</label>
               <input id="pin" class="pin" type="password" inputmode="numeric" maxLength={6} autocomplete="current-password"
                 value={pin} onInput={(e) => setPin((e.target as HTMLInputElement).value.replace(/\D/g, ''))} />
               {error && <span class="campo__error" role="alert">{error}</span>}
@@ -53,6 +53,6 @@ export function Acceso({ alEntrar, mensaje }: { alEntrar: (s: SesionActual) => v
         </div>
         <p class="acceso__pie">Acceso solo para el personal del Hotel Golán.</p>
       </div>
-    </div>
+    </dialog>
   );
 }

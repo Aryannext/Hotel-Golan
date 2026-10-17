@@ -51,8 +51,8 @@ export function SalidaDinero({ debeHaber, alCerrar, alRegistrar }: { debeHaber: 
 
   return (
     <div class="capa-panel">
-      <div class="velo velo--visible" onClick={alCerrar} />
-      <section class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
+      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
           <div class="titulos"><h2 id="panel-titulo">Salió plata</h2><p>En la caja debe haber {pesos(debeHaber)}</p></div>
@@ -62,13 +62,13 @@ export function SalidaDinero({ debeHaber, alCerrar, alRegistrar }: { debeHaber: 
           <section class="tarjeta">
             <div class="tarjeta__cab"><h3>¿Para qué salió?</h3></div>
             <div class="segmentado segmentado--columna">{TIPOS_SALIDA.map((x) =>
-              <button type="button" class="opcion" aria-pressed={tipo === x.tipo} onClick={() => elegir(x.tipo)}>{x.texto}</button>)}</div>
-            {tipo === 'RECARGO_ASEO' && <div class="campo"><label for="salida-hab">Habitación que se limpió</label>
+              <button key={x.tipo} type="button" class="opcion" aria-pressed={tipo === x.tipo} onClick={() => elegir(x.tipo)}>{x.texto}</button>)}</div>
+            {tipo === 'RECARGO_ASEO' && <div class="campo"><label htmlFor="salida-hab">Habitación que se limpió</label>
               <select id="salida-hab" value={hab} onChange={(e) => setHab((e.target as HTMLSelectElement).value)}>
-                <option value="">Elija la habitación</option>{HABITACIONES.map((n) => <option value={n}>{n}</option>)}</select></div>}
-            <div class="campo"><label for="salida-detalle">Detalle</label>
+                <option value="">Elija la habitación</option>{HABITACIONES.map((n) => <option key={n} value={n}>{n}</option>)}</select></div>}
+            <div class="campo"><label htmlFor="salida-detalle">Detalle</label>
               <input id="salida-detalle" autocomplete="off" maxLength={200} placeholder={t.ejemplo} value={detalle} onInput={(e) => setDetalle((e.target as HTMLInputElement).value)} /></div>
-            <div class="campo"><label for="salida-valor">Valor</label>
+            <div class="campo"><label htmlFor="salida-valor">Valor</label>
               <input id="salida-valor" inputmode="numeric" autocomplete="off" placeholder="Ej. 10000" value={valor} onInput={(e) => setValor((e.target as HTMLInputElement).value)} /></div>
             {monto > 0 && <div class={`saldo ${quedaria < 0 ? 'saldo--alerta' : 'saldo--ok'}`}><div>
               <b>{quedaria < 0 ? 'No alcanza la caja' : 'Quedarán en la caja'}</b>
@@ -79,7 +79,7 @@ export function SalidaDinero({ debeHaber, alCerrar, alRegistrar }: { debeHaber: 
         <div class="panel__pie">
           <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando} onClick={registrar}><Ico id="baja" clase="ico--s" />Registrar salida{monto ? ` de ${pesos(monto)}` : ''}</button>
         </div>
-      </section>
+      </dialog>
     </div>
   );
 }

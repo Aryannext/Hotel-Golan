@@ -107,10 +107,10 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
           <div class="tarjeta__cab"><h2>Datos del titular</h2></div>
           <p class="ayuda">Solo se registra a quien toma la habitación. El documento es opcional.</p>
           <div class="form-rejilla form-rejilla--2">
-            <div class={`campo${err('nombre') ? ' campo--error' : ''}`}><label for="h-nombre">Nombre completo <span class="req">*</span></label>
+            <div class={`campo${err('nombre') ? ' campo--error' : ''}`}><label htmlFor="h-nombre">Nombre completo <span class="req">*</span></label>
               <input id="h-nombre" autocomplete="off" value={h.nombre} onInput={(e) => campo('nombre', (e.target as HTMLInputElement).value)} />
               {err('nombre') && <span class="campo__error">{err('nombre')}</span>}</div>
-            <div class={`campo${err('numeroDocumento') ? ' campo--error' : ''}`}><label for="h-doc">Documento</label>
+            <div class={`campo${err('numeroDocumento') ? ' campo--error' : ''}`}><label htmlFor="h-doc">Documento</label>
               <div class="doble">
                 <select aria-label="Tipo de documento" value={h.tipoDocumento} onChange={(e) => campo('tipoDocumento', (e.target as HTMLSelectElement).value)}>
                   <option value="">Sin documento</option>
@@ -120,10 +120,10 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
                   onInput={(e) => campo('numeroDocumento', (e.target as HTMLInputElement).value)} />
               </div>
               {err('numeroDocumento') && <span class="campo__error">{err('numeroDocumento')}</span>}</div>
-            <div class={`campo${err('nacionalidad') ? ' campo--error' : ''}`}><label for="h-nac">Nacionalidad <span class="req">*</span></label>
+            <div class={`campo${err('nacionalidad') ? ' campo--error' : ''}`}><label htmlFor="h-nac">Nacionalidad <span class="req">*</span></label>
               <input id="h-nac" autocomplete="off" value={h.nacionalidad} onInput={(e) => campo('nacionalidad', (e.target as HTMLInputElement).value)} />
               {err('nacionalidad') && <span class="campo__error">{err('nacionalidad')}</span>}</div>
-            <div class={`campo${err('telefono') ? ' campo--error' : ''}`}><label for="h-tel">Celular (opcional)</label>
+            <div class={`campo${err('telefono') ? ' campo--error' : ''}`}><label htmlFor="h-tel">Celular (opcional)</label>
               <input id="h-tel" inputmode="tel" autocomplete="off" placeholder="Ej. 300 123 4567" value={h.telefono}
                 onInput={(e) => campo('telefono', (e.target as HTMLInputElement).value)} />
               {err('telefono') && <span class="campo__error">{err('telefono')}</span>}</div>
@@ -163,7 +163,7 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
               <button type="button" class="opcion" aria-pressed={forma === f} onClick={() => setForma(f)}>{t}</button>)}</div>
             <p class="ayuda">{cot.permite_pago_al_salir ? 'Una noche se puede cobrar al salir.' : 'Se cobra por adelantado.'} Nadie sale debiendo.</p>
             {forma === 'EFECTIVO' && <>
-              <div class="campo"><label for="recibido">Valor recibido</label>
+              <div class="campo"><label htmlFor="recibido">Valor recibido</label>
                 <input id="recibido" inputmode="numeric" autocomplete="off" placeholder={String(total)} value={recibido}
                   onInput={(e) => setRecibido((e.target as HTMLInputElement).value)} /></div>
               <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>

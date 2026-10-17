@@ -1,6 +1,7 @@
 // Mapa de las 12 habitaciones (FR-01), con las clases del prototipo (.mapa, .cuarto--estado).
 import type { Habitacion } from '../api.ts';
-import { claseEstado, contarEstados, diaRelativo, horaBogota, hoyBogota, pesos, textoEstado } from '../logica.ts';
+import { claseEstado, contarEstados, hoyBogota, textoEstado } from '../logica.ts';
+import { accionCuarto, detalleCuarto, pistaCuarto } from '../presentacion.ts';
 import { Ico } from './Ico.tsx';
 
 const ICONO: Record<string, string> = { MANTENIMIENTO: 'herramienta', LIMPIEZA: 'escoba', POR_REVISAR: 'lupa' };
@@ -9,14 +10,13 @@ function Cuarto({ h, alElegir, alAbrir, alRevisar }: {
   h: Habitacion; alElegir?: (h: Habitacion) => void; alAbrir?: (h: Habitacion) => void; alRevisar?: (h: Habitacion) => void;
 }) {
   const e = h.estadia_activa;
-  const detalle = e
-    ? `Sale ${diaRelativo(e.salida_prevista_en, hoyBogota())} ${horaBogota(e.salida_prevista_en)}${e.saldo ? ' · debe ' + pesos(e.saldo) : e.por_verificar ? ' · por verificar' : ''}`
-    : '';
+  const detalle = detalleCuarto(h, hoyBogota());
   // Disponible: registrar una entrada (TICKET-04). Con estadía: su ficha (TICKET-06). Por revisar, limpieza o mantenimiento: cambiar su estado (TICKET-08).
-  const accion = h.estado === 'DISPONIBLE' && alElegir ? () => alElegir(h) : e && alAbrir ? () => alAbrir(h)
-    : !e && h.estado !== 'DISPONIBLE' && alRevisar ? () => alRevisar(h) : undefined;
+  const que = accionCuarto(h, { elegir: !!alElegir, abrir: !!alAbrir, revisar: !!alRevisar });
+  const manejador = que && { ENTRADA: alElegir, CUENTA: alAbrir, ESTADO: alRevisar }[que];
+  const accion = manejador ? () => manejador(h) : undefined;
   const Etiqueta = accion ? 'button' : 'div';
-  const pista = !accion ? '' : h.estado === 'DISPONIBLE' ? ', tocar para registrar una entrada' : e ? ', tocar para ver la cuenta' : ', tocar para cambiar su estado';
+  const pista = pistaCuarto(que);
   return (
     <Etiqueta type={accion ? 'button' : undefined} onClick={accion}
       class={`cuarto cuarto--${claseEstado(h.estado)}`} aria-label={`Habitación ${h.numero}, ${textoEstado(h.estado)}${pista}`}>

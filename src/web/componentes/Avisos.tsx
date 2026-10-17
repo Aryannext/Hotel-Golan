@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Aviso } from '../avisos.ts';
 import { Ico } from './Ico.tsx';
+import { etiquetaCampana } from '../presentacion.ts';
 
 const ICONOS: Record<Aviso['tipo'], string> = { VENCIDA: 'reloj', POR_VERIFICAR: 'transferencia', POR_REVISAR: 'lupa', LIMPIEZA: 'escoba' };
 
@@ -48,7 +49,7 @@ export function Campana({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (a: A
     return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', escape); };
   }, [abierta]);
 
-  const etiqueta = avisos.length === 0 ? 'Avisos: no hay pendientes' : `Avisos: ${avisos.length} pendiente${avisos.length === 1 ? '' : 's'}`;
+  const etiqueta = etiquetaCampana(avisos.length);
   return <div class="campana" ref={caja}>
     <button type="button" class="redondo campana__boton" aria-label={etiqueta} aria-expanded={abierta} aria-haspopup="true" onClick={() => setAbierta(!abierta)}>
       <Ico id="campana" clase="ico--s" />

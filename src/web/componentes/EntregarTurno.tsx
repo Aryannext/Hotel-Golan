@@ -44,8 +44,8 @@ export function EntregarTurno({ turno, alCerrar, alEntregar }: { turno: Turno; a
 
   return (
     <div class="capa-panel">
-      <div class="velo velo--visible" onClick={alCerrar} />
-      <section class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
+      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
           <div class="titulos"><h2 id="panel-titulo">Entregar turno</h2><p>Turno {turno.tipo === 'NOCHE' ? 'de noche' : 'de día'} de {turno.responsable}</p></div>
@@ -67,10 +67,10 @@ export function EntregarTurno({ turno, alCerrar, alEntregar }: { turno: Turno; a
               {pagoTomado && <div class="fila"><div class="fila__txt"><div class="fila__concepto">Su pago del turno</div></div><div class="fila__valor">−{pesos(c.pago_turno)}</div></div>}
               <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">Debe dejar</div></div><div class="fila__valor">{pesos(dejar)}</div></div>
             </section>
-            <div class="campo"><label for="contado">Cuente la plata. ¿Cuánto deja en la caja? <span class="req">*</span></label>
+            <div class="campo"><label htmlFor="contado">Cuente la plata. ¿Cuánto deja en la caja? <span class="req">*</span></label>
               <input id="contado" inputmode="numeric" autocomplete="off" placeholder={`Ej. ${dejar}`} value={contado} onInput={(e) => setContado((e.target as HTMLInputElement).value)} /></div>
             {dif ? <p><span class={`pill pill--${dif.tono}`}>{dif.texto}</span></p> : <p class="ayuda">Escriba lo que contó, aunque coincida.</p>}
-            {dif && dif.tono === 'alerta' && <div class="campo"><label for="motivo">¿Por qué no cuadra? <span class="req">*</span></label>
+            {dif?.tono === 'alerta' && <div class="campo"><label htmlFor="motivo">¿Por qué no cuadra? <span class="req">*</span></label>
               <input id="motivo" autocomplete="off" maxLength={300} placeholder="Ej. devolví $5.000 a la 205 y no lo anoté" value={motivo}
                 onInput={(e) => setMotivo((e.target as HTMLInputElement).value)} />
               <span class="ayuda">La diferencia queda registrada a su nombre; el sistema no descuenta nada.</span></div>}
@@ -81,7 +81,7 @@ export function EntregarTurno({ turno, alCerrar, alEntregar }: { turno: Turno; a
         <div class="panel__pie">
           <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando} onClick={entregar}><Ico id="check" clase="ico--s" />{enviando ? 'Entregando…' : 'Entregar turno'}</button>
         </div>
-      </section>
+      </dialog>
     </div>
   );
 }

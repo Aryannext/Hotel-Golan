@@ -7,8 +7,11 @@ import { SalidaDinero } from './SalidaDinero.tsx';
 import { EntregarTurno } from './EntregarTurno.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { Ico } from './Ico.tsx';
+import { icoMovimiento } from '../presentacion.ts';
 
 /** `recarga` cambia con cada evento en vivo: la caja se vuelve a pedir sin recargar la página. */
+const salioTexto = (salidas: number) => (salidas ? ` − salió ${pesos(salidas)}` : '');
+
 export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntregar }: {
   recarga?: number; usuario?: string; esAdmin?: boolean; alAvisar?: (texto: string) => void; alEntregar?: (texto: string) => void;
 }) {
@@ -45,7 +48,7 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
         <strong class="caja-grande__valor">{pesos(c.debe_haber)}</strong>
         <p class="ayuda">
           {porRecibir ? `${turno.recibido_de ?? 'El turno anterior'} entregó ${pesos(turno.base_entregada)}; falta que alguien lo reciba.`
-            : `Recibió ${pesos(c.base_recibida)} + cobró en efectivo ${pesos(c.efectivo)}${c.salidas ? ' − salió ' + pesos(c.salidas) : ''}`}
+            : `Recibió ${pesos(c.base_recibida)} + cobró en efectivo ${pesos(c.efectivo)}${salioTexto(c.salidas)}`}
         </p>
         <div class="caja-grande__extra">
           <span><Ico id="transferencia" clase="ico--s" /> Transferencias (no están en la caja): <b>{pesos(c.transferencias)}</b>
@@ -60,7 +63,7 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
       {!porRecibir && <section class="tarjeta"><div class="tarjeta__cab"><h2>Lo de este turno</h2></div>
         {lineas.length === 0 ? <p class="vacio">Todavía no hay cobros ni salidas en este turno.</p> : lineas.map((l) => (
           <div class={`mov${l.anulado ? ' mov--anulado' : ''}`} key={l.id}>
-            <span class="mov__ico"><Ico id={l.valor < 0 ? 'baja' : l.enCaja ? 'efectivo' : 'transferencia'} clase="ico--s" /></span>
+            <span class="mov__ico"><Ico id={icoMovimiento(l)} clase="ico--s" /></span>
             <div class="mov__txt"><div class="mov__titulo">{l.concepto}</div>
               <div class="mov__detalle">{horaBogota(l.hora)} · {l.por}{!l.enCaja ? ' · no entra a la caja' : ''}{l.anulado ? ' · anulado' : ''}</div></div>
             <div class="mov__der"><span class={`mov__valor${l.valor < 0 ? ' negativo' : ''}`}>{l.valor < 0 ? '−' : ''}{pesos(Math.abs(l.valor))}</span>

@@ -153,7 +153,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
     cuerpo = <section class="tarjeta"><div class="tarjeta__cab"><h3>Medio de pago</h3></div>
       <div class="segmentado">{(['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'] as Medio[]).map((m) =>
         <button type="button" class="opcion" aria-pressed={medio === m} onClick={() => setMedio(m)}>{textoMedio(m)}</button>)}</div>
-      <div class="campo"><label for="valor-pago">{medio === 'EFECTIVO' ? 'Valor recibido' : 'Valor de la transferencia'}</label>
+      <div class="campo"><label htmlFor="valor-pago">{medio === 'EFECTIVO' ? 'Valor recibido' : 'Valor de la transferencia'}</label>
         <input id="valor-pago" inputmode="numeric" autocomplete="off" placeholder={String(saldo)} value={valor} onInput={(ev) => setValor((ev.target as HTMLInputElement).value)} /></div>
       {medio === 'EFECTIVO'
         ? <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>
@@ -264,8 +264,8 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
   const titulo = sub === 'devolucion' ? 'Devolución por desistimiento' : sub === 'extender' ? 'Extender estadía' : sub === 'cargo' ? 'Agregar cargos' : sub === 'pago' ? 'Registrar pago' : sub === 'salida' ? 'Dar salida' : `Hab. ${habitacion.numero}`;
   return (
     <div class="capa-panel">
-      <div class="velo velo--visible" onClick={alCerrar} />
-      <section class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
+      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label={sub === 'cuenta' ? 'Cerrar' : 'Volver'} onClick={() => (sub === 'cuenta' ? alCerrar() : ir('cuenta'))}>
             <Ico id={sub === 'cuenta' ? 'cerrar' : 'atras'} clase="ico--s" /></button>
@@ -276,7 +276,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
           {cuerpo}
         </div>
         {pie && <div class="panel__pie">{pie}</div>}
-      </section>
+      </dialog>
       {anulando && <Anular que={anulando} alCerrar={() => setAnulando(null)} alAnular={async () => { setAnulando(null); alCambiar(); setEst(await api.estadia(id)); }} />}
     </div>
   );

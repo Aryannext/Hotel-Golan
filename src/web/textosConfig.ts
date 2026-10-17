@@ -33,7 +33,8 @@ export function ayudaPersonas(modalidad: Modalidad, tipo: Tarifa['tipo_habitacio
 }
 
 export function ayudaHoras(reglas: Pick<Reglas, 'valor_hora'> | null): string {
-  return `${reglas ? `${pesos(reglas.valor_hora)} por hora empezada` : 'Se cobra la hora empezada'}, solo para extender. Sin descuento.`;
+  const cobro = reglas ? `${pesos(reglas.valor_hora)} por hora empezada` : 'Se cobra la hora empezada';
+  return `${cobro}, solo para extender. Sin descuento.`;
 }
 
 /** Precio del producto activo «Recargo aseo extremo»; si no está o está repetido, `null`. */
@@ -51,5 +52,6 @@ export function ayudaRecargoAseo(productos: Producto[] | null): string {
 
 export function avisoLimpiezaEspecial(numero: string, productos: Producto[] | null): string {
   const valor = recargoAseo(productos);
-  return `Habitación ${numero} en limpieza especial. Recuerde: el recargo ${valor == null ? '' : `de ${pesos(valor)} `}se le entrega a quien limpió (salida de caja).`;
+  const recargo = valor == null ? 'el recargo' : `el recargo de ${pesos(valor)}`;
+  return `Habitación ${numero} en limpieza especial. Recuerde: ${recargo} se le entrega a quien limpió (salida de caja).`;
 }

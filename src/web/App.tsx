@@ -19,6 +19,7 @@ import { PanelEstado } from './componentes/PanelEstado.tsx';
 import { Ico } from './componentes/Ico.tsx';
 import { avisoEvento, iniciales } from './logica.ts';
 import { useEnVivo } from './enVivo.ts';
+import { icoTono } from './presentacion.ts';
 
 type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial' | 'equipo' | 'ajustes';
 interface Aviso { tono: 'exito' | 'alerta' | 'info'; texto: string }
@@ -135,13 +136,13 @@ export function App() {
           {sesion.turno_por_recibir ? <RecibirTurno alRecibir={() => { setSesion({ ...sesion, turno_por_recibir: false }); setVista('caja'); }} />
             : <>
               <div class="pestanas" role="tablist" style="margin-bottom:16px">
-                {vistas.map(([v, t, ico]) => <button type="button" class="pestana" role="tab" aria-selected={vista === v}
+                {vistas.map(([v, t, ico]) => <button key={v} type="button" class="pestana" role="tab" aria-selected={vista === v}
                   onClick={() => { setVista(v); setCotizando(null); }}><Ico id={ico} clase="ico--s" /> {t}
                   {v === 'confirmar' && porConfirmar.length > 0 && <span class="pestana__cuenta" aria-label={`${porConfirmar.length} por confirmar`}>{porConfirmar.length}</span>}
                 </button>)}
               </div>
-              {aviso && !cotizando && <div class={`nota nota--${aviso.tono}`} role="status" style="margin-bottom:16px">
-                <Ico id={aviso.tono === 'alerta' ? 'alerta' : aviso.tono === 'exito' ? 'check' : 'info'} clase="ico--s" /><p>{aviso.texto}</p>
+              {aviso && !cotizando && <div class={`nota nota--${aviso.tono}`} aria-live="polite" style="margin-bottom:16px">
+                <Ico id={icoTono(aviso.tono)} clase="ico--s" /><p>{aviso.texto}</p>
                 <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
               </div>}
               {vistaActual()}
