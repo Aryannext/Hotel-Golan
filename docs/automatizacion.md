@@ -36,7 +36,7 @@ El análisis automático de SonarQube Cloud no descarga este artefacto. Para imp
 
 ## Seguridad de los workflows
 
-Las acciones se fijan a SHA completo, con comentarios de versión, y Dependabot propone sus actualizaciones. El token tiene solo lectura salvo `security-events: write` en CodeQL. Checkout no conserva credenciales, no se usa `pull_request_target` y los jobs tienen límites de tiempo y cancelación de ejecuciones anteriores. Los workflows no publican comentarios en los PR.
+Las acciones se fijan a SHA completo, con comentarios de versión, y Dependabot propone sus actualizaciones. Las actualizaciones de versión esperan siete días desde su publicación; las correcciones de seguridad no tienen esa espera. El token tiene solo lectura salvo `security-events: write` en CodeQL. Checkout no conserva credenciales, no se usa `pull_request_target` y los jobs tienen límites de tiempo y cancelación de ejecuciones anteriores. Los workflows no publican comentarios en los PR.
 
 actionlint está fijado a 1.7.12 y su archivo Linux se verifica contra un SHA-256 obtenido de la release oficial. Dependabot no actualiza ese binario: al actualizarlo, cambie conjuntamente `ACTIONLINT_VERSION` y `ACTIONLINT_SHA256` después de verificar la release oficial. Zizmor opera en modo bloqueante, con anotaciones en el job; CodeQL publica sus resultados en Security.
 
