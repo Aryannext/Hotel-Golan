@@ -16,7 +16,7 @@ const FILTROS: Array<[string, string]> = [
 const VACIO: FormUsuario = { nombre: '', usuario: '', pin: '', confirmar: '' };
 
 function CampoPin({ id, etiqueta, valor, error, alCambiar }: { id: string; etiqueta: string; valor: string; error?: string; alCambiar: (v: string) => void }) {
-  return <div class="campo"><label for={id}>{etiqueta}</label>
+  return <div class="campo"><label htmlFor={id}>{etiqueta}</label>
     <input id={id} class="pin" type="password" inputmode="numeric" maxLength={6} autocomplete="new-password" value={valor}
       aria-invalid={!!error} onInput={(e) => alCambiar((e.target as HTMLInputElement).value.replace(/\D/g, ''))} />
     {error && <span class="campo__error">{error}</span>}</div>;
@@ -42,14 +42,14 @@ function NuevoUsuario({ alCerrar, alCrear }: { alCerrar: () => void; alCrear: (t
     } catch (err) { setError(mensaje(err)); setEnviando(false); }
   }
 
-  return <form class="tarjeta" onSubmit={crear} aria-labelledby="nuevo-titulo">
+  return <form class="tarjeta" onSubmit={(ev) => void crear(ev)} aria-labelledby="nuevo-titulo">
     <div class="tarjeta__cab"><h2 id="nuevo-titulo"><Ico id="nuevo-huesped" clase="ico--s" />Agregar persona</h2>
       <button type="button" class="btn btn--fantasma btn--mini" onClick={alCerrar}>Cancelar</button></div>
-    <div class="campo"><label for="nu-nombre">Nombre</label>
+    <div class="campo"><label htmlFor="nu-nombre">Nombre</label>
       <input id="nu-nombre" autocomplete="off" maxLength={80} value={f.nombre} aria-invalid={!!errores.nombre}
         onInput={(e) => { const nombre = (e.target as HTMLInputElement).value; setF({ ...f, nombre, usuario: usuarioEditado ? f.usuario : sugerirUsuario(nombre) }); }} />
       {errores.nombre && <span class="campo__error">{errores.nombre}</span>}</div>
-    <div class="campo"><label for="nu-usuario">Usuario para entrar</label>
+    <div class="campo"><label htmlFor="nu-usuario">Usuario para entrar</label>
       <input id="nu-usuario" autocomplete="off" autocapitalize="none" spellcheck={false} maxLength={40} value={f.usuario} aria-invalid={!!errores.usuario}
         onInput={(e) => { setUsuarioEditado(true); setF({ ...f, usuario: (e.target as HTMLInputElement).value.trim().toLowerCase() }); }} />
       {errores.usuario ? <span class="campo__error">{errores.usuario}</span> : <span class="ayuda">Se sugiere solo a partir del nombre; puede cambiarlo.</span>}</div>
@@ -85,9 +85,9 @@ function Persona({ u, soyYo, alCambiar }: { u: UsuarioAdmin; soyYo: boolean; alC
 
   function guardarPin(ev: Event) {
     ev.preventDefault();
-    if (!/^[0-9]{6}$/.test(pin.pin)) { setError('El PIN debe tener 6 números.'); return; }
+    if (!/^\d{6}$/.test(pin.pin)) { setError('El PIN debe tener 6 números.'); return; }
     if (pin.pin !== pin.confirmar) { setError('Los dos PIN no coinciden.'); return; }
-    cambiar({ pin: pin.pin }, `PIN de ${u.nombre} cambiado. Si tenía una sesión abierta, tendrá que entrar de nuevo con el PIN nuevo.`);
+    void cambiar({ pin: pin.pin }, `PIN de ${u.nombre} cambiado. Si tenía una sesión abierta, tendrá que entrar de nuevo con el PIN nuevo.`);
   }
 
   return <section class={`tarjeta persona${u.activo ? '' : ' persona--inactiva'}`}>
@@ -98,11 +98,11 @@ function Persona({ u, soyYo, alCambiar }: { u: UsuarioAdmin; soyYo: boolean; alC
     </div>
     {modo === '' && <div class="persona__acciones">
       {u.activo && u.bloqueado_hasta && <button type="button" class="btn btn--exito btn--mini" disabled={enviando}
-        onClick={() => cambiar({ desbloquear: true }, `${u.nombre} ya puede volver a entrar.`)}><Ico id="check" clase="ico--xs" />Desbloquear</button>}
+        onClick={() => void cambiar({ desbloquear: true }, `${u.nombre} ya puede volver a entrar.`)}><Ico id="check" clase="ico--xs" />Desbloquear</button>}
       {u.activo && <button type="button" class="btn btn--secundario btn--mini" onClick={() => { setError(''); setModo('pin'); }}>Cambiar PIN</button>}
       {u.activo && !soyYo && <button type="button" class="btn btn--peligro btn--mini" onClick={() => { setError(''); setModo('desactivar'); }}>Desactivar</button>}
       {!u.activo && <button type="button" class="btn btn--secundario btn--mini" disabled={enviando}
-        onClick={() => cambiar({ activo: true }, `${u.nombre} está activo otra vez y puede entrar con su PIN.`)}>Reactivar</button>}
+        onClick={() => void cambiar({ activo: true }, `${u.nombre} está activo otra vez y puede entrar con su PIN.`)}>Reactivar</button>}
     </div>}
     {modo === 'pin' && <form class="persona__form" onSubmit={guardarPin}>
       <div class="doble doble--igual">
@@ -118,7 +118,7 @@ function Persona({ u, soyYo, alCambiar }: { u: UsuarioAdmin; soyYo: boolean; alC
       <div class="nota nota--alerta"><Ico id="alerta" clase="ico--s" /><p>{u.nombre} no podrá entrar y se cerrará su sesión si la tiene abierta. Lo que registró se conserva. Puede reactivarlo cuando quiera.</p></div>
       <div class="persona__acciones">
         <button type="button" class="btn btn--peligro btn--mini" disabled={enviando}
-          onClick={() => cambiar({ activo: false }, `${u.nombre} quedó desactivado.`)}>Sí, desactivar</button>
+          onClick={() => void cambiar({ activo: false }, `${u.nombre} quedó desactivado.`)}>Sí, desactivar</button>
         <button type="button" class="btn btn--fantasma btn--mini" onClick={() => setModo('')}>Cancelar</button>
       </div>
     </div>}
@@ -141,12 +141,12 @@ function Actividad({ recarga, nombres }: { recarga: number; nombres: Record<stri
 
   return <section class="tarjeta">
     <div class="tarjeta__cab"><h2><Ico id="reloj" clase="ico--s" />Quién hizo qué</h2></div>
-    <div class="campo"><label for="act-filtro">Mostrar</label>
+    <div class="campo"><label htmlFor="act-filtro">Mostrar</label>
       <select id="act-filtro" value={entidad} onChange={(e) => { setEntidad((e.target as HTMLSelectElement).value); setPagina(0); }}>
-        {FILTROS.map(([v, t]) => <option value={v}>{t}</option>)}</select></div>
+        {FILTROS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></div>
     {error && <p class="nota nota--alerta" role="alert">{error}</p>}
-    {datos && datos.items.length === 0 && <p class="vacio">No hay actividad para mostrar.</p>}
-    {datos && datos.items.map((r) => <div class="mov" key={r.id}>
+    {datos?.items.length === 0 && <p class="vacio">No hay actividad para mostrar.</p>}
+    {datos?.items.map((r) => <div class="mov" key={r.id}>
       <div class="mov__txt"><div class="mov__titulo">{textoActividad(r, nombres)}</div>
         <div class="mov__detalle">{r.usuario ?? 'El sistema'} · {fechaReporte(r.ocurrido_en)} · {horaBogota(r.ocurrido_en)}</div></div>
     </div>)}
@@ -177,8 +177,8 @@ export function Equipo({ recarga, yo }: { recarga: number; yo: string }) {
     <div class="titulo-vista"><div><h1>Equipo</h1><p>Quién puede entrar al sistema y qué hizo cada uno</p></div>
       {!agregando && <button type="button" class="btn btn--primario" onClick={() => { setAviso(''); setAgregando(true); }}><Ico id="mas" clase="ico--s" />Agregar persona</button>}
     </div>
-    {aviso && <div class="nota nota--exito" role="status"><Ico id="check" clase="ico--s" /><p>{aviso}</p>
-      <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso('')}><Ico id="cerrar" clase="ico--xs" /></button></div>}
+    {aviso && <output class="nota nota--exito"><Ico id="check" clase="ico--s" /><p>{aviso}</p>
+      <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso('')}><Ico id="cerrar" clase="ico--xs" /></button></output>}
     {agregando && <NuevoUsuario alCerrar={() => setAgregando(false)} alCrear={listo} />}
     {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
     {usuarios && <div class="personas">{usuarios.map((u) => <Persona key={u.id} u={u} soyYo={u.id === yo} alCambiar={listo} />)}</div>}
