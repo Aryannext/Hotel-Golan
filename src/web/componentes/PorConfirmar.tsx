@@ -3,6 +3,7 @@ import { useState } from 'preact/hooks';
 import { api, ErrorApi, type Pago } from '../api.ts';
 import { diaRelativo, horaBogota, hoyBogota, nuevaClave, pesos, textoMedio } from '../logica.ts';
 import { Ico } from './Ico.tsx';
+import { origenPago } from '../ventas.ts';
 
 export function PorConfirmar({ pagos, alCambiar }: { pagos: Pago[]; alCambiar: () => void }) {
   const [dudando, setDudando] = useState<string | null>(null);
@@ -41,7 +42,7 @@ export function PorConfirmar({ pagos, alCambiar }: { pagos: Pago[]; alCambiar: (
               <span class="pill pill--medio"><Ico id="transferencia" clase="ico--xs" />{textoMedio(p.medio)}</span>
               <strong class="confirmar__valor">{pesos(p.valor)}</strong>
             </div>
-            <p class="ayuda">Habitación <b>{p.habitacion_numero}</b> · {diaRelativo(p.registrado_en, hoy)} a las {horaBogota(p.registrado_en)} · registró {p.registrado_por}</p>
+            <p class="ayuda"><b>{origenPago(p)}</b> · {diaRelativo(p.registrado_en, hoy)} a las {horaBogota(p.registrado_en)} · registró {p.registrado_por}</p>
             {dudando === p.id
               ? <div class="confirmar__botones">
                 <p class="confirmar__pregunta">¿Seguro que no llegó? Recepción tendrá que cobrarla de nuevo.</p>

@@ -141,10 +141,13 @@ export interface EventoVivo { id: string; tipo: string; ocurrido_en: string; hab
 
 /** Aviso en palabras para los eventos de transferencias; los demás solo refrescan la pantalla. */
 export function avisoEvento(ev: EventoVivo): { tono: 'exito' | 'alerta' | 'info'; texto: string } | null {
-  const valor = pesos(ev.valor ?? 0), hab = ev.habitacion_numero ?? '';
-  if (ev.tipo === 'pago.verificado') return { tono: 'exito', texto: `Llegó la transferencia de ${valor} de la habitación ${hab}.` };
-  if (ev.tipo === 'pago.rechazado') return { tono: 'alerta', texto: `La transferencia de ${valor} de la habitación ${hab} NO llegó: cóbrela de nuevo antes de la salida.` };
-  if (ev.tipo === 'pago.por_verificar') return { tono: 'info', texto: `Nueva transferencia por confirmar: ${valor} de la habitación ${hab}.` };
+  const valor = pesos(ev.valor ?? 0);
+  // Sin habitación es una venta de contado (TICKET-22): no hay salida antes de la cual cobrar.
+  const de = ev.habitacion_numero ? `de la habitación ${ev.habitacion_numero}` : 'de una venta de contado';
+  const siNoLlego = ev.habitacion_numero ? ': cóbrela de nuevo antes de la salida.' : '. Avise a la administración.';
+  if (ev.tipo === 'pago.verificado') return { tono: 'exito', texto: `Llegó la transferencia de ${valor} ${de}.` };
+  if (ev.tipo === 'pago.rechazado') return { tono: 'alerta', texto: `La transferencia de ${valor} ${de} NO llegó${siNoLlego}` };
+  if (ev.tipo === 'pago.por_verificar') return { tono: 'info', texto: `Nueva transferencia por confirmar: ${valor} ${de}.` };
   return null;
 }
 
@@ -203,7 +206,8 @@ export const TIPOS_SALIDA = [
 export type TipoSalida = typeof TIPOS_SALIDA[number]['tipo'];
 const TEXTO_SALIDA: Record<string, string> = { ...Object.fromEntries(TIPOS_SALIDA.map((t) => [t.tipo, t.texto])), DEVOLUCION: 'Devolución a un cliente' };
 
-export interface PagoTurno { id: string; habitacion_numero: string; medio: string; valor: number; estado: string; registrado_en: string; registrado_por: string; anulado: boolean }
+/** Cobro del turno: de una habitación o de una venta de contado (`venta_detalle`, TICKET-22). */
+export interface PagoTurno { id: string; habitacion_numero: string | null; venta_detalle?: string | null; medio: string; valor: number; estado: string; registrado_en: string; registrado_por: string; anulado: boolean }
 export interface SalidaTurno { id: string; tipo: string; detalle: string; valor: number; habitacion_numero: string | null; registrado_en: string; registrado_por: string; anulado: boolean }
 export interface LineaTurno {
   id: string; hora: string; concepto: string; valor: number; enCaja: boolean; estado: string; por: string; anulado: boolean;
@@ -215,10 +219,15 @@ function conceptoSalida(m: SalidaTurno): string {
   return `${TEXTO_SALIDA[m.tipo] ?? m.tipo} · ${m.detalle}${hab}`;
 }
 
+function conceptoCobro(p: PagoTurno): string {
+  const origen = p.habitacion_numero ? `Cobro · Hab. ${p.habitacion_numero}` : `Venta de contado · ${p.venta_detalle ?? ''}`;
+  return `${origen} · ${textoMedio(p.medio)}`;
+}
+
 /** Cobros (suman) y salidas (restan) del turno, por hora. Solo el efectivo y las salidas mueven la caja. */
 export function lineasDelTurno(pagos: PagoTurno[], salidas: SalidaTurno[]): LineaTurno[] {
   return [
-    ...pagos.map((p) => ({ id: p.id, hora: p.registrado_en, concepto: `Cobro · Hab. ${p.habitacion_numero} · ${textoMedio(p.medio)}`, valor: p.valor, enCaja: p.medio === 'EFECTIVO', estado: p.estado, por: p.registrado_por, anulado: p.anulado, origen: 'PAGO' as const, devolucion: false })),
+    ...pagos.map((p) => ({ id: p.id, hora: p.registrado_en, concepto: conceptoCobro(p), valor: p.valor, enCaja: p.medio === 'EFECTIVO', estado: p.estado, por: p.registrado_por, anulado: p.anulado, origen: 'PAGO' as const, devolucion: false })),
     ...salidas.map((m) => ({ id: m.id, hora: m.registrado_en, concepto: conceptoSalida(m), valor: -m.valor, enCaja: true, estado: 'SALIDA', por: m.registrado_por, anulado: m.anulado, origen: 'SALIDA' as const, devolucion: m.tipo === 'DEVOLUCION' })),
   ].sort((a, b) => a.hora.localeCompare(b.hora));
 }
