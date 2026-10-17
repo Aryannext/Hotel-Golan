@@ -15,6 +15,9 @@
     "simular:verificacion": "node --env-file=.env scripts/simular-verificacion.ts",
     "tipos": "tsc --noEmit && tsc --noEmit -p src/web",
     "test": "node --test \"src/**/*.test.ts\" scripts/verificar-local.test.ts",
+    "lint": "eslint . --max-warnings=0",
+    "pretest:coverage": "node -e \"require('node:fs').mkdirSync('coverage', { recursive: true })\"",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-exclude=**/*.test.ts --test-coverage-exclude=**/pruebas/** --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info \"src/**/*.test.ts\" scripts/verificar-local.test.ts",
     "api:dev": "node --env-file=.env --watch src/api/servidor.ts",
     "web:dev": "vite --config src/web/vite.config.ts",
     "web:build": "vite build --config src/web/vite.config.ts"
@@ -25,15 +28,18 @@
     "@node-rs/argon2": "^2.0.2",
     "fastify": "^5.12.7",
     "pg": "^8.13.0",
-    "preact": "^10.29.8"
+    "preact": "^11.0.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.2.17",
+    "@eslint/js": "10.0.1",
     "@preact/preset-vite": "^2.10.6",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.5",
     "@types/pg": "^8.11.10",
+    "eslint": "10.13.0",
     "preact-render-to-string": "^6.8.1",
     "typescript": "^5.8.0",
+    "typescript-eslint": "8.71.2",
     "vite": "^8.3.4"
   }
 }
