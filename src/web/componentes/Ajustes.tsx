@@ -212,7 +212,7 @@ function Productos({ alGuardar }: { alGuardar: (texto: string) => void }) {
   return <section class="tarjeta">
     <div class="tarjeta__cab"><h2><Ico id="vitrina" clase="ico--s" />Productos para cobrar</h2>
       {!agregando && <button type="button" class="btn btn--secundario btn--mini" onClick={() => setAgregando(true)}><Ico id="mas" clase="ico--xs" />Agregar</button>}</div>
-    <p class="ayuda">Cambiar un precio no cambia lo que ya se cobró. La vitrina se agrega en la segunda entrega.</p>
+    <p class="ayuda">Cambiar un precio no cambia lo que ya se cobró. Lo de la sección 1 de la vitrina (de la familiar) no se registra aquí.</p>
     {agregando && <NuevoProducto alCerrar={() => setAgregando(false)} alGuardar={listo} />}
     {GRUPOS_EDITABLES.map(([g, t]) => {
       const lista = productos.filter((p) => p.grupo === g);

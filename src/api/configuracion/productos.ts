@@ -1,4 +1,5 @@
-// Catálogo para cargos (FR-06) y su configuración (FR-22): la administración crea y edita productos.
+// Catálogo para cargos (FR-06) y su configuración (FR-22, FR-24): la administración crea y edita productos de todos los grupos.
+// La sección 1 de la vitrina (de la familiar de la dueña) no va en el sistema (RN-13, T4-10): todo producto es del hotel.
 // Un cambio de precio aplica a los cargos nuevos: cada cargo guarda su valor unitario al registrarse.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
@@ -9,17 +10,18 @@ import { ErrorApi, sinPermiso } from '../comun/errores.ts';
 const UNICO_VIOLADO = '23505';
 const COLUMNAS = 'id, nombre, grupo, precio, seccion, pertenece_a, activo';
 
-interface ProductoInput { nombre: string; grupo: string; precio: number; seccion?: number; pertenece_a: 'HOTEL' | 'FAMILIAR'; activo: boolean }
+interface ProductoInput { nombre: string; grupo: string; precio: number; seccion?: number; pertenece_a?: 'HOTEL'; activo: boolean }
 interface FilaProducto { id: string; nombre: string; grupo: string; precio: number; seccion: number | null; pertenece_a: string; activo: boolean }
 
 const ESQUEMA_PRODUCTO = {
-  type: 'object', additionalProperties: false, required: ['nombre', 'grupo', 'precio', 'pertenece_a', 'activo'],
+  type: 'object', additionalProperties: false, required: ['nombre', 'grupo', 'precio', 'activo'],
   properties: {
     nombre: { type: 'string', minLength: 2, maxLength: 80 },
     grupo: { type: 'string', enum: ['NEVERA', 'VITRINA_ASEO', 'VITRINA_PASABOCAS', 'LAVANDERIA', 'OTROS'] },
     precio: { type: 'integer', minimum: 0, maximum: 10000000 },
-    seccion: { type: 'integer', minimum: 1, maximum: 6 },
-    pertenece_a: { type: 'string', enum: ['HOTEL', 'FAMILIAR'] },
+    // Sección 1 = productos de la familiar: fuera del sistema.
+    seccion: { type: 'integer', minimum: 2, maximum: 6 },
+    pertenece_a: { type: 'string', enum: ['HOTEL'] },
     activo: { type: 'boolean' },
   },
 };
@@ -62,7 +64,7 @@ export function rutasProductos(app: FastifyInstance, bd: Bd, ahora: () => Date) 
       try {
         [f] = await tx.consultar<FilaProducto>(
           `INSERT INTO productos (nombre, grupo, precio, seccion, pertenece_a, activo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ${COLUMNAS}`,
-          [nombre, p.grupo, p.precio, p.seccion ?? null, p.pertenece_a, p.activo]);
+          [nombre, p.grupo, p.precio, p.seccion ?? null, 'HOTEL', p.activo]);
       } catch (error) { throw repetido(error, nombre); }
       await auditar(tx, { usuarioId: req.usuario!.id, accion: 'CREAR', entidad: 'productos', entidadId: f.id, detalle: { precio: String(p.precio) }, ocurrido: momento });
       return f;
@@ -84,7 +86,7 @@ export function rutasProductos(app: FastifyInstance, bd: Bd, ahora: () => Date) 
       try {
         [f] = await tx.consultar<FilaProducto>(
           `UPDATE productos SET nombre = $2, grupo = $3, precio = $4, seccion = $5, pertenece_a = $6, activo = $7 WHERE id = $1 RETURNING ${COLUMNAS}`,
-          [req.params.id, nombre, p.grupo, p.precio, p.seccion ?? null, p.pertenece_a, p.activo]);
+          [req.params.id, nombre, p.grupo, p.precio, p.seccion ?? null, 'HOTEL', p.activo]);
       } catch (error) { throw repetido(error, nombre); }
       const detalle = diferencias(antes, f);
       if (Object.keys(detalle).length > 0) {

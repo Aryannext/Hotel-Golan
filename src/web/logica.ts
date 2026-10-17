@@ -152,9 +152,12 @@ export function avisoEvento(ev: EventoVivo): { tono: 'exito' | 'alerta' | 'info'
 export interface Producto { id: string; nombre: string; grupo: string; precio: number; seccion: number | null; pertenece_a: string; activo: boolean }
 export interface Cuenta { total_cargos: number; pagado: number; por_verificar: number; saldo: number; a_favor: number }
 
-const GRUPOS: Array<[string, string]> = [['NEVERA', 'Nevera'], ['LAVANDERIA', 'Lavandería'], ['OTROS', 'Llave, aseo y otros']];
+/** Grupos del catálogo, en el orden en que se muestran (FR-24). La sección 1 de la vitrina no va en el sistema (RN-13). */
+export const GRUPOS: Array<[string, string]> = [
+  ['NEVERA', 'Nevera'], ['VITRINA_PASABOCAS', 'Vitrina de pasabocas'], ['VITRINA_ASEO', 'Vitrina de aseo'],
+  ['LAVANDERIA', 'Lavandería'], ['OTROS', 'Llave, aseo y otros'],
+];
 
-/** La vitrina se carga desde la segunda entrega (sus precios están pendientes). */
 export function agruparCatalogo(productos: Producto[]): Array<[string, Producto[]]> {
   return GRUPOS.map(([g, t]) => [t, productos.filter((p) => p.grupo === g)] as [string, Producto[]]).filter(([, ps]) => ps.length > 0);
 }

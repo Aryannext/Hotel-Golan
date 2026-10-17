@@ -145,9 +145,10 @@ describe('TICKET-05 · fechas relativas', () => {
 describe('TICKET-06 · ficha de la habitación: cargos y pagos', () => {
   const p = (id: string, nombre: string, grupo: string, precio: number) => ({ id, nombre, grupo, precio, seccion: null, pertenece_a: 'HOTEL', activo: true });
   const catalogo = [p('1', 'Coca-Cola', 'NEVERA', 4000), p('2', 'Toalla', 'LAVANDERIA', 3000), p('3', 'Llave perdida', 'OTROS', 40000), p('4', 'Champú', 'VITRINA_ASEO', 6000)];
-  it('agrupa el catálogo en nevera, lavandería y otros; la vitrina queda para la segunda entrega', () => {
-    assert.deepEqual(agruparCatalogo(catalogo).map(([g, ps]) => [g, ps.map((x) => x.nombre)]),
-      [['Nevera', ['Coca-Cola']], ['Lavandería', ['Toalla']], ['Llave, aseo y otros', ['Llave perdida']]]);
+  it('agrupa el catálogo en nevera, vitrinas, lavandería y otros (FR-24)', () => {
+    const conPasabocas = [...catalogo, p('5', 'Galletas', 'VITRINA_PASABOCAS', 2000)];
+    assert.deepEqual(agruparCatalogo(conPasabocas).map(([g, ps]) => [g, ps.map((x) => x.nombre)]),
+      [['Nevera', ['Coca-Cola']], ['Vitrina de pasabocas', ['Galletas']], ['Vitrina de aseo', ['Champú']], ['Lavandería', ['Toalla']], ['Llave, aseo y otros', ['Llave perdida']]]);
   });
   it('resume la selección múltiple con cantidades y total', () => {
     const r = resumenSeleccion(catalogo, { 1: 2, 3: 1, 2: 0 });
