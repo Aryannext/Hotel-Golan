@@ -7,7 +7,7 @@ export type Franja = 'MADRUGADA_MISMO_DIA' | 'VEINTICUATRO_HORAS' | 'MEDIODIA_SI
 export interface Tarifa { tipo_habitacion: TipoHabitacion; modalidad: ModalidadCotizable; personas: number; valor: number }
 
 export class ErrorRegla extends Error {
-  readonly codigo: 'CAPACIDAD_EXCEDIDA' | 'DESCUENTO_NO_PERMITIDO';
+  readonly codigo: 'CAPACIDAD_EXCEDIDA' | 'DESCUENTO_NO_PERMITIDO' | 'DESCUENTO_EXCEDE_MAXIMO';
   constructor(codigo: ErrorRegla['codigo'], mensaje: string) {
     super(mensaje);
     this.codigo = codigo;
@@ -53,11 +53,19 @@ export function calcularTarifa(tarifas: Tarifa[], tipo: TipoHabitacion, modalida
   return t.valor * (modalidad === 'NOCHE' ? Math.max(1, noches) : 1);
 }
 
-/** RN-05. $5.000 por noche, solo en NOCHE y solo si el cliente lo pide. */
-export function calcularDescuento(modalidad: ModalidadCotizable, noches: number, aplicar: boolean, descuentoNoche: number): number {
-  if (!aplicar) return 0;
+const pesos = (valor: number) => `$${valor.toLocaleString('es-CO')}`;
+
+/**
+ * RN-05. Solo en NOCHE y solo si el cliente lo pide. Recepción elige cuánto por noche, sin pasar del máximo
+ * configurado (descuento_noche, $5.000). [P/V: la administradora había dicho «mínimo y máximo 5mil» (02.07)]
+ */
+export function calcularDescuento(modalidad: ModalidadCotizable, noches: number, porNoche: number, maximo: number): number {
+  if (porNoche === 0) return 0;
   if (modalidad !== 'NOCHE') throw new ErrorRegla('DESCUENTO_NO_PERMITIDO', 'El descuento solo aplica por noche; no en tres horas ni por horas.');
-  return descuentoNoche * Math.max(1, noches);
+  if (!Number.isInteger(porNoche) || porNoche < 0 || porNoche > maximo) {
+    throw new ErrorRegla('DESCUENTO_EXCEDE_MAXIMO', `El descuento máximo es ${pesos(maximo)} por noche.`);
+  }
+  return porNoche * Math.max(1, noches);
 }
 
 /** RN-09. El turno de día termina a las 6:30 p. m. y el de noche a las 6:30 a. m.: la primera de esas horas después del inicio. */
@@ -102,13 +110,13 @@ export function calcularExtension(e: EntradaExtension) {
 
 export interface EntradaCotizacion {
   tarifas: Tarifa[]; descuentoNoche: number; tipo: TipoHabitacion; modalidad: ModalidadCotizable;
-  personas: number; noches: number; aplicarDescuento: boolean; entrada: Date;
+  personas: number; noches: number; descuentoPorNoche: number; entrada: Date;
 }
 
 export function cotizar(e: EntradaCotizacion) {
   const noches = e.modalidad === 'NOCHE' ? Math.max(1, e.noches) : 1;
   const tarifa = calcularTarifa(e.tarifas, e.tipo, e.modalidad, e.personas, noches);
-  const descuento = Math.min(calcularDescuento(e.modalidad, noches, e.aplicarDescuento, e.descuentoNoche), tarifa);
+  const descuento = Math.min(calcularDescuento(e.modalidad, noches, e.descuentoPorNoche, e.descuentoNoche), tarifa);
   const { salida, franja } = calcularSalida(e.modalidad, e.entrada, noches);
   return { tarifa, descuento, total: tarifa - descuento, salida, franja, permitePagoAlSalir: e.modalidad === 'NOCHE' && noches === 1 };
 }

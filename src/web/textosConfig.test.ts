@@ -1,7 +1,7 @@
 // Textos de ayuda que leen la configuración (TICKET-15): nada de importes fijos en pantalla.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { avisoLimpiezaEspecial, ayudaHoras, ayudaPersonas, ayudaRecargoAseo, textoDescuento } from './textosConfig.ts';
+import { avisoLimpiezaEspecial, ayudaHoras, ayudaPersonas, ayudaRecargoAseo, leerDescuento, textoDescuento } from './textosConfig.ts';
 import type { Tarifa } from './ajustes.ts';
 import type { Producto } from './logica.ts';
 
@@ -14,16 +14,35 @@ const TARIFAS = [
 ];
 const SOLO_MAXIMO = 'Máximo 3. Con 4, ofrezca dos habitaciones.';
 
-describe('textoDescuento: el botón usa reglas.descuento_noche', () => {
-  it('muestra el valor configurado', () => {
-    assert.equal(textoDescuento({ descuento_noche: 5000 }), '− $5.000 por noche');
-    assert.equal(textoDescuento({ descuento_noche: 6000 }), '− $6.000 por noche');
+describe('textoDescuento: el botón muestra el máximo de reglas.descuento_noche', () => {
+  it('muestra el máximo configurado', () => {
+    assert.equal(textoDescuento({ descuento_noche: 5000 }), 'Con descuento (máx. $5.000)');
+    assert.equal(textoDescuento({ descuento_noche: 6000 }), 'Con descuento (máx. $6.000)');
   });
   it('sin reglas cargadas no inventa un valor', () => {
     assert.equal(textoDescuento(null), 'Con descuento');
   });
   it('con descuento en $0 no hay rebaja que ofrecer', () => {
     assert.equal(textoDescuento({ descuento_noche: 0 }), null);
+  });
+});
+
+describe('leerDescuento: recepción escribe cuánto por noche, sin pasar del máximo', () => {
+  const max = { descuento_noche: 5000 };
+  it('acepta valores hasta el máximo, con o sin puntos', () => {
+    assert.deepEqual(leerDescuento('3000', max), { valor: 3000, error: null });
+    assert.deepEqual(leerDescuento('$2.000', max), { valor: 2000, error: null });
+    assert.deepEqual(leerDescuento('5000', max), { valor: 5000, error: null });
+  });
+  it('bloquea lo que pase del máximo', () => {
+    assert.deepEqual(leerDescuento('6000', max), { valor: null, error: 'El descuento máximo es $5.000 por noche.' });
+    assert.deepEqual(leerDescuento('5001', max), { valor: null, error: 'El descuento máximo es $5.000 por noche.' });
+  });
+  it('pide un valor mayor que $0', () => {
+    for (const t of ['', '0', 'abc', '-1000']) assert.deepEqual(leerDescuento(t, max), { valor: null, error: 'Escriba cuánto por noche (mayor que $0).' }, t);
+  });
+  it('sin reglas cargadas lee el valor y deja el tope al servidor', () => {
+    assert.deepEqual(leerDescuento('4000', null), { valor: 4000, error: null });
   });
 });
 

@@ -36,6 +36,18 @@ describe('FR-04 — Cotizar una estadía', () => {
     assert.deepEqual([r.json().tarifa, r.json().descuento, r.json().total, r.json().permite_pago_al_salir], [120000, 10000, 110000, false]);
   });
 
+  it('descuento menor al máximo: $3.000 por noche, dos noches = $6.000', async () => {
+    const r = await cotizar({ habitacion_numero: '202', modalidad: 'NOCHE', personas: 1, noches: 2, valor_descuento: 3000, entrada_en: '2026-10-12T15:00:00-05:00' });
+    assert.equal(r.statusCode, 200);
+    assert.deepEqual([r.json().tarifa, r.json().descuento, r.json().total], [120000, 6000, 114000]);
+  });
+
+  it('descuento por encima del máximo: 422 DESCUENTO_EXCEDE_MAXIMO', async () => {
+    const r = await cotizar({ habitacion_numero: '202', modalidad: 'NOCHE', personas: 1, valor_descuento: 6000 });
+    assert.equal(r.statusCode, 422);
+    assert.deepEqual([r.json().codigo, r.json().mensaje], ['DESCUENTO_EXCEDE_MAXIMO', 'El descuento máximo es $5.000 por noche.']);
+  });
+
   it('tres horas con ventilador: $25.000, sale 3 horas después', async () => {
     const r = await cotizar({ habitacion_numero: '209', modalidad: 'TRES_HORAS', personas: 2, entrada_en: '2026-10-12T22:30:00-05:00' });
     assert.equal(r.json().total, 25000);

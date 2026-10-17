@@ -12,7 +12,7 @@ export interface Cotizacion {
   tarifa: number; descuento: number; total: number; salida_prevista_en: string; permite_pago_al_salir: boolean;
   franja_salida: 'MADRUGADA_MISMO_DIA' | 'VEINTICUATRO_HORAS' | 'MEDIODIA_SIGUIENTE' | 'TRES_HORAS';
 }
-export interface PedidoCotizacion { habitacion_numero: string; modalidad: 'NOCHE' | 'TRES_HORAS'; personas: number; noches: number; aplicar_descuento: boolean; entrada_en?: string }
+export interface PedidoCotizacion { habitacion_numero: string; modalidad: 'NOCHE' | 'TRES_HORAS'; personas: number; noches: number; valor_descuento: number; entrada_en?: string }
 
 export interface ResumenCaja {
   base_recibida: number; efectivo: number; salidas: number; debe_haber: number;

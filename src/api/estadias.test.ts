@@ -153,6 +153,22 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
     assert.equal((await registrar(entrada({ habitacion_numero: '203', total: 1000 }))).statusCode, 400);
   });
 
+  it('un descuento menor al máximo queda con su valor; por encima del máximo no se registra nada', async () => {
+    // Las habitaciones libres de la semilla ya se usan en otras pruebas: se liberan 204 y 301 solo para esta.
+    await e.bd.consultar(`UPDATE habitaciones SET estado = 'DISPONIBLE', nota = NULL WHERE numero IN ('204', '301')`);
+    const huesped = { nombre: 'Huésped Prueba 38', nacionalidad: 'Colombia', es_menor: false };
+    const r = await registrar(entrada({ habitacion_numero: '204', personas: 1, noches: 2, valor_descuento: 2000, huesped, pago: { forma: 'EFECTIVO', valor_recibido: 116000 } }));
+    assert.equal(r.statusCode, 201);
+    assert.deepEqual(r.json().cargos.map((c: Record<string, unknown>) => [c.tipo, c.cantidad, c.valor_unitario, c.valor]),
+      [['ALOJAMIENTO', 2, 60000, 120000], ['DESCUENTO', 2, -2000, -4000]]);
+    assert.equal(r.json().pagos[0].valor, 116000);
+    const huesped2 = { nombre: 'Huésped Prueba 39', nacionalidad: 'Colombia', es_menor: false };
+    const excede = await registrar(entrada({ habitacion_numero: '301', personas: 1, valor_descuento: 7000, huesped: huesped2 }));
+    assert.equal(excede.statusCode, 422);
+    assert.equal(excede.json().codigo, 'DESCUENTO_EXCEDE_MAXIMO');
+    assert.equal(await estadoHabitacion('301'), 'DISPONIBLE');
+  });
+
   it('efectivo menor que el total queda como abono y el resto como saldo', async () => {
     const huesped = { nombre: 'Huésped Prueba 35', nacionalidad: 'Venezuela', es_menor: false };
     const r = await registrar(entrada({ habitacion_numero: '203', personas: 1, huesped, pago: { forma: 'EFECTIVO', valor_recibido: 20000 } }));
