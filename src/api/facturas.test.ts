@@ -7,30 +7,20 @@ import { fechaPrevista, festivosColombia } from './facturacion/fechas.ts';
 import { anonimizarVencidos } from './privacidad/anonimizacion.ts';
 
 describe('RN-23 — fecha prevista de la factura', () => {
-  const prevista = (iso: string) => fechaPrevista(new Date(iso));
-
-  it('pedida un viernes, el lunes siguiente', () => {
-    assert.equal(prevista('2026-10-16T10:00:00-05:00'), '2026-10-19');
-  });
-
-  it('si ese lunes es festivo, el martes (12 de octubre y 16 de noviembre de 2026)', () => {
-    assert.equal(prevista('2026-10-09T15:00:00-05:00'), '2026-10-13');
-    assert.equal(prevista('2026-11-13T09:00:00-05:00'), '2026-11-17');
-  });
-
-  it('cuenta el día de Bogotá: un viernes a las 11:30 p. m. sigue siendo viernes', () => {
-    assert.equal(prevista('2026-10-16T23:30:00-05:00'), '2026-10-19');
-  });
-
-  it('sábado o domingo, el lunes; entre semana, el siguiente día hábil [P/V]', () => {
-    assert.equal(prevista('2026-10-17T08:00:00-05:00'), '2026-10-19');
-    assert.equal(prevista('2026-10-18T08:00:00-05:00'), '2026-10-19');
-    assert.equal(prevista('2026-10-13T08:00:00-05:00'), '2026-10-14');
-  });
-
-  it('salta Jueves y Viernes Santo', () => {
-    assert.equal(prevista('2026-04-01T10:00:00-05:00'), '2026-04-06');
-  });
+  // [cuándo se pidió (Bogotá), fecha prevista, por qué]
+  const casos: Array<[string, string, string]> = [
+    ['2026-10-16T10:00:00-05:00', '2026-10-19', 'pedida un viernes, el lunes siguiente'],
+    ['2026-10-09T15:00:00-05:00', '2026-10-13', 'si ese lunes es festivo (12 de octubre), el martes'],
+    ['2026-11-13T09:00:00-05:00', '2026-11-17', 'si ese lunes es festivo (16 de noviembre), el martes'],
+    ['2026-10-16T23:30:00-05:00', '2026-10-19', 'cuenta el día de Bogotá: un viernes a las 11:30 p. m. sigue siendo viernes'],
+    ['2026-10-17T08:00:00-05:00', '2026-10-19', 'sábado, el lunes'],
+    ['2026-10-18T08:00:00-05:00', '2026-10-19', 'domingo, el lunes'],
+    ['2026-10-13T08:00:00-05:00', '2026-10-14', 'entre semana, el siguiente día hábil [P/V]'],
+    ['2026-04-01T10:00:00-05:00', '2026-04-06', 'salta Jueves y Viernes Santo'],
+  ];
+  for (const [pedida, esperada, porque] of casos) {
+    it(porque, () => assert.equal(fechaPrevista(new Date(pedida)), esperada));
+  }
 
   it('festivos de Colombia en 2026 (Ley 51 de 1983: los trasladables pasan al lunes)', () => {
     assert.deepEqual(festivosColombia(2026), [
@@ -84,6 +74,7 @@ describe('FR-28 — recepción anota la solicitud desde la estadía', () => {
 
   it('basta el RUT con el correo o con el teléfono; sin ninguno de los dos, 400', async () => {
     assert.equal((await pedir('POST', `/estadias/${e205}/solicitudes-factura`, { documento: '12345678' })).statusCode, 400);
+    e.avanzarMinutos(1); // más reciente que la primera: el orden «la más antigua primero» no depende del id
     const soloTel = await pedir('POST', `/estadias/${e205}/solicitudes-factura`, { documento: '12345678', telefono: '+573000000003' });
     assert.equal(soloTel.statusCode, 201, soloTel.body);
     assert.equal(soloTel.json().correo, null);
