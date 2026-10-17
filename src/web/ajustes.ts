@@ -66,6 +66,13 @@ export function reglasCambiadas(actuales: Reglas, textos: Record<ClaveRegla, str
   return { cambios, errores };
 }
 
+/** Unidades que llegaron en un surtido: entero de 1 a 10.000. */
+export function leerCantidadSurtido(texto: string): { cantidad: number | null; error: string | null } {
+  const t = texto.trim();
+  const n = /^\d+$/.test(t) ? Number(t) : 0;
+  return n >= 1 && n <= 10000 ? { cantidad: n, error: null } : { cantidad: null, error: 'Escriba cuántas unidades llegaron (de 1 a 10.000).' };
+}
+
 export function erroresProducto(f: { nombre: string; precio: string }): Partial<Record<'nombre' | 'precio', string>> {
   const e: Partial<Record<'nombre' | 'precio', string>> = {};
   if (f.nombre.trim().length < 2) e.nombre = 'Escriba el nombre (mínimo 2 letras).';

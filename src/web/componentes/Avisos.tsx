@@ -4,7 +4,7 @@ import type { Aviso } from '../avisos.ts';
 import { Ico } from './Ico.tsx';
 import { etiquetaCampana } from '../presentacion.ts';
 
-const ICONOS: Record<Aviso['tipo'], string> = { VENCIDA: 'reloj', POR_VERIFICAR: 'transferencia', POR_REVISAR: 'lupa', LIMPIEZA: 'escoba' };
+const ICONOS: Record<Aviso['tipo'], string> = { VENCIDA: 'reloj', POR_VERIFICAR: 'transferencia', POR_REVISAR: 'lupa', LIMPIEZA: 'escoba', EXISTENCIAS: 'vitrina' };
 
 /** La hora «actual» de la pantalla, renovada cada cierto tiempo para que los vencimientos aparezcan solos. */
 export function useAhora(cadaMs = 30_000): number {

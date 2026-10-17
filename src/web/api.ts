@@ -1,6 +1,7 @@
 import type { CotizacionExtension, Producto, SalidaTurno, TipoSalida } from './logica.ts';
 import type { RegistroActividad, UsuarioAdmin } from './equipo.ts';
 import type { Reglas, Tarifa, TarifaInput } from './ajustes.ts';
+import type { Existencia } from './avisos.ts';
 
 // Cliente de la API. La sesión viaja en la cookie HttpOnly; el navegador la envía sola (same-origin).
 export interface Usuario { id: string; nombre: string; usuario: string; rol: 'RECEPCION' | 'ADMINISTRACION'; activo: boolean }
@@ -119,6 +120,9 @@ export const api = {
   guardarTarifas: (items: TarifaInput[]) => pedir<{ items: Tarifa[] }>('PUT', '/tarifas', { items }),
   reglas: () => pedir<Reglas>('GET', '/reglas'),
   guardarReglas: (cambios: Partial<Reglas>) => pedir<Reglas>('PATCH', '/reglas', cambios),
+  // TICKET-21 · surtido y existencias (solo la administración).
+  existencias: () => pedir<{ items: Existencia[] }>('GET', '/existencias'),
+  registrarSurtido: (producto_id: string, cantidad: number) => pedir<{ id: string; cantidad: number }>('POST', '/surtidos', { producto_id, cantidad }),
   productosTodos: () => pedir<{ items: Producto[] }>('GET', '/productos?incluir_inactivos=true'),
   crearProducto: (p: Omit<Producto, 'id' | 'seccion'> & { seccion?: number }) => pedir<Producto>('POST', '/productos', p),
   guardarProducto: (id: string, p: Omit<Producto, 'id' | 'seccion'> & { seccion?: number }) => pedir<Producto>('PUT', `/productos/${id}`, p),
