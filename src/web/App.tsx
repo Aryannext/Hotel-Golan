@@ -9,9 +9,9 @@ import { RecibirTurno } from './componentes/RecibirTurno.tsx';
 import { Caja } from './componentes/Caja.tsx';
 import { Historial } from './componentes/Historial.tsx';
 import { Equipo } from './componentes/Equipo.tsx';
-import { Ajustes } from './componentes/Ajustes.tsx';
+import { Ajustes, type Seccion } from './componentes/Ajustes.tsx';
 import { Campana, Pendientes, useAhora } from './componentes/Avisos.tsx';
-import { calcularAvisos, type Aviso as AvisoPendiente } from './avisos.ts';
+import { avisosExistencias, calcularAvisos, ordenarAvisos, type Aviso as AvisoPendiente, type Existencia } from './avisos.ts';
 import type { Reglas } from './ajustes.ts';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
@@ -37,6 +37,8 @@ export function App() {
   const [recarga, setRecarga] = useState(0);
   const [vista, setVista] = useState<Vista>('mapa');
   const [reglas, setReglas] = useState<Reglas | null>(null);
+  const [existencias, setExistencias] = useState<Existencia[]>([]);
+  const [ajustesInicial, setAjustesInicial] = useState<Seccion>('tarifas');
   const ahora = useAhora();
   const esAdmin = sesion?.usuario.rol === 'ADMINISTRACION';
 
@@ -57,6 +59,8 @@ export function App() {
         else setError(e instanceof Error ? e.message : 'No se pudo cargar el mapa.');
       });
     api.reglas().then(setReglas).catch(() => undefined);
+    // Existencias (TICKET-21): solo la administración las ve y recibe sus avisos.
+    if (sesion.usuario.rol === 'ADMINISTRACION') api.existencias().then((r) => setExistencias(r.items)).catch(() => undefined);
     if (sesion.usuario.rol === 'ADMINISTRACION') api.pagosPorConfirmar().then((r) => setPorConfirmar(r.items)).catch(() => undefined);
   }, [sesion, recarga]);
 
@@ -88,11 +92,12 @@ export function App() {
     ...(esAdmin ? [['historial', 'Historial', 'calendario'], ['equipo', 'Equipo', 'huespedes'], ['ajustes', 'Ajustes', 'configuracion']] as Array<[Vista, string, string]> : []),
   ];
   // Avisos (TICKET-16): se recalculan con cada evento en vivo (recarga) y cada 30 s (hora actual).
-  const avisos = calcularAvisos(habitaciones, reglas, ahora);
+  const avisos = ordenarAvisos([...calcularAvisos(habitaciones, reglas, ahora), ...(esAdmin ? avisosExistencias(existencias) : [])]);
   function elegirAviso(a: AvisoPendiente) {
     const h = habitaciones.find((x) => x.numero === a.habitacion);
     setCotizando(null);
     if (a.tipo === 'POR_VERIFICAR' && esAdmin) { setVista('confirmar'); return; }
+    if (a.tipo === 'EXISTENCIAS') { setAjustesInicial('existencias'); setVista('ajustes'); return; }
     setVista('mapa');
     if (h && (a.tipo === 'POR_REVISAR' || a.tipo === 'LIMPIEZA')) setRevisando(h);
     else if (h) setFicha(h);
@@ -103,7 +108,7 @@ export function App() {
     if (vista === 'confirmar') return <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />;
     if (vista === 'historial' && esAdmin) return <Historial recarga={recarga} />;
     if (vista === 'equipo' && esAdmin) return <Equipo recarga={recarga} yo={u.id} />;
-    if (vista === 'ajustes' && esAdmin) return <Ajustes />;
+    if (vista === 'ajustes' && esAdmin) return <Ajustes key={ajustesInicial} inicial={ajustesInicial} alCambiar={() => setRecarga((n) => n + 1)} />;
     if (vista === 'caja') return <Caja recarga={recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={(texto) => setAviso({ tono: 'exito', texto })}
       alEntregar={(texto) => { setSesion(null); setAviso(null); setMensaje(texto); }} />;
     if (error) return <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>;
@@ -137,7 +142,7 @@ export function App() {
             : <>
               <div class="pestanas" role="tablist" style="margin-bottom:16px">
                 {vistas.map(([v, t, ico]) => <button key={v} type="button" class="pestana" role="tab" aria-selected={vista === v}
-                  onClick={() => { setVista(v); setCotizando(null); }}><Ico id={ico} clase="ico--s" /> {t}
+                  onClick={() => { setVista(v); setCotizando(null); if (v === 'ajustes') setAjustesInicial('tarifas'); }}><Ico id={ico} clase="ico--s" /> {t}
                   {v === 'confirmar' && porConfirmar.length > 0 && <span class="pestana__cuenta" aria-label={`${porConfirmar.length} por confirmar`}>{porConfirmar.length}</span>}
                 </button>)}
               </div>

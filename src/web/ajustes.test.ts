@@ -1,7 +1,7 @@
 // TICKET-15 · presentación de la configuración (FR-22): tarifas, reglas y productos en palabras sencillas.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { etiquetaTarifa, tarifasCambiadas, reglasCambiadas, textoHora, erroresProducto, GRUPOS_EDITABLES, textoRegla } from './ajustes.ts';
+import { etiquetaTarifa, tarifasCambiadas, reglasCambiadas, textoHora, erroresProducto, GRUPOS_EDITABLES, textoRegla, leerCantidadSurtido } from './ajustes.ts';
 
 const tarifas = [
   { id: 't1', tipo_habitacion: 'AIRE' as const, modalidad: 'NOCHE' as const, personas: 1, valor: 60000, vigente_desde: '2026-10-01T00:00:00-05:00' },
@@ -54,5 +54,14 @@ describe('FR-22 — productos en la PWA', () => {
     assert.deepEqual(erroresProducto({ nombre: 'Jugo', precio: '3.500' }), {});
     assert.deepEqual(erroresProducto({ nombre: ' J ', precio: '-1' }), { nombre: 'Escriba el nombre (mínimo 2 letras).', precio: 'Escriba el precio en pesos.' });
     assert.deepEqual(erroresProducto({ nombre: 'Bolsa', precio: '0' }), {});
+  });
+});
+
+describe('TICKET-21 · surtido en Ajustes', () => {
+  it('la cantidad que llegó es un entero de 1 a 10.000', () => {
+    assert.deepEqual(leerCantidadSurtido('12'), { cantidad: 12, error: null });
+    for (const t of ['', '0', '-3', '2.5', 'abc', '10001']) {
+      assert.deepEqual(leerCantidadSurtido(t), { cantidad: null, error: 'Escriba cuántas unidades llegaron (de 1 a 10.000).' }, t);
+    }
   });
 });

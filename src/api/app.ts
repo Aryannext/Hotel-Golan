@@ -22,6 +22,7 @@ import { rutasProductos } from './configuracion/productos.ts';
 import { rutasTarifas } from './configuracion/tarifas.ts';
 import { rutasReglas } from './configuracion/reglas.ts';
 import { rutasReportes } from './reportes/dias.ts';
+import { rutasInventario } from './inventario/rutas.ts';
 import { Publicador, rutasEventos } from './tiempo_real/eventos.ts';
 import { ErrorRegla } from './reglas/reglas.ts';
 
@@ -90,6 +91,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rutasTarifas(api, o.bd, ahora);
     rutasReglas(api, o.bd, ahora);
     rutasReportes(api, o.bd, ahora);
+    rutasInventario(api, o.bd, ahora);
     rutasEventos(api, o.bd, ahora, publicador, conexionesVivas);
   }, { prefix: '/api/v1' });
 

@@ -1,7 +1,7 @@
 // TICKET-16 · avisos en pantalla (FR-23, RN-04): salidas vencidas, transferencias por verificar y habitaciones por atender.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { calcularAvisos, haceCuanto } from './avisos.ts';
+import { avisosExistencias, calcularAvisos, haceCuanto, ordenarAvisos } from './avisos.ts';
 import type { Habitacion } from './api.ts';
 
 const hab = (numero: string, estado: string, estadia: Partial<NonNullable<Habitacion['estadia_activa']>> | null = null, nota: string | null = null): Habitacion => ({
@@ -65,5 +65,22 @@ describe('FR-23 — avisos en pantalla', () => {
   it('sin reglas todavía (cargando), la salida vencida avisa sin valores', () => {
     const [a] = calcularAvisos([hab('205', 'OCUPADA', {})], null, ahora);
     assert.equal(a.detalle, 'Extienda o dé salida.');
+  });
+});
+
+describe('TICKET-21 · aviso de existencias (RN-21)', () => {
+  const ex = (nombre: string, surtido: number, vendido: number) => ({ producto_id: nombre, nombre, grupo: 'NEVERA', surtido, vendido, existencias: surtido - vendido });
+  it('avisa los productos surtidos alguna vez que quedan en 0 o menos', () => {
+    assert.deepEqual(avisosExistencias([ex('Agua', 10, 4), ex('Gatorade', 6, 6), ex('Hit', 2, 3)]).map((a) => [a.tipo, a.titulo, a.detalle]), [
+      ['EXISTENCIAS', 'Gatorade: se acabó', 'Según lo que llegó y lo vendido no queda ninguno. Revise y anote lo que llegue.'],
+      ['EXISTENCIAS', 'Hit: falta 1', 'Se vendió más de lo que se anotó como llegado. Revise la vitrina o la nevera.'],
+    ]);
+  });
+  it('lo que nunca se ha surtido no avisa (al empezar todo está en 0)', () => {
+    assert.deepEqual(avisosExistencias([ex('Coca-Cola', 0, 1), ex('Squash', 0, 0)]), []);
+  });
+  it('los avisos de existencias van después de los de habitaciones', () => {
+    const todos = ordenarAvisos([...avisosExistencias([ex('Gatorade', 6, 6)]), ...calcularAvisos([hab('207', 'POR_REVISAR')], reglas, ahora)]);
+    assert.deepEqual(todos.map((a) => a.tipo), ['POR_REVISAR', 'EXISTENCIAS']);
   });
 });

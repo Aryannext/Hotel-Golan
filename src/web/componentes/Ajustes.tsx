@@ -5,12 +5,13 @@ import { api, ErrorApi } from '../api.ts';
 import { horaBogota, leerPesos, pesos, type Producto } from '../logica.ts';
 import { fechaReporte } from '../reportes.ts';
 import {
-  erroresProducto, etiquetaTarifa, GRUPOS_EDITABLES, REGLAS, reglasCambiadas, tarifasCambiadas, textoHora,
+  erroresProducto, etiquetaTarifa, GRUPOS_EDITABLES, leerCantidadSurtido, REGLAS, reglasCambiadas, tarifasCambiadas, textoHora,
   type ClaveRegla, type Reglas, type Tarifa,
 } from '../ajustes.ts';
 import { Ico } from './Ico.tsx';
+import type { Existencia } from '../avisos.ts';
 
-type Seccion = 'tarifas' | 'reglas' | 'productos';
+export type Seccion = 'tarifas' | 'reglas' | 'productos' | 'existencias';
 const mensaje = (e: unknown) => e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo.';
 const HORAS = Array.from({ length: 12 }, (_, i) => 12 + i);
 
@@ -222,8 +223,75 @@ function Productos({ alGuardar }: { alGuardar: (texto: string) => void }) {
   </section>;
 }
 
-export function Ajustes() {
-  const [seccion, setSeccion] = useState<Seccion>('tarifas');
+/** Surtido y existencias de nevera y vitrinas (TICKET-21, RN-21): lo que llegó, lo vendido y lo que debería quedar. */
+function Existencias({ alGuardar, alCambiar }: { alGuardar: (texto: string) => void; alCambiar?: () => void }) {
+  const [items, setItems] = useState<Existencia[] | null>(null);
+  const [error, setError] = useState('');
+  const [recarga, setRecarga] = useState(0);
+  const [producto, setProducto] = useState('');
+  const [cantidad, setCantidad] = useState('');
+  const [verError, setVerError] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  useEffect(() => { api.existencias().then((r) => setItems(r.items)).catch((e) => setError(mensaje(e))); }, [recarga]);
+
+  if (!items) return <><AvisoError texto={error} />{!error && <p><output>Cargando existencias…</output></p>}</>;
+  const leida = leerCantidadSurtido(cantidad);
+  async function anotar(ev: Event) {
+    ev.preventDefault();
+    setVerError(true);
+    if (!producto || leida.cantidad === null) return;
+    setEnviando(true);
+    setError('');
+    try {
+      await api.registrarSurtido(producto, leida.cantidad);
+      const nombre = items!.find((x) => x.producto_id === producto)?.nombre ?? 'el producto';
+      alGuardar(`Listo: se anotaron ${leida.cantidad} de «${nombre}».`);
+      setProducto(''); setCantidad(''); setVerError(false); setRecarga((n) => n + 1);
+      alCambiar?.(); // la campana recalcula los avisos de existencias
+    } catch (e) {
+      setError(mensaje(e));
+    } finally {
+      setEnviando(false);
+    }
+  }
+  return <>
+    <form class="tarjeta" onSubmit={anotar}>
+      <div class="tarjeta__cab"><h2><Ico id="mas" clase="ico--s" />Llegó mercancía</h2></div>
+      <p class="ayuda">Anote lo que llega a la nevera o a las vitrinas. Cada venta o cargo lo descuenta solo.</p>
+      <div class="form-rejilla form-rejilla--2">
+        <div class="campo"><label htmlFor="surtido-producto">Producto</label>
+          <select id="surtido-producto" value={producto} aria-invalid={verError && !producto} onChange={(e) => setProducto((e.target as HTMLSelectElement).value)}>
+            <option value="">Elija el producto</option>
+            {items.map((x) => <option key={x.producto_id} value={x.producto_id}>{x.nombre}</option>)}
+          </select>
+          {verError && !producto && <span class="campo__error">Elija el producto que llegó.</span>}</div>
+        <div class="campo"><label htmlFor="surtido-cantidad">¿Cuántas unidades?</label>
+          <input id="surtido-cantidad" inputmode="numeric" autocomplete="off" placeholder="Ej. 24" value={cantidad} aria-invalid={verError && !!leida.error}
+            onInput={(e) => setCantidad((e.target as HTMLInputElement).value)} />
+          {verError && leida.error && <span class="campo__error">{leida.error}</span>}</div>
+      </div>
+      <AvisoError texto={error} />
+      <button type="submit" class="btn btn--primario" disabled={enviando}><Ico id="check" clase="ico--s" />Anotar lo que llegó</button>
+    </form>
+    <section class="tarjeta">
+      <div class="tarjeta__cab"><h2><Ico id="vitrina" clase="ico--s" />Cuánto debería quedar</h2></div>
+      <p class="ayuda">Lo que llegó menos lo vendido. Si no coincide con lo que hay en la vitrina o la nevera, algo se vendió sin anotar o falta.</p>
+      {GRUPOS_EDITABLES.map(([g, t]) => {
+        const lista = items.filter((x) => x.grupo === g);
+        return lista.length > 0 && <div key={g}><h3 class="ajustes__grupo">{t}</h3>
+          {lista.map((x) => <div key={x.producto_id} class="fila">
+            <div class="fila__txt"><div class="fila__concepto">{x.nombre}</div>
+              <div class="fila__detalle">Llegó {x.surtido} · vendido {x.vendido}</div></div>
+            <div class={`fila__valor${x.surtido > 0 && x.existencias <= 0 ? ' negativo' : ''}`}>{x.existencias}</div>
+          </div>)}</div>;
+      })}
+    </section>
+  </>;
+}
+
+/** `inicial`: la sección que se abre (un aviso de existencias abre «Existencias»). `alCambiar`: avisa que cambió algo que afecta los avisos. */
+export function Ajustes({ inicial = 'tarifas', alCambiar }: { inicial?: Seccion; alCambiar?: () => void }) {
+  const [seccion, setSeccion] = useState<Seccion>(inicial);
   const [aviso, setAviso] = useState('');
   const elegir = (s: Seccion) => { setSeccion(s); setAviso(''); };
   return <div class="historial">
@@ -232,11 +300,13 @@ export function Ajustes() {
       <button type="button" class="opcion" aria-pressed={seccion === 'tarifas'} onClick={() => elegir('tarifas')}>Tarifas</button>
       <button type="button" class="opcion" aria-pressed={seccion === 'reglas'} onClick={() => elegir('reglas')}>Reglas</button>
       <button type="button" class="opcion" aria-pressed={seccion === 'productos'} onClick={() => elegir('productos')}>Productos</button>
+      <button type="button" class="opcion" aria-pressed={seccion === 'existencias'} onClick={() => elegir('existencias')}>Existencias</button>
     </div>
     {aviso && <output class="nota nota--exito"><Ico id="check" clase="ico--s" /><p>{aviso}</p>
       <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso('')}><Ico id="cerrar" clase="ico--xs" /></button></output>}
     {seccion === 'tarifas' && <Tarifas alGuardar={setAviso} />}
     {seccion === 'reglas' && <ReglasHotel alGuardar={setAviso} />}
     {seccion === 'productos' && <Productos alGuardar={setAviso} />}
+    {seccion === 'existencias' && <Existencias alGuardar={setAviso} alCambiar={alCambiar} />}
   </div>;
 }

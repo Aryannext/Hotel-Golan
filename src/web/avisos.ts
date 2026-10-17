@@ -5,10 +5,13 @@ import type { Habitacion } from './api.ts';
 import { pesos } from './logica.ts';
 import { textoHora, type Reglas } from './ajustes.ts';
 
-export type TipoAviso = 'VENCIDA' | 'POR_VERIFICAR' | 'POR_REVISAR' | 'LIMPIEZA';
+export type TipoAviso = 'VENCIDA' | 'POR_VERIFICAR' | 'POR_REVISAR' | 'LIMPIEZA' | 'EXISTENCIAS';
 export interface Aviso { clave: string; tipo: TipoAviso; tono: 'alerta' | 'aviso' | 'info'; habitacion: string; titulo: string; detalle: string }
 
-const ORDEN: Record<TipoAviso, number> = { VENCIDA: 0, POR_VERIFICAR: 1, POR_REVISAR: 2, LIMPIEZA: 3 };
+const ORDEN: Record<TipoAviso, number> = { VENCIDA: 0, POR_VERIFICAR: 1, POR_REVISAR: 2, LIMPIEZA: 3, EXISTENCIAS: 4 };
+
+/** Existencias de un producto de nevera o vitrina (GET /existencias, TICKET-21). */
+export interface Existencia { producto_id: string; nombre: string; grupo: string; surtido: number; vendido: number; existencias: number }
 
 /** «1 h 20 min», «5 min», «2 h», «menos de 1 min»; desde un día, «3 días y 8 h» (sin minutos). */
 export function haceCuanto(desde: number, ahora: number): string {
@@ -56,7 +59,27 @@ function avisosDe(h: Habitacion, reglas: Pick<Reglas, 'valor_hora' | 'hora_noche
   return avisos;
 }
 
+/** Habitaciones primero (vencidas, por verificar, por revisar, limpieza); después, productos. */
+export function ordenarAvisos(avisos: Aviso[]): Aviso[] {
+  return [...avisos].sort((a, b) => ORDEN[a.tipo] - ORDEN[b.tipo] || a.habitacion.localeCompare(b.habitacion) || a.clave.localeCompare(b.clave));
+}
+
 export function calcularAvisos(habitaciones: Habitacion[], reglas: Pick<Reglas, 'valor_hora' | 'hora_noche_completa'> | null, ahora: number): Aviso[] {
-  return habitaciones.flatMap((h) => avisosDe(h, reglas, ahora))
-    .sort((a, b) => ORDEN[a.tipo] - ORDEN[b.tipo] || a.habitacion.localeCompare(b.habitacion));
+  return ordenarAvisos(habitaciones.flatMap((h) => avisosDe(h, reglas, ahora)));
+}
+
+/**
+ * RN-21: productos que ya se surtieron alguna vez y quedan en 0 o menos. Lo que nunca se ha surtido no avisa,
+ * para que al empezar (todo en 0) la campana no se llene. Solo para la administración.
+ */
+export function avisosExistencias(existencias: Existencia[]): Aviso[] {
+  return existencias.filter((x) => x.surtido > 0 && x.existencias <= 0).map((x) => {
+    const falta = -x.existencias;
+    const cuantas = falta === 1 ? 'falta 1' : `faltan ${falta}`;
+    return x.existencias === 0
+      ? { clave: `existencias-${x.producto_id}`, tipo: 'EXISTENCIAS' as const, tono: 'aviso' as const, habitacion: '',
+        titulo: `${x.nombre}: se acabó`, detalle: 'Según lo que llegó y lo vendido no queda ninguno. Revise y anote lo que llegue.' }
+      : { clave: `existencias-${x.producto_id}`, tipo: 'EXISTENCIAS' as const, tono: 'alerta' as const, habitacion: '',
+        titulo: `${x.nombre}: ${cuantas}`, detalle: 'Se vendió más de lo que se anotó como llegado. Revise la vitrina o la nevera.' };
+  });
 }

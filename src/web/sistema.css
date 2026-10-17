@@ -125,3 +125,6 @@
 @media (max-width: 600px) {
   .campana__panel { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; }
 }
+
+/* Existencias en 0 o menos (TICKET-21). */
+.fila__valor.negativo { color: var(--rojo); }
