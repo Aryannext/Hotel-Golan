@@ -1,6 +1,7 @@
 // Presentación de usuarios y actividad (TICKET-14, FR-18 y FR-20). Sin JSX, se prueba con node --test.
 import type { Usuario } from './api.ts';
 import { horaBogota, pesos, textoEstado, textoMedio } from './logica.ts';
+import { etiquetaTarifa, textoRegla, type Tarifa } from './ajustes.ts';
 
 export interface UsuarioAdmin extends Usuario { bloqueado_hasta: string | null }
 export interface RegistroActividad {
@@ -55,30 +56,53 @@ function textoCambioUsuario(d: Record<string, string>, a: string): string {
   return `Desbloqueó a ${a}`;
 }
 
+function textoProducto(d: Record<string, string>): string {
+  if (d.activo === 'no') return 'Quitó un producto del catálogo';
+  if (d.activo === 'si') return 'Volvió a poner un producto en el catálogo';
+  if (d.precio && Object.keys(d).length === 1) return `Cambió el precio de un producto a ${valor(d, 'precio')}`;
+  return d.nombre ? `Cambió el producto «${d.nombre}» del catálogo` : 'Cambió un producto del catálogo';
+}
+
+/** «AIRE NOCHE 1» → «Aire · noche · 1 persona a $65.000». */
+function textoTarifas(d: Record<string, string>): string {
+  return 'Cambió la tarifa ' + Object.entries(d).map(([clave, v]) => {
+    const [tipo_habitacion, modalidad, personas] = clave.split(' ');
+    return `${etiquetaTarifa({ tipo_habitacion, modalidad, personas: Number(personas) } as Pick<Tarifa, 'tipo_habitacion' | 'modalidad' | 'personas'>)} a ${pesos(Number(v))}`;
+  }).join('; ');
+}
+
+type Frase = (d: Record<string, string>, r: RegistroActividad, quien: string | undefined) => string;
+
+const FRASES: Record<string, Frase> = {
+  'INICIAR_SESION sesiones': () => 'Entró al sistema',
+  'CERRAR_SESION sesiones': () => 'Cerró sesión',
+  'BLOQUEAR usuarios': (_d, _r, q) => `Se bloqueó a ${q ?? 'un usuario'} por 5 PIN equivocados`,
+  'RECIBIR_TURNO turnos': (d) => `Recibió el turno con ${valor(d, 'base_contada')}`,
+  'ENTREGAR_TURNO turnos': textoEntrega,
+  'CREAR estadias': (d) => `Registró una entrada en la habitación ${d.habitacion} por ${valor(d, 'total')}`,
+  'CREAR pagos': (d) => `Registró un cobro de ${valor(d)} por ${textoMedio(d.medio)}`,
+  'VERIFICAR pagos': (d) => d.resultado === 'LLEGO' ? 'Confirmó que llegó una transferencia' : 'Marcó que no llegó una transferencia',
+  'CREAR cargos': (d) => `Agregó un consumo o cargo de ${valor(d)}`,
+  'CREAR movimientos_caja': (d) => `Sacó ${valor(d)} de la caja`,
+  'CREAR devoluciones': (d) => `Devolvió ${valor(d)} a un huésped que desistió`,
+  'ACTUALIZAR estadias': (d) => d.accion === 'EXTENSION' ? `Extendió una estadía por ${valor(d)}` : 'Dio salida a una habitación',
+  'ACTUALIZAR habitaciones': (d, r) => `Pasó la habitación ${r.entidad_id} de ${textoEstado(d.de)} a ${textoEstado(d.a)}`,
+  'ANULAR pagos': (d) => `Anuló un cobro de ${valor(d)}`,
+  'ANULAR movimientos_caja': (d) => `Anuló una salida de dinero de ${valor(d)}`,
+  'CREAR usuarios': (d, _r, q) => `Creó el usuario ${q ?? 'nuevo'} (${d.rol === 'ADMINISTRACION' ? 'administración' : 'recepción'})`,
+  'ACTUALIZAR usuarios': (d, _r, q) => textoCambioUsuario(d, q ?? 'un usuario'),
+  'ANONIMIZAR huespedes': () => 'Borró los datos de huéspedes vencidos',
+  'ACTUALIZAR tarifas': textoTarifas,
+  'ACTUALIZAR reglas': (d) => 'Cambió ' + Object.entries(d).map(([k, v]) => textoRegla(k, Number(v))).join('; '),
+  'CREAR productos': (d) => `Agregó un producto de ${valor(d, 'precio')} al catálogo`,
+  'ACTUALIZAR productos': textoProducto,
+};
+
+const VERBOS: Record<string, string> = { CREAR: 'Creó', ACTUALIZAR: 'Cambió', ANULAR: 'Anuló' };
+
 /** Una frase sencilla por registro de auditoría. `nombres` traduce el id de un usuario a su nombre de usuario. */
 export function textoActividad(r: RegistroActividad, nombres: Record<string, string>): string {
-  const d = r.detalle ?? {};
-  const quien = nombres[r.entidad_id];
-  const a = quien ?? 'un usuario';
-  switch (`${r.accion} ${r.entidad}`) {
-    case 'INICIAR_SESION sesiones': return 'Entró al sistema';
-    case 'CERRAR_SESION sesiones': return 'Cerró sesión';
-    case 'BLOQUEAR usuarios': return `Se bloqueó a ${a} por 5 PIN equivocados`;
-    case 'RECIBIR_TURNO turnos': return `Recibió el turno con ${valor(d, 'base_contada')}`;
-    case 'ENTREGAR_TURNO turnos': return textoEntrega(d);
-    case 'CREAR estadias': return `Registró una entrada en la habitación ${d.habitacion} por ${valor(d, 'total')}`;
-    case 'CREAR pagos': return `Registró un cobro de ${valor(d)} por ${textoMedio(d.medio)}`;
-    case 'VERIFICAR pagos': return d.resultado === 'LLEGO' ? 'Confirmó que llegó una transferencia' : 'Marcó que no llegó una transferencia';
-    case 'CREAR cargos': return `Agregó un consumo o cargo de ${valor(d)}`;
-    case 'CREAR movimientos_caja': return `Sacó ${valor(d)} de la caja`;
-    case 'CREAR devoluciones': return `Devolvió ${valor(d)} a un huésped que desistió`;
-    case 'ACTUALIZAR estadias': return d.accion === 'EXTENSION' ? `Extendió una estadía por ${valor(d)}` : 'Dio salida a una habitación';
-    case 'ACTUALIZAR habitaciones': return `Pasó la habitación ${r.entidad_id} de ${textoEstado(d.de)} a ${textoEstado(d.a)}`;
-    case 'ANULAR pagos': return `Anuló un cobro de ${valor(d)}`;
-    case 'ANULAR movimientos_caja': return `Anuló una salida de dinero de ${valor(d)}`;
-    case 'CREAR usuarios': return `Creó el usuario ${quien ?? 'nuevo'} (${d.rol === 'ADMINISTRACION' ? 'administración' : 'recepción'})`;
-    case 'ACTUALIZAR usuarios': return textoCambioUsuario(d, a);
-    case 'ANONIMIZAR huespedes': return 'Borró los datos de huéspedes vencidos';
-    default: return `${({ CREAR: 'Creó', ACTUALIZAR: 'Cambió', ANULAR: 'Anuló' } as Record<string, string>)[r.accion] ?? r.accion}: ${r.entidad}`;
-  }
+  const frase = FRASES[`${r.accion} ${r.entidad}`];
+  if (frase) return frase(r.detalle ?? {}, r, nombres[r.entidad_id]);
+  return `${VERBOS[r.accion] ?? r.accion}: ${r.entidad}`;
 }
