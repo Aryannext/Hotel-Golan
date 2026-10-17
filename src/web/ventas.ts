@@ -2,8 +2,10 @@
 import { leerPesos, type PagoTurno } from './logica.ts';
 
 /** De dónde viene un cobro: una habitación o una venta de contado (con lo que se vendió). */
-export function origenPago(p: Pick<PagoTurno, 'habitacion_numero' | 'venta_detalle'>): string {
-  return p.habitacion_numero ? `Habitación ${p.habitacion_numero}` : `Venta de contado · ${p.venta_detalle ?? ''}`;
+export function origenPago(p: Pick<PagoTurno, 'habitacion_numero' | 'venta_detalle' | 'lavanderia_cliente'>): string {
+  if (p.habitacion_numero) return `Habitación ${p.habitacion_numero}`;
+  if (p.lavanderia_cliente) return `Lavandería · ${p.lavanderia_cliente}`;
+  return `Venta de contado · ${p.venta_detalle ?? ''}`;
 }
 
 /** Efectivo recibido en una venta de contado: se paga completo (sin abonos); si sobra, son vueltas. */

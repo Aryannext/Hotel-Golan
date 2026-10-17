@@ -15,7 +15,8 @@ import { leerEstadia } from '../estadias/estadias.ts';
 import { publicarEventos } from '../comun/eventos.ts';
 
 interface FilaPago {
-  id: string; estadia_id: string | null; habitacion_numero: string | null; venta_id: string | null; venta_detalle: string | null; turno_id: string; medio: string; valor: number; estado: string;
+  id: string; estadia_id: string | null; habitacion_numero: string | null; venta_id: string | null; venta_detalle: string | null;
+  pedido_lavanderia_id: string | null; lavanderia_cliente: string | null; turno_id: string; medio: string; valor: number; estado: string;
   registrado_por: string; registrado_en: Date; verificado_por: string | null; verificado_en: Date | null; anulado: boolean;
 }
 
@@ -24,6 +25,7 @@ export async function leerPagos(bd: Bd, filtro: { id?: string; estado?: string; 
     // Un pago es de una estadía (con habitación) o de una venta de contado (TICKET-22), con su detalle.
     `SELECT p.id, p.estadia_id, e.habitacion_numero, p.venta_id,
             (SELECT string_agg(vi.concepto || ' × ' || vi.cantidad, ', ' ORDER BY vi.orden) FROM ventas_items vi WHERE vi.venta_id = p.venta_id) AS venta_detalle,
+            p.pedido_lavanderia_id, (SELECT pl.cliente_nombre FROM pedidos_lavanderia pl WHERE pl.id = p.pedido_lavanderia_id) AS lavanderia_cliente,
             p.turno_id, p.medio, p.valor, p.estado, r.usuario AS registrado_por, p.registrado_en,
             v.usuario AS verificado_por, p.verificado_en, p.anulado_en IS NOT NULL AS anulado
        FROM pagos p LEFT JOIN estadias e ON e.id = p.estadia_id JOIN usuarios r ON r.id = p.registrado_por
