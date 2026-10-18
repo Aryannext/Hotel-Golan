@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Regla (18-10-2026)
 «la policía llega al hotel de pasa de rutina y ve el talonario y pregunta cuales son las personas que se estan quedo esa noche y valida y ya. en ningun momento se le envia información» (V5-02).
@@ -21,11 +21,11 @@
 - Solo datos sintéticos en pruebas.
 
 ## Criterios de aceptación
-- [ ] Con tres habitaciones ocupadas, la lista muestra las tres, con habitación, nombre, tipo y número de documento, ordenadas por habitación.
-- [ ] Un titular sin documento aparece con «Sin documento».
-- [ ] Sin sesión: 401. Abrirla deja una entrada en la auditoría («Consultó quiénes se quedan hoy»), sin nombres ni documentos.
-- [ ] Una estadía terminada no aparece.
-- [ ] Se ve bien en un celular de 360 px.
+- [x] Con tres habitaciones ocupadas, la lista muestra las tres, con habitación, nombre, tipo y número de documento, ordenadas por habitación.
+- [x] Un titular sin documento aparece con «Sin documento».
+- [x] Sin sesión: 401. Abrirla deja una entrada en la auditoría («Consultó quiénes se quedan hoy»), sin nombres ni documentos.
+- [x] Una estadía terminada no aparece.
+- [x] Se ve bien en un celular de 360 px.
 
 ## Módulos a tocar
 estadías (consulta de activas con datos completos), auditoría, PWA (Habitaciones), CONTRATO_API (aditivo).

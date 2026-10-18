@@ -101,6 +101,7 @@ const FRASES: Record<string, Frase> = {
     return `Borró los datos personales de ${n} huésped${n === 1 ? '' : 'es'} (plazo de retención cumplido)`;
   },
   'ACTUALIZAR tarifas': textoTarifas,
+  'CONSULTAR huespedes': (d) => `Consultó quiénes se quedan hoy (${d.cantidad ?? 0} habitaciones)`,
   'ACTUALIZAR reglas': (d) => 'Cambió ' + Object.entries(d).map(([k, v]) => textoRegla(k, Number(v))).join('; '),
   'CREAR productos': (d) => `Agregó un producto de ${valor(d, 'precio')} al catálogo`,
   'ACTUALIZAR productos': textoProducto,

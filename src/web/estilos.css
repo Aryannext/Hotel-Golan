@@ -110,6 +110,7 @@ button { cursor: pointer; }
 .tarjeta--oro { background: linear-gradient(135deg, #FFF7E6, #F8EBCF); border-color: #EBD7AE; }
 .tarjeta__cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .acciones-cab { display: flex; gap: 14px; align-items: center; }
+.acciones-mapa { display: flex; justify-content: flex-end; margin: 0 0 12px; }
 .tarjeta__cab h2, .tarjeta__cab h3 { display: flex; align-items: center; gap: 10px; font: 700 16px/1.3 var(--f-ui); margin: 0; }
 .tarjeta__cab h2 .ico { color: var(--bronce); }
 .enlace { border: 0; background: none; color: var(--bronce); font: 600 13px/1.2 var(--f-ui); padding: 4px; display: inline-flex; align-items: center; gap: 4px; }

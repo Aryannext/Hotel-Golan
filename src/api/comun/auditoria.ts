@@ -3,7 +3,7 @@ import type { Bd } from '../../../scripts/lib/bd.ts';
 
 export type AccionAuditoria =
   | 'CREAR' | 'ACTUALIZAR' | 'ANULAR' | 'VERIFICAR' | 'INICIAR_SESION' | 'CERRAR_SESION'
-  | 'BLOQUEAR' | 'ENTREGAR_TURNO' | 'RECIBIR_TURNO' | 'ANONIMIZAR';
+  | 'BLOQUEAR' | 'ENTREGAR_TURNO' | 'RECIBIR_TURNO' | 'ANONIMIZAR' | 'CONSULTAR';
 
 export interface RegistroAuditoria {
   usuarioId: string | null; accion: AccionAuditoria; entidad: string; entidadId: string; detalle?: Record<string, string>; ocurrido: Date;

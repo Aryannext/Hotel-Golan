@@ -86,3 +86,7 @@ export function textoDesistimiento(numero: string, r: { valor: number; medio: st
   const desde = r.medio === 'EFECTIVO' ? 'de la caja' : 'por transferencia';
   return `Desistimiento registrado en la ${numero}: se devolvieron ${pesos(r.valor)} ${desde}. La habitación queda por revisar.`;
 }
+
+/** FR-31 (V5-02): el documento completo, para que la policía lo valide; o «Sin documento» (es opcional, RN-16). */
+export const textoDocumento = (t: { tipo_documento: string | null; numero_documento: string | null }) =>
+  t.numero_documento ? `${t.tipo_documento ?? ''} ${t.numero_documento}`.trim() : 'Sin documento';

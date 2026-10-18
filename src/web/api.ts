@@ -49,6 +49,8 @@ export interface Estadia {
   /** TICKET-26: pedidos de lavandería recibidos sin entregar (aviso al dar salida). */
   lavanderia_por_entregar: number;
 }
+/** FR-31: titular de una habitación ocupada, con el documento completo (para la ronda de la policía). */
+export interface TitularHoy { habitacion_numero: string; nombre: string; tipo_documento: string | null; numero_documento: string | null; entrada_en: string; salida_prevista_en: string }
 /** Medios con los que se paga: el efectivo entra a la caja; las transferencias quedan por confirmar (RN-12). */
 export type MedioPago = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 export type FormaPago = MedioPago | 'AL_SALIR';
@@ -111,6 +113,8 @@ export const api = {
     pedir<SalidaTurno>('POST', '/movimientos_caja', cuerpo, { 'idempotency-key': clave }),
   entregarTurno: (cuerpo: { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string }) =>
     pedir<Turno>('POST', '/turnos/actual/entrega', cuerpo),
+  // TICKET-34 · quiénes se quedan hoy (queda en la auditoría).
+  huespedesHoy: () => pedir<{ items: TitularHoy[] }>('GET', '/huespedes/hoy'),
   // TICKET-27 · daños: solo la administración pone el valor.
   cobrarDano: (id: string, descripcion: string, valor: number) => pedir<Estadia>('POST', `/estadias/${id}/danos`, { descripcion, valor }),
   // TICKET-26 · cambio de habitación.
