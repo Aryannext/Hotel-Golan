@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Reglas confirmadas por la administradora (18-10-2026)
 | Caso | Qué se hace |
@@ -18,6 +18,7 @@
 
 - **«Pocos minutos»:** la administradora dijo «3 o 5». Se guarda como regla configurable en Ajustes, `minutos_cambio_sin_cargo`, con 5 por omisión [P/V].
 - **La diferencia** se calcula con la tarifa vigente de cada tipo para las mismas personas y noches. Si es a favor del huésped, se le devuelve como en el desistimiento: en efectivo sale de la caja, ligada a la estadía; si pagó por transferencia, lo decide la administración (RN-08) [P].
+- **Al construir:** como la base no admite cargos negativos fuera de los descuentos, en el caso de los pocos minutos el alojamiento anterior se **anula con motivo** y se carga el de la nueva habitación. La devolución en efectivo queda en `movimientos_caja.estadia_id` (migración 0007), y la cuenta la descuenta de lo pagado (`devuelto`).
 - **La habitación que deja** pasa a «Por revisar», como tras una salida (FR-02) [P].
 
 ## Invariantes de negocio
@@ -28,14 +29,14 @@
 - Reglas evaluadas en America/Bogota. Solo datos sintéticos en pruebas.
 
 ## Criterios de aceptación
-- [ ] Entra a la 205 (ventilador) a las 3:00 p. m. y a los 3 minutos pasa a la 201 (aire): paga la diferencia de tarifa, la 201 queda ocupada y la 205 por revisar.
-- [ ] Entra a la 201 (aire) y a los 3 minutos pasa a la 205 (ventilador): se le devuelve la diferencia.
-- [ ] Durmió en la 205 y a las 10:00 a. m. pasa a la 207: se cobra una noche nueva de la 207 y la salida se recalcula.
-- [ ] Durmió en la 205 y pide el cambio a las 12:01 p. m.: 409, nada cambia.
-- [ ] A una habitación ocupada, en limpieza o en mantenimiento: 409.
-- [ ] `minutos_cambio_sin_cargo` se edita en Ajustes y se respeta.
-- [ ] El mapa de otro usuario muestra el cambio sin recargar; la auditoría dice «Cambió la habitación 205 a la 207».
-- [ ] «Dar salida» muestra «Tiene ropa en lavandería por entregar» cuando hay un pedido recibido sin entregar.
+- [x] Entra a la 205 (ventilador) a las 3:00 p. m. y a los 3 minutos pasa a la 201 (aire): paga la diferencia de tarifa, la 201 queda ocupada y la 205 por revisar.
+- [x] Entra a la 201 (aire) y a los 3 minutos pasa a la 205 (ventilador): se le devuelve la diferencia.
+- [x] Durmió en la 205 y a las 10:00 a. m. pasa a la 207: se cobra una noche nueva de la 207 y la salida se recalcula.
+- [x] Durmió en la 205 y pide el cambio a las 12:01 p. m.: 409, nada cambia.
+- [x] A una habitación ocupada, en limpieza o en mantenimiento: 409.
+- [x] `minutos_cambio_sin_cargo` se edita en Ajustes y se respeta.
+- [x] El mapa de otro usuario muestra el cambio sin recargar; la auditoría dice «Cambió la habitación 205 a la 207».
+- [x] «Dar salida» muestra «Tiene ropa en lavandería por entregar» cuando hay un pedido recibido sin entregar.
 
 ## Módulos a tocar
 estadías (cambio de habitación y cotización del cambio), reglas (`minutos_cambio_sin_cargo`), habitaciones (estados), tiempo real, auditoría, PWA (ficha, salida y Ajustes), CONTRATO_API (aditivo).

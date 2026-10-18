@@ -27,8 +27,10 @@ export async function leerHabitaciones(bd: Bd, ahora: Date, filtro: { estado?: s
     `SELECT h.numero, h.tipo, h.estado, h.nota,
             e.id AS estadia_id, hu.nombre, hu.anonimizado_en, e.salida_prevista_en,
             coalesce((SELECT sum(c.valor) FROM cargos c WHERE c.estadia_id = e.id AND c.anulado_en IS NULL), 0)::int AS cargos,
-            coalesce((SELECT sum(p.valor) FROM pagos p WHERE p.estadia_id = e.id AND p.anulado_en IS NULL
-                        AND p.estado IN ('EN_CAJA', 'VERIFICADO')), 0)::int AS pagado,
+            (coalesce((SELECT sum(p.valor) FROM pagos p WHERE p.estadia_id = e.id AND p.anulado_en IS NULL
+                         AND p.estado IN ('EN_CAJA', 'VERIFICADO')), 0)
+             -- Lo devuelto en efectivo por un cambio de habitación (TICKET-26) ya no cuenta como pagado.
+             - coalesce((SELECT sum(m.valor) FROM movimientos_caja m WHERE m.estadia_id = e.id AND m.anulado_en IS NULL), 0))::int AS pagado,
             coalesce((SELECT sum(p.valor) FROM pagos p WHERE p.estadia_id = e.id AND p.anulado_en IS NULL
                         AND p.estado = 'POR_VERIFICAR'), 0)::int AS por_verificar
        FROM habitaciones h

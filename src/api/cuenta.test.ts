@@ -46,7 +46,7 @@ describe('FR-06 — Catálogo de productos para cargos', () => {
 
 describe('FR-06, RN-18, RN-14 — Cargos a la cuenta', () => {
   it('la cuenta de la 211 de la semilla: saldo $28.000 con $30.000 por verificar', async () => {
-    assert.deepEqual(await cuenta(), { total_cargos: 84000, pagado: 26000, por_verificar: 30000, saldo: 28000, a_favor: 0 });
+    assert.deepEqual(await cuenta(), { total_cargos: 84000, pagado: 26000, por_verificar: 30000, saldo: 28000, a_favor: 0, devuelto: 0 });
   });
 
   it('varios productos con cantidad y la llave perdida: cada cargo guarda precio unitario y cantidad', async () => {
@@ -59,7 +59,7 @@ describe('FR-06, RN-18, RN-14 — Cargos a la cuenta', () => {
       .sort((a: { concepto: string }, b: { concepto: string }) => a.concepto.localeCompare(b.concepto))
       .map((c: Record<string, unknown>) => [c.tipo, c.concepto, c.cantidad, c.valor_unitario, c.valor, c.creado_por]);
     assert.deepEqual(nuevos, [['PRODUCTO', 'Coca-Cola', 2, 4000, 8000, 'recepcion2'], ['LLAVE', 'Llave perdida', 1, 40000, 40000, 'recepcion2']]);
-    assert.deepEqual(r.json().cuenta, { total_cargos: 132000, pagado: 26000, por_verificar: 30000, saldo: 76000, a_favor: 0 });
+    assert.deepEqual(r.json().cuenta, { total_cargos: 132000, pagado: 26000, por_verificar: 30000, saldo: 76000, a_favor: 0, devuelto: 0 });
   });
 
   it('un cambio de precio posterior no altera los cargos ya hechos', async () => {

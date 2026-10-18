@@ -68,7 +68,7 @@ describe('RN-12, FR-15 — Pagos por confirmar', () => {
     assert.equal(r.statusCode, 200);
     assert.deepEqual([r.json().id, r.json().estado, r.json().verificado_por, r.json().verificado_en, r.json().habitacion_numero],
       [pagoId, 'VERIFICADO', 'admin', '2026-10-13T06:20:00-05:00', '209']);
-    assert.deepEqual(await cuentaDe('209'), { total_cargos: 45000, pagado: 45000, por_verificar: 0, saldo: 0, a_favor: 0 });
+    assert.deepEqual(await cuentaDe('209'), { total_cargos: 45000, pagado: 45000, por_verificar: 0, saldo: 0, a_favor: 0, devuelto: 0 });
     const caja = (await e.app.inject({ method: 'GET', url: '/api/v1/turnos/actual', headers: { cookie: recepcion } })).json().caja;
     assert.equal(caja.debe_haber, cajaAntes.debe_haber);
     assert.equal(caja.transferencias, cajaAntes.transferencias);
