@@ -27,11 +27,18 @@ export async function estadiaActiva(tx: Bd, id: string): Promise<{ habitacion_nu
   return e;
 }
 
+const PARAMS_ID = { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } };
+
+/** El mapa muestra el saldo: se avisa que la habitación cambió. */
+const avisarMapa = (tx: Bd, numero: string, estadiaId: string, momento: Date) => tx.consultar(
+  'INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)',
+  ['habitacion.actualizada', JSON.stringify({ numero, entidad_id: estadiaId }), momento]);
+
 export function rutasCargos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
   app.post<{ Params: { id: string }; Body: Cuerpo; Headers: { 'idempotency-key'?: string } }>('/estadias/:id/cargos', {
     preHandler: requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']),
     schema: {
-      params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+      params: PARAMS_ID,
       headers: { type: 'object', properties: { 'idempotency-key': { type: 'string', format: 'uuid' } } },
       body: {
         type: 'object', additionalProperties: false, required: ['items'],
@@ -75,11 +82,39 @@ export function rutasCargos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
         usuarioId: u.id, accion: 'CREAR' as const, entidad: 'cargos', entidadId: c.id,
         detalle: { estadia: req.params.id, tipo: filas[i].tipo, valor: String(filas[i].valor) }, ocurrido: momento,
       })));
-      // El mapa muestra el saldo: se avisa que la habitación cambió.
-      await tx.consultar('INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)',
-        ['habitacion.actualizada', JSON.stringify({ numero: est.habitacion_numero, entidad_id: req.params.id }), momento]);
+      await avisarMapa(tx, est.habitacion_numero, req.params.id, momento);
       return { estado: 201, cuerpo: await leerEstadia(tx, req.params.id) };
     });
     return rep.code(r.estado).send(r.cuerpo);
+  });
+
+  // Daños (TICKET-27; RN-18): valor de reposición «como nuevo» que pone solo la administración; recepción la llama (V5-06).
+  app.post<{ Params: { id: string }; Body: { descripcion: string; valor: number } }>('/estadias/:id/danos', {
+    preHandler: requiere(bd, ahora, ['ADMINISTRACION']),
+    schema: {
+      params: PARAMS_ID,
+      body: {
+        type: 'object', additionalProperties: false, required: ['descripcion', 'valor'],
+        properties: {
+          descripcion: { type: 'string', minLength: 3, maxLength: 120, pattern: String.raw`\S.*\S` },
+          valor: { type: 'integer', minimum: 1, maximum: 10000000 },
+        },
+      },
+    },
+  }, async (req, rep) => {
+    const u = req.usuario!;
+    const cuerpo = await bd.transaccion(async (tx) => {
+      const momento = ahora();
+      const est = await estadiaActiva(tx, req.params.id);
+      const [c] = await tx.consultar<{ id: string }>(
+        `INSERT INTO cargos (estadia_id, tipo, concepto, cantidad, valor_unitario, valor, creado_por, creado_en)
+         VALUES ($1, 'DANO', $2, 1, $3, $3, $4, $5) RETURNING id`,
+        [req.params.id, `Daño: ${req.body.descripcion.trim()}`, req.body.valor, u.id, momento]);
+      await auditarVarios(tx, [{ usuarioId: u.id, accion: 'CREAR', entidad: 'cargos', entidadId: c.id,
+        detalle: { estadia: req.params.id, tipo: 'DANO', valor: String(req.body.valor) }, ocurrido: momento }]);
+      await avisarMapa(tx, est.habitacion_numero, req.params.id, momento);
+      return leerEstadia(tx, req.params.id);
+    });
+    return rep.code(201).send(cuerpo);
   });
 }

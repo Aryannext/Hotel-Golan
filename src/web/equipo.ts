@@ -82,7 +82,7 @@ const FRASES: Record<string, Frase> = {
   'CREAR estadias': (d) => `Registró una entrada en la habitación ${d.habitacion} por ${valor(d, 'total')}`,
   'CREAR pagos': (d) => `Registró un cobro de ${valor(d)} por ${textoMedio(d.medio)}`,
   'VERIFICAR pagos': (d) => d.resultado === 'LLEGO' ? 'Confirmó que llegó una transferencia' : 'Marcó que no llegó una transferencia',
-  'CREAR cargos': (d) => `Agregó un consumo o cargo de ${valor(d)}`,
+  'CREAR cargos': (d) => d.tipo === 'DANO' ? `Cobró un daño de ${valor(d)}` : `Agregó un consumo o cargo de ${valor(d)}`,
   'CREAR movimientos_caja': (d) => `Sacó ${valor(d)} de la caja`,
   'CREAR devoluciones': (d) => `Devolvió ${valor(d)} a un huésped que desistió`,
   'ACTUALIZAR estadias': (d) => {

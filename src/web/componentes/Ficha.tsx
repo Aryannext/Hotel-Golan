@@ -13,12 +13,14 @@ import { Anular, type QueAnular } from './Anular.tsx';
 import { SelectorProductos } from './SelectorProductos.tsx';
 import { VistaFactura } from './SolicitudesFactura.tsx';
 import { VistaCambio } from './CambioHabitacion.tsx';
+import { VistaDano } from './CobrarDano.tsx';
+import { AVISO_DANO_RECEPCION } from '../danos.ts';
 import { textoTardio } from '../tardio.ts';
 import type { Reglas } from '../ajustes.ts';
 import { ayudaHoras } from '../textosConfig.ts';
 import { cuantos, pillEstadoPago, textoCambio, textoDesistimiento, textoDevolucion, tituloFicha } from '../presentacion.ts';
 
-type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion' | 'lavanderia' | 'factura' | 'cambio';
+type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion' | 'lavanderia' | 'factura' | 'cambio' | 'dano';
 type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 type MotivoDev = 'SOLO_MIRO' | 'YA_USO';
@@ -46,7 +48,9 @@ function VistaCuenta({ e, esAdmin, numero, ir, alAnular }: {
   return <>
     {e.registro_tardio && <div class="nota"><Ico id="talonario" clase="ico--s" /><p>{textoTardio(e)}</p></div>}
     <section class="tarjeta"><div class="tarjeta__cab"><h3>Cargos</h3>
-      <button type="button" class="enlace" onClick={() => ir('cargo')}><Ico id="mas" clase="ico--xs" />Agregar</button></div>
+      <div class="acciones-cab">
+        {esAdmin && <button type="button" class="enlace" onClick={() => ir('dano')}><Ico id="alerta" clase="ico--xs" />Daño</button>}
+        <button type="button" class="enlace" onClick={() => ir('cargo')}><Ico id="mas" clase="ico--xs" />Agregar</button></div></div>
       {e.cargos.filter((c) => !c.anulado).map((c) => <div key={c.id} class="fila"><div class="fila__txt"><div class="fila__concepto">{c.concepto}{cantidad(c)}</div>
         <div class="fila__detalle">{cuando(c.creado_en)} · {c.creado_por}</div></div><div class="fila__valor">{pesos(c.valor)}</div></div>)}
       <Fila concepto="Total cargos" valor={e.cuenta.total_cargos} total />
@@ -258,11 +262,15 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
     }
     if (sub === 'cargo') {
       const texto = sel.items.length ? `Agregar ${cuantos(sel.items.length, 'producto', 'productos')} · ${pesos(sel.total)}` : 'Elija productos';
-      return { cuerpo: <SelectorProductos catalogo={otros} cantidades={cantidades} sel={sel} sumar={sumar} />,
+      return { cuerpo: <>
+        {!esAdmin && <div class="nota nota--info"><Ico id="info" clase="ico--s" /><p>{AVISO_DANO_RECEPCION}</p></div>}
+        <SelectorProductos catalogo={otros} cantidades={cantidades} sel={sel} sumar={sumar} />
+      </>,
         pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
           alTocar={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie> };
     }
     if (sub === 'factura') return { cuerpo: <VistaFactura estadiaId={id} />, pie: null };
+    if (sub === 'dano') return { cuerpo: <VistaDano estadiaId={id} alListo={async () => { alCambiar(); setEst(await api.estadia(id)); ir('cuenta'); }} />, pie: null };
     if (sub === 'cambio') return { cuerpo: <VistaCambio estadiaId={id} actual={habitacion.numero} alCambiar={(texto) => { alCambiar(); alSalir(texto); }} />, pie: null };
     if (!e) return { cuerpo: null, pie: null };
     switch (sub) {

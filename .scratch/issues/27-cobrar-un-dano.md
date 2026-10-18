@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Regla confirmada por la administradora (18-10-2026)
 «lo decide la administradora que sabe cuanto vale eso nuevo. no la persona de recepción no puede ponerle valor en ese momento, me tiene que llamar.» (V5-06)
@@ -21,11 +21,11 @@
 - Solo datos sintéticos en pruebas.
 
 ## Criterios de aceptación
-- [ ] La administración carga «Toalla manchada» por $25.000 a la 205: aparece en los cargos con quién lo registró y el saldo sube $25.000.
-- [ ] Recepción intenta cargar un daño: 403.
-- [ ] Sin descripción o con valor $0: 400.
-- [ ] Con el daño sin pagar, la salida responde 409 `SALDO_PENDIENTE`; al pagarlo, la salida se puede dar.
-- [ ] La auditoría muestra «Cobró un daño de $25.000».
+- [x] La administración carga «Toalla manchada» por $25.000 a la 205: aparece en los cargos con quién lo registró y el saldo sube $25.000.
+- [x] Recepción intenta cargar un daño: 403.
+- [x] Sin descripción o con valor $0: 400.
+- [x] Con el daño sin pagar, la salida responde 409 `SALDO_PENDIENTE`; al pagarlo, la salida se puede dar.
+- [x] La auditoría muestra «Cobró un daño de $25.000».
 
 ## Módulos a tocar
 cargos de la estadía, auditoría, PWA (ficha: «Cobrar un daño» solo para la administración), CONTRATO_API (aditivo).

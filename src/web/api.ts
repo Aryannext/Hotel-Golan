@@ -111,6 +111,8 @@ export const api = {
     pedir<SalidaTurno>('POST', '/movimientos_caja', cuerpo, { 'idempotency-key': clave }),
   entregarTurno: (cuerpo: { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string }) =>
     pedir<Turno>('POST', '/turnos/actual/entrega', cuerpo),
+  // TICKET-27 · daños: solo la administración pone el valor.
+  cobrarDano: (id: string, descripcion: string, valor: number) => pedir<Estadia>('POST', `/estadias/${id}/danos`, { descripcion, valor }),
   // TICKET-26 · cambio de habitación.
   cotizarCambio: (id: string, habitacion_numero: string) => pedir<CotizacionCambio>('POST', `/estadias/${id}/cambio-habitacion/cotizacion`, { habitacion_numero }),
   cambiarHabitacion: (id: string, habitacion_numero: string) => pedir<Estadia>('POST', `/estadias/${id}/cambio-habitacion`, { habitacion_numero }),
