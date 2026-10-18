@@ -24,7 +24,7 @@ export interface ResumenCaja {
 export interface Turno {
   id: string; tipo: 'DIA' | 'NOCHE'; estado: 'POR_RECIBIR' | 'ABIERTO' | 'CERRADO'; responsable: string | null; recibido_de: string | null;
   inicio_en: string; fin_en: string | null; fin_programado_en: string; base_entregada: number; base_recibida: number | null; caja: ResumenCaja;
-  cierre: { pago_tomado: boolean; efectivo_esperado: number; efectivo_contado: number; diferencia: number;
+  cierre: { pago_tomado: boolean; efectivo_esperado: number; efectivo_contado: number; diferencia: number; efectivo_esperado_ajustado: number; diferencia_ajustada: number;
     motivo_diferencia: string | null; entregado_por: string } | null;
 }
 export interface TurnoDetalle extends Turno { pagos: Pago[]; movimientos_caja: SalidaTurno[] }

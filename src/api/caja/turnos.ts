@@ -35,6 +35,30 @@ export async function turnoAbiertoId(bd: Bd): Promise<string> {
   return t.id;
 }
 
+/**
+ * ADR-010 (V5-16): la plata de un registro tardío es del turno en que entró el huésped. Devuelve el turno abierto o
+ * cerrado cuyo periodo contiene `entrada`; null si ninguno lo cubre (entonces va al abierto).
+ */
+export async function turnoDeEntrada(bd: Bd, entrada: Date): Promise<{ id: string; cerrado: boolean } | null> {
+  const [t] = await bd.consultar<{ id: string; estado: string }>(
+    `SELECT id, estado FROM turnos
+      WHERE inicio_en <= $1 AND (fin_en > $1 OR (fin_en IS NULL AND estado = 'ABIERTO'))
+      ORDER BY inicio_en DESC LIMIT 1`, [entrada]);
+  return t ? { id: t.id, cerrado: t.estado === 'CERRADO' } : null;
+}
+
+/** Lo que debía haber al entregar con lo registrado después (un registro tardío, una anulación). El cierre original no cambia. */
+function ajusteCierre(t: FilaTurno, caja: { debe_haber: number }) {
+  const esperado = caja.debe_haber - (t.pago_tomado ? t.pago_turno ?? 0 : 0);
+  return { efectivo_esperado_ajustado: esperado, diferencia_ajustada: (t.efectivo_contado ?? 0) - esperado };
+}
+
+/** Diferencia ajustada de un turno cerrado (para el aviso del registro tardío). */
+export async function diferenciaAjustada(bd: Bd, turnoId: string): Promise<number> {
+  const [t] = await bd.consultar<FilaTurno>(`${SELECT_TURNO} WHERE t.id = $1`, [turnoId]);
+  return ajusteCierre(t, await resumenCaja(bd, t)).diferencia_ajustada;
+}
+
 /** RN-10: debe haber = base recibida + efectivo en caja − salidas. Las transferencias van aparte; lo anulado no cuenta. */
 async function resumenCaja(bd: Bd, t: FilaTurno) {
   const [p] = await bd.consultar<{ efectivo: number; transferencias: number; por_verificar: number }>(
@@ -55,15 +79,17 @@ async function resumenCaja(bd: Bd, t: FilaTurno) {
 
 async function respuestaTurno(bd: Bd, t: FilaTurno) {
   const inicio = new Date(t.inicio_en);
+  const caja = await resumenCaja(bd, t);
   return {
     id: t.id, tipo: t.tipo, estado: t.estado, responsable: t.responsable, recibido_de: t.recibido_de,
     inicio_en: aBogota(inicio), fin_en: t.fin_en ? aBogota(new Date(t.fin_en)) : null,
     fin_programado_en: aBogota(finProgramadoTurno(t.tipo, inicio)),
     base_entregada: t.base_entregada, base_recibida: t.base_recibida,
-    caja: await resumenCaja(bd, t),
+    caja,
     cierre: t.estado === 'CERRADO' ? {
       pago_tomado: t.pago_tomado, efectivo_esperado: t.efectivo_esperado, efectivo_contado: t.efectivo_contado,
       diferencia: (t.efectivo_contado ?? 0) - (t.efectivo_esperado ?? 0), motivo_diferencia: t.motivo_diferencia, entregado_por: t.responsable,
+      ...ajusteCierre(t, caja),
     } : null,
   };
 }
