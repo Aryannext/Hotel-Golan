@@ -12,6 +12,9 @@ export type ClaveRegla = keyof Reglas;
 /** La administración edita todos los grupos, incluidas las dos vitrinas (FR-24, RN-19). */
 export const GRUPOS_EDITABLES = GRUPOS;
 
+/** RN-13 (V5-19): lo que no se registra son los productos de la familiar, por dueño y no por sección. */
+export const NOTA_FAMILIAR = 'Los productos de la familiar (champú, crema para el cabello y similares) no se registran ni se cobran aquí, estén en la sección que estén: su plata va aparte.';
+
 /** Pesos escritos por la persona; un signo menos o un texto sin números no es un valor válido. */
 const pesosValidos = (texto: string) => (texto.includes('-') ? null : leerPesos(texto));
 const enteroValido = (texto: string) => (/^\d+$/.test(texto.trim()) ? Number(texto) : null);

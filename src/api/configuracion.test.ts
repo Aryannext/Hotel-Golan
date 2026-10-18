@@ -136,13 +136,18 @@ describe('FR-22 — Catálogo de productos', () => {
     assert.deepEqual(a.detalle, { precio: '5500' });
   });
 
-  it('RN-13 (T4-10): la sección 1 de la familiar no va en el sistema; ningún producto es de otro dueño: 400', async () => {
+  it('RN-13 (V5-19): los productos de la familiar no van en el sistema; ningún producto es de otro dueño: 400', async () => {
     const familiar = await pedir('POST', '/productos', { nombre: 'Champú sobre', grupo: 'VITRINA_ASEO', precio: 1500, pertenece_a: 'FAMILIAR', activo: true });
     assert.equal(familiar.statusCode, 400);
-    const seccion1 = await pedir('POST', '/productos', { nombre: 'Champú sobre', grupo: 'VITRINA_ASEO', precio: 1500, seccion: 1, activo: true });
-    assert.equal(seccion1.statusCode, 400);
     const [n] = await e.bd.consultar<{ n: number }>(`SELECT count(*)::int AS n FROM productos WHERE nombre = 'Champú sobre'`);
     assert.equal(n.n, 0);
+  });
+
+  it('RN-13 (V5-19): la regla es por dueño, no por sección: un producto del hotel puede ir en la sección 1 (antes, 400)', async () => {
+    const r = await pedir('POST', '/productos', { nombre: 'Agua sección uno', grupo: 'VITRINA_PASABOCAS', precio: 2000, seccion: 1, activo: true });
+    assert.equal(r.statusCode, 201, r.body);
+    assert.deepEqual([r.json().seccion, r.json().pertenece_a], [1, 'HOTEL']);
+    assert.equal((await pedir('POST', '/productos', { nombre: 'Agua sección siete', grupo: 'VITRINA_PASABOCAS', precio: 2000, seccion: 7, activo: true })).statusCode, 400);
   });
 
   it('FR-24: la administración crea un producto de vitrina sin indicar dueño (queda del hotel) y recepción lo carga a una habitación', async () => {
