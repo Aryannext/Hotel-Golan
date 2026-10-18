@@ -43,10 +43,14 @@ export async function leerEstadia(bd: Bd, id: string) {
        FROM pagos p JOIN usuarios r ON r.id = p.registrado_por LEFT JOIN usuarios v ON v.id = p.verificado_por
       WHERE p.estadia_id = $1 ORDER BY p.registrado_en`, [id]);
 
+  // TICKET-26: lo devuelto en efectivo por un cambio de habitación, y la ropa de lavandería sin entregar (aviso al salir).
+  const [extra] = await bd.consultar<{ devuelto: number; lavanderia: number }>(
+    `SELECT coalesce((SELECT sum(valor) FROM movimientos_caja WHERE estadia_id = $1 AND anulado_en IS NULL), 0)::int AS devuelto,
+            (SELECT count(*) FROM pedidos_lavanderia WHERE estadia_id = $1 AND estado = 'RECIBIDO')::int AS lavanderia`, [id]);
   const vigentes = (x: { anulado: boolean }) => !x.anulado;
   const suma = (xs: Array<{ valor: number }>) => xs.reduce((s, x) => s + x.valor, 0);
   const totalCargos = suma(cargos.filter(vigentes));
-  const pagado = suma(pagos.filter((p) => vigentes(p) && (p.estado === 'EN_CAJA' || p.estado === 'VERIFICADO')));
+  const pagado = suma(pagos.filter((p) => vigentes(p) && (p.estado === 'EN_CAJA' || p.estado === 'VERIFICADO'))) - extra.devuelto;
   const porVerificar = suma(pagos.filter((p) => vigentes(p) && p.estado === 'POR_VERIFICAR'));
   const anonimizado = !!f.anonimizado_en;
 
@@ -68,8 +72,9 @@ export async function leerEstadia(bd: Bd, id: string) {
       estado: p.estado, registrado_por: p.registrado_por, registrado_en: aBogota(new Date(p.registrado_en)),
       verificado_por: p.verificado_por, verificado_en: p.verificado_en ? aBogota(new Date(p.verificado_en)) : null, anulado: p.anulado,
     })),
+    lavanderia_por_entregar: extra.lavanderia,
     cuenta: {
-      total_cargos: totalCargos, pagado, por_verificar: porVerificar,
+      total_cargos: totalCargos, pagado, por_verificar: porVerificar, devuelto: extra.devuelto,
       saldo: Math.max(0, totalCargos - pagado - porVerificar), a_favor: Math.max(0, pagado + porVerificar - totalCargos),
     },
   };
@@ -127,7 +132,7 @@ const esquemaCuerpo = {
   },
 } as const;
 
-function conceptoAlojamiento(modalidad: ModalidadCotizable, tipo: TipoHabitacion, personas: number, noches: number) {
+export function conceptoAlojamiento(modalidad: ModalidadCotizable, tipo: TipoHabitacion, personas: number, noches: number) {
   const hab = tipo === 'AIRE' ? 'aire' : 'ventilador';
   if (modalidad === 'TRES_HORAS') return `Tres horas · ${hab}`;
   const cuantas = noches === 1 ? 'Noche' : `${noches} noches`;

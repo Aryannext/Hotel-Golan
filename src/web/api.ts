@@ -4,6 +4,7 @@ import type { Reglas, Tarifa, TarifaInput } from './ajustes.ts';
 import type { Existencia } from './avisos.ts';
 import type { PedidoLavanderia } from './lavanderia.ts';
 import type { EstadoFactura, SolicitudFactura, SolicitudInput } from './facturas.ts';
+import type { CotizacionCambio } from './cambio.ts';
 
 // Cliente de la API. La sesión viaja en la cookie HttpOnly; el navegador la envía sola (same-origin).
 export interface Usuario { id: string; nombre: string; usuario: string; rol: 'RECEPCION' | 'ADMINISTRACION'; activo: boolean }
@@ -44,7 +45,9 @@ export interface Estadia {
   id: string; habitacion_numero: string; modalidad: string; personas: number; noches: number; entrada_en: string; salida_prevista_en: string;
   estado: string; forma_cobro: 'ANTICIPADO' | 'AL_SALIR'; registro_tardio: boolean; registrada_por: string; registrada_en: string;
   huesped: { id: string; nombre_mostrado: string; tipo_documento: string | null; documento_enmascarado: string | null; nacionalidad: string | null; anonimizado: boolean };
-  cargos: Cargo[]; pagos: Pago[]; cuenta: { total_cargos: number; pagado: number; por_verificar: number; saldo: number; a_favor: number };
+  cargos: Cargo[]; pagos: Pago[]; cuenta: { total_cargos: number; pagado: number; por_verificar: number; saldo: number; a_favor: number; devuelto: number };
+  /** TICKET-26: pedidos de lavandería recibidos sin entregar (aviso al dar salida). */
+  lavanderia_por_entregar: number;
 }
 /** Medios con los que se paga: el efectivo entra a la caja; las transferencias quedan por confirmar (RN-12). */
 export type MedioPago = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
@@ -108,6 +111,9 @@ export const api = {
     pedir<SalidaTurno>('POST', '/movimientos_caja', cuerpo, { 'idempotency-key': clave }),
   entregarTurno: (cuerpo: { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string }) =>
     pedir<Turno>('POST', '/turnos/actual/entrega', cuerpo),
+  // TICKET-26 · cambio de habitación.
+  cotizarCambio: (id: string, habitacion_numero: string) => pedir<CotizacionCambio>('POST', `/estadias/${id}/cambio-habitacion/cotizacion`, { habitacion_numero }),
+  cambiarHabitacion: (id: string, habitacion_numero: string) => pedir<Estadia>('POST', `/estadias/${id}/cambio-habitacion`, { habitacion_numero }),
   cotizarExtension: (id: string, cuerpo: { modalidad: string; horas?: number }) =>
     pedir<CotizacionExtension>('POST', `/estadias/${id}/extensiones/cotizacion`, cuerpo),
   extender: (id: string, cuerpo: { modalidad: string; horas?: number }, clave: string) =>

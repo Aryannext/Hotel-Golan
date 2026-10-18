@@ -12,6 +12,8 @@ const LIMITES = {
   pago_turno_dia: { minimum: 0, maximum: 10000000 },
   pago_turno_noche: { minimum: 0, maximum: 10000000 },
   retencion_datos_dias: { minimum: 1, maximum: 3650 },
+  // TICKET-26: minutos desde la entrada en que un cambio de habitación ajusta la diferencia (V5-03, «3 o 5») [P/V].
+  minutos_cambio_sin_cargo: { minimum: 0, maximum: 120 },
 };
 type Clave = keyof typeof LIMITES;
 const CLAVES = Object.keys(LIMITES) as Clave[];

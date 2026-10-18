@@ -12,12 +12,13 @@ import { Ico } from './Ico.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { SelectorProductos } from './SelectorProductos.tsx';
 import { VistaFactura } from './SolicitudesFactura.tsx';
+import { VistaCambio } from './CambioHabitacion.tsx';
 import { textoTardio } from '../tardio.ts';
 import type { Reglas } from '../ajustes.ts';
 import { ayudaHoras } from '../textosConfig.ts';
 import { cuantos, pillEstadoPago, textoCambio, textoDesistimiento, textoDevolucion, tituloFicha } from '../presentacion.ts';
 
-type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion' | 'lavanderia' | 'factura';
+type Sub = 'cuenta' | 'cargo' | 'pago' | 'salida' | 'extender' | 'devolucion' | 'lavanderia' | 'factura' | 'cambio';
 type ModExt = 'NOCHE' | 'TRES_HORAS' | 'POR_HORAS';
 type Medio = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
 type MotivoDev = 'SOLO_MIRO' | 'YA_USO';
@@ -58,6 +59,7 @@ function VistaCuenta({ e, esAdmin, numero, ir, alAnular }: {
     <div class="acciones">
       <button type="button" class="btn btn--secundario" onClick={() => ir('extender')}><Ico id="reloj" clase="ico--s" />Extender</button>
       <button type="button" class="btn btn--secundario" onClick={() => ir('lavanderia')}><Ico id="lavanderia" clase="ico--s" />Lavandería</button>
+      <button type="button" class="btn btn--secundario" onClick={() => ir('cambio')}><Ico id="habitaciones" clase="ico--s" />Cambiar</button>
       <button type="button" class="btn btn--secundario" onClick={() => ir('factura')}><Ico id="facturacion" clase="ico--s" />Factura</button>
       <button type="button" class="btn btn--secundario" onClick={() => ir('devolucion')}><Ico id="devolver" clase="ico--s" />Desiste</button>
       <button type="button" class="btn btn--secundario" onClick={() => ir('salida')}><Ico id="salida" clase="ico--s" />Dar salida</button>
@@ -96,9 +98,10 @@ function VistaPago({ medio, alMedio, valor, alValor, saldo, escrito, pago }: {
   </section>;
 }
 
-/** RN-07: nadie sale debiendo. Si queda saldo, se ofrece cobrarlo primero. */
-function VistaSalida({ c, ir }: { c: Estadia['cuenta']; ir: (s: Sub) => void }) {
+/** RN-07: nadie sale debiendo. Si queda saldo, se ofrece cobrarlo primero. TICKET-26: avisa si dejó ropa en lavandería. */
+function VistaSalida({ c, lavanderia, ir }: { c: Estadia['cuenta']; lavanderia: number; ir: (s: Sub) => void }) {
   return <>
+    {lavanderia > 0 && <div class="nota nota--alerta" role="alert"><Ico id="lavanderia" clase="ico--s" /><p>Tiene ropa en lavandería por entregar ({lavanderia === 1 ? '1 pedido' : `${lavanderia} pedidos`}). Entréguesela antes de que se vaya.</p></div>}
     <section class="tarjeta tarjeta--crema">
       <Fila concepto="Total cargos" valor={c.total_cargos} />
       <Fila concepto="Pagado" valor={c.pagado + c.por_verificar} />
@@ -260,6 +263,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
           alTocar={() => enviar(() => api.agregarCargos(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie> };
     }
     if (sub === 'factura') return { cuerpo: <VistaFactura estadiaId={id} />, pie: null };
+    if (sub === 'cambio') return { cuerpo: <VistaCambio estadiaId={id} actual={habitacion.numero} alCambiar={(texto) => { alCambiar(); alSalir(texto); }} />, pie: null };
     if (!e) return { cuerpo: null, pie: null };
     switch (sub) {
       case 'pago':
@@ -267,7 +271,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
           pie: <BotonPie icono="check" deshabilitado={enviando || pago.valor < 1} alTocar={() => enviar(() => api.registrarPago(id, medio, pago.valor, clave))}>
             Registrar pago de {pesos(pago.valor)}</BotonPie> };
       case 'salida':
-        return { cuerpo: <VistaSalida c={e.cuenta} ir={ir} />,
+        return { cuerpo: <VistaSalida c={e.cuenta} lavanderia={e.lavanderia_por_entregar} ir={ir} />,
           pie: <BotonPie icono="salida" deshabilitado={e.cuenta.saldo > 0 || enviando}
             alTocar={() => enviar(() => api.darSalida(id), () => alSalir(`Salida registrada. La habitación ${habitacion.numero} queda por revisar.`),
               async () => setEst(await api.estadia(id).catch(() => e)))}>{e.cuenta.saldo > 0 ? 'Primero cobre el saldo' : 'Dar salida'}</BotonPie> };

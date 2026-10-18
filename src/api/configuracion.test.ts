@@ -89,10 +89,11 @@ describe('FR-22 — Tarifas con vigencia', () => {
 });
 
 describe('FR-22 — Reglas numéricas', () => {
-  it('GET /reglas devuelve los seis valores configurables', async () => {
+  it('GET /reglas devuelve los siete valores configurables', async () => {
     const r = await pedir('GET', '/reglas', undefined, recepcion);
     assert.deepEqual(r.json(), {
       valor_hora: 8000, hora_noche_completa: 16, descuento_noche: 5000, pago_turno_dia: 70000, pago_turno_noche: 50000, retencion_datos_dias: 90,
+      minutos_cambio_sin_cargo: 5, // TICKET-26 (migración 0007)
     });
   });
 

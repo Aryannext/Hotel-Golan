@@ -8,7 +8,7 @@ const tarifas = [
   { id: 't2', tipo_habitacion: 'AIRE' as const, modalidad: 'TRES_HORAS' as const, personas: 2, valor: 35000, vigente_desde: '2026-10-01T00:00:00-05:00' },
   { id: 't3', tipo_habitacion: 'VENTILADOR' as const, modalidad: 'NOCHE' as const, personas: 3, valor: 80000, vigente_desde: '2026-10-01T00:00:00-05:00' },
 ];
-const reglas = { valor_hora: 8000, hora_noche_completa: 16, descuento_noche: 5000, pago_turno_dia: 70000, pago_turno_noche: 50000, retencion_datos_dias: 90 };
+const reglas = { valor_hora: 8000, hora_noche_completa: 16, descuento_noche: 5000, pago_turno_dia: 70000, pago_turno_noche: 50000, retencion_datos_dias: 90, minutos_cambio_sin_cargo: 5 };
 
 describe('FR-22 — tarifas en la PWA', () => {
   it('nombra cada tarifa como la dice el hotel', () => {
@@ -31,11 +31,14 @@ describe('FR-22 — reglas en la PWA', () => {
   });
 
   it('envía solo las reglas que cambiaron, con sus límites', () => {
-    const f = { valor_hora: '9.000', hora_noche_completa: '16', descuento_noche: '5000', pago_turno_dia: '70000', pago_turno_noche: '50000', retencion_datos_dias: '90' };
+    const f = { valor_hora: '9.000', hora_noche_completa: '16', descuento_noche: '5000', pago_turno_dia: '70000', pago_turno_noche: '50000', retencion_datos_dias: '90', minutos_cambio_sin_cargo: '5' };
     assert.deepEqual(reglasCambiadas(reglas, f), { cambios: { valor_hora: 9000 }, errores: {} });
     assert.deepEqual(reglasCambiadas(reglas, { ...f, valor_hora: '8000', retencion_datos_dias: '0', descuento_noche: '' }).errores,
       { retencion_datos_dias: 'Debe estar entre 1 y 3650.', descuento_noche: 'Escriba un número.' });
     assert.deepEqual(reglasCambiadas(reglas, { ...f, valor_hora: '8000', hora_noche_completa: '18' }).cambios, { hora_noche_completa: 18 });
+    // TICKET-26: minutos para cambiar de habitación ajustando solo la diferencia (0 a 120).
+    assert.deepEqual(reglasCambiadas(reglas, { ...f, valor_hora: '8000', minutos_cambio_sin_cargo: '3' }).cambios, { minutos_cambio_sin_cargo: 3 });
+    assert.deepEqual(reglasCambiadas(reglas, { ...f, valor_hora: '8000', minutos_cambio_sin_cargo: '200' }).errores, { minutos_cambio_sin_cargo: 'Debe estar entre 0 y 120.' });
   });
 
   it('describe una regla con su valor', () => {

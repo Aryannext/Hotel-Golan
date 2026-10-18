@@ -48,7 +48,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
     const p = est.pagos[0];
     assert.deepEqual([p.medio, p.valor, p.estado, p.registrado_por, p.turno_id, p.habitacion_numero, p.anulado],
       ['EFECTIVO', 55000, 'EN_CAJA', 'recepcion2', e.semilla.turnoId, '206', false]);
-    assert.deepEqual(est.cuenta, { total_cargos: 55000, pagado: 55000, por_verificar: 0, saldo: 0, a_favor: 0 });
+    assert.deepEqual(est.cuenta, { total_cargos: 55000, pagado: 55000, por_verificar: 0, saldo: 0, a_favor: 0, devuelto: 0 });
     assert.equal(await estadoHabitacion('206'), 'OCUPADA');
 
     const [aut] = await e.bd.consultar<{ version_aviso: string; otorgada_en: Date; usuario: string }>(
@@ -110,7 +110,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
     assert.equal(est.forma_cobro, 'AL_SALIR');
     assert.equal(est.huesped.documento_enmascarado, null);
     assert.deepEqual(est.pagos, []);
-    assert.deepEqual(est.cuenta, { total_cargos: 45000, pagado: 0, por_verificar: 0, saldo: 45000, a_favor: 0 });
+    assert.deepEqual(est.cuenta, { total_cargos: 45000, pagado: 0, por_verificar: 0, saldo: 45000, a_favor: 0, devuelto: 0 });
   });
 
   it('varias noches o tres horas no se pagan al salir: 422 PAGO_AL_SALIR_NO_PERMITIDO', async () => {
@@ -149,7 +149,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
       [['ALOJAMIENTO', 2, 60000, 120000], ['DESCUENTO', 2, -5000, -10000]]);
     assert.equal(est.pagos[0].valor, 110000);
     assert.equal(est.salida_prevista_en, '2026-10-15T12:00:00-05:00');
-    assert.deepEqual(est.cuenta, { total_cargos: 110000, pagado: 110000, por_verificar: 0, saldo: 0, a_favor: 0 });
+    assert.deepEqual(est.cuenta, { total_cargos: 110000, pagado: 110000, por_verificar: 0, saldo: 0, a_favor: 0, devuelto: 0 });
     assert.equal((await registrar(entrada({ habitacion_numero: '203', total: 1000 }))).statusCode, 400);
   });
 
@@ -174,7 +174,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
     const r = await registrar(entrada({ habitacion_numero: '203', personas: 1, huesped, pago: { forma: 'EFECTIVO', valor_recibido: 20000 } }));
     assert.equal(r.statusCode, 201);
     assert.equal(r.json().pagos[0].valor, 20000);
-    assert.deepEqual(r.json().cuenta, { total_cargos: 60000, pagado: 20000, por_verificar: 0, saldo: 40000, a_favor: 0 });
+    assert.deepEqual(r.json().cuenta, { total_cargos: 60000, pagado: 20000, por_verificar: 0, saldo: 40000, a_favor: 0, devuelto: 0 });
   });
 
   it('pago por Nequi: queda POR_VERIFICAR, no entra a la caja y la habitación se entrega igual', async () => {
@@ -183,7 +183,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
     assert.equal(r.statusCode, 201);
     const est = r.json();
     assert.deepEqual([est.pagos[0].medio, est.pagos[0].valor, est.pagos[0].estado], ['NEQUI', 45000, 'POR_VERIFICAR']);
-    assert.deepEqual(est.cuenta, { total_cargos: 45000, pagado: 0, por_verificar: 45000, saldo: 0, a_favor: 0 });
+    assert.deepEqual(est.cuenta, { total_cargos: 45000, pagado: 0, por_verificar: 45000, saldo: 0, a_favor: 0, devuelto: 0 });
     assert.equal(await estadoHabitacion('210'), 'OCUPADA');
     assert.equal(await contar(`SELECT count(*)::int AS n FROM eventos_salida WHERE tipo = 'pago.por_verificar'`), 1);
     const huesped2 = { nombre: 'Huésped Prueba 37', nacionalidad: 'Colombia', es_menor: false };
@@ -226,7 +226,7 @@ describe('Consultar estadías', () => {
     const [s] = await e.bd.consultar<{ id: string }>(`SELECT id FROM estadias WHERE habitacion_numero = '211' AND estado = 'ACTIVA'`);
     const r = await e.app.inject({ method: 'GET', url: `/api/v1/estadias/${s.id}`, headers: { cookie: await e.entrar('admin') } });
     assert.equal(r.statusCode, 200);
-    assert.deepEqual(r.json().cuenta, { total_cargos: 84000, pagado: 26000, por_verificar: 30000, saldo: 28000, a_favor: 0 });
+    assert.deepEqual(r.json().cuenta, { total_cargos: 84000, pagado: 26000, por_verificar: 30000, saldo: 28000, a_favor: 0, devuelto: 0 });
   });
 
   it('una estadía que no existe: 404; un id mal formado: 400', async () => {

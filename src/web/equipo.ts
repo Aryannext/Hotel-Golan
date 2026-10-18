@@ -85,7 +85,11 @@ const FRASES: Record<string, Frase> = {
   'CREAR cargos': (d) => `Agregó un consumo o cargo de ${valor(d)}`,
   'CREAR movimientos_caja': (d) => `Sacó ${valor(d)} de la caja`,
   'CREAR devoluciones': (d) => `Devolvió ${valor(d)} a un huésped que desistió`,
-  'ACTUALIZAR estadias': (d) => d.accion === 'EXTENSION' ? `Extendió una estadía por ${valor(d)}` : 'Dio salida a una habitación',
+  'ACTUALIZAR estadias': (d) => {
+    if (d.accion === 'EXTENSION') return `Extendió una estadía por ${valor(d)}`;
+    if (d.accion === 'CAMBIO_HABITACION') return `Cambió la habitación ${d.de} a la ${d.a}`;
+    return 'Dio salida a una habitación';
+  },
   'ACTUALIZAR habitaciones': (d, r) => `Pasó la habitación ${r.entidad_id} de ${textoEstado(d.de)} a ${textoEstado(d.a)}`,
   'ANULAR pagos': (d) => `Anuló un cobro de ${valor(d)}`,
   'ANULAR movimientos_caja': (d) => `Anuló una salida de dinero de ${valor(d)}`,
