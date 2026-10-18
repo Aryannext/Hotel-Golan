@@ -66,7 +66,7 @@ Salen de HG-ACT-001 §11 (V5-01 a V5-21) y de PRD v0.6. Aprobados por el usuario
 | [TICKET-32](32-productos-de-la-familiar.md) | Productos de la familiar: la regla es por dueño, no por sección | — | **done** |
 | [TICKET-33](33-factura-de-1-a-3-dias-habiles.md) | Factura prevista entre 1 y 3 días hábiles | 25 (hecho) | **done** |
 | [TICKET-34](34-lista-para-la-policia.md) | Quiénes se quedan hoy (lista para la policía) | — | **done** |
-| [TICKET-35](35-informe-de-productos-vendidos.md) | Informe de productos vendidos por turno, día, semana y mes | — | ready-for-agent |
+| [TICKET-35](35-informe-de-productos-vendidos.md) | Informe de productos vendidos por turno, día, semana y mes | — | **done** |
 
 **Orden propuesto:**
 - primero los pequeños que corrigen reglas: 30 → 32 → 33;

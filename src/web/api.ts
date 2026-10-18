@@ -49,6 +49,11 @@ export interface Estadia {
   /** TICKET-26: pedidos de lavandería recibidos sin entregar (aviso al dar salida). */
   lavanderia_por_entregar: number;
 }
+/** FR-32: productos vendidos por grupo y producto en un periodo o un turno. */
+export interface InformeProductos {
+  desde: string | null; hasta: string | null; turno_id: string | null; cantidad: number; valor: number;
+  grupos: Array<{ grupo: string; cantidad: number; valor: number; productos: Array<{ nombre: string; cantidad: number; valor: number }> }>;
+}
 /** FR-31: titular de una habitación ocupada, con el documento completo (para la ronda de la policía). */
 export interface TitularHoy { habitacion_numero: string; nombre: string; tipo_documento: string | null; numero_documento: string | null; entrada_en: string; salida_prevista_en: string }
 /** Medios con los que se paga: el efectivo entra a la caja; las transferencias quedan por confirmar (RN-12). */
@@ -87,6 +92,8 @@ async function pedir<T>(metodo: string, ruta: string, cuerpo?: unknown, cabecera
 export const api = {
   turnos: (desplazamiento = 0, limite = 20) => pedir<{ items: Turno[]; total: number }>('GET', `/turnos?limite=${limite}&desplazamiento=${desplazamiento}`),
   turno: (id: string) => pedir<TurnoDetalle>('GET', `/turnos/${id}`),
+  productosVendidos: (q: { desde: string; hasta: string } | { turno_id: string }) =>
+    pedir<InformeProductos>('GET', `/reportes/productos?${new URLSearchParams(q)}`),
   reporteDias: (desde: string, hasta: string) => pedir<{ items: ResumenDia[] }>('GET', `/reportes/dias?${new URLSearchParams({ desde, hasta })}`),
   iniciarSesion: (usuario: string, pin: string) => pedir<SesionActual>('POST', '/sesiones', { usuario, pin }),
   sesionActual: () => pedir<SesionActual>('GET', '/sesiones/actual'),

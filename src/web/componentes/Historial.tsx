@@ -3,6 +3,7 @@ import { api, type ResumenDia, type Turno, type TurnoDetalle } from '../api.ts';
 import { horaBogota, lineasDelTurno, pesos } from '../logica.ts';
 import { diaHotelActual, errorRango, fechaReporte, textoAjuste } from '../reportes.ts';
 import { pillEstadoPago } from '../presentacion.ts';
+import { ProductosDelTurno, ProductosVendidos } from './ProductosVendidos.tsx';
 
 const tipoTurno = (t: Turno['tipo']) => t === 'DIA' ? 'Día' : 'Noche';
 const estadoTurno = (t: Turno) => ({ ABIERTO: 'En curso', CERRADO: 'Cerrado', POR_RECIBIR: 'Por recibir' })[t.estado];
@@ -55,6 +56,7 @@ function Detalle({ id, recarga, alVolver }: { id: string; recarga: number; alVol
           <p class="ayuda">El conteo y la diferencia conservan lo registrado al cerrar. Los totales de cobros y salidas reflejan las anulaciones posteriores.</p>
         </> : <p class="ayuda">Este turno todavía no tiene un conteo de entrega.</p>}
       </section>
+      <ProductosDelTurno turnoId={id} recarga={recarga} />
       <section class="tarjeta"><h2>Cobros y salidas del turno</h2>
         {lineas.length === 0 ? <p class="vacio">No hay cobros ni salidas registrados.</p> : lineas.map((l) =>
           <div class={`mov${l.anulado ? ' mov--anulado' : ''}`} key={l.id}>
@@ -160,16 +162,19 @@ function PillLinea({ anulado, estado }: { anulado: boolean; estado: string }) {
 }
 
 export function Historial({ recarga }: { recarga: number }) {
-  const [vista, setVista] = useState<'turnos' | 'dias'>('turnos');
+  const [vista, setVista] = useState<'turnos' | 'dias' | 'productos'>('turnos');
   const [reintento, setReintento] = useState(0);
   return <div class="historial">
-    <div class="titulo-vista"><div><h1>Historial</h1><p>Turnos y resumen por día del hotel</p></div>
+    <div class="titulo-vista"><div><h1>Historial</h1><p>Turnos, resumen por día del hotel y productos vendidos</p></div>
       <button type="button" class="btn btn--secundario" onClick={() => setReintento((n) => n + 1)}>Actualizar</button>
     </div>
     <div class="segmentado" aria-label="Tipo de consulta">
       <button type="button" class="opcion" aria-pressed={vista === 'turnos'} onClick={() => setVista('turnos')}>Por turno</button>
       <button type="button" class="opcion" aria-pressed={vista === 'dias'} onClick={() => setVista('dias')}>Por día</button>
+      <button type="button" class="opcion" aria-pressed={vista === 'productos'} onClick={() => setVista('productos')}>Productos</button>
     </div>
-    {vista === 'turnos' ? <Turnos recarga={recarga + reintento} /> : <Dias recarga={recarga + reintento} />}
+    {vista === 'turnos' && <Turnos recarga={recarga + reintento} />}
+    {vista === 'dias' && <Dias recarga={recarga + reintento} />}
+    {vista === 'productos' && <ProductosVendidos recarga={recarga + reintento} />}
   </div>;
 }

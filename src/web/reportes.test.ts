@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { diaHotelActual, fechaReporte, errorRango, textoAjuste } from './reportes.ts';
+import { diaHotelActual, fechaReporte, errorRango, textoAjuste, rangoPeriodo, textoGrupo } from './reportes.ts';
 
 describe('RN-15 — presentación del historial', () => {
   it('antes de las 6:30 propone el día anterior en Bogotá, incluso al cambiar de año', () => {
@@ -27,5 +27,24 @@ describe('ADR-010 (V5-16) — diferencia ajustada por lo registrado después', (
   });
   it('si no cambió, no dice nada', () => {
     assert.equal(textoAjuste({ ...cierre, diferencia_ajustada: 45000 }), null);
+  });
+});
+
+describe('FR-32 (V5-20) — periodos del informe de productos', () => {
+  it('día: el mismo día del hotel', () => {
+    assert.deepEqual(rangoPeriodo('DIA', '2026-10-15'), { desde: '2026-10-15', hasta: '2026-10-15' });
+  });
+  it('semana: de lunes a domingo', () => {
+    assert.deepEqual(rangoPeriodo('SEMANA', '2026-10-15'), { desde: '2026-10-12', hasta: '2026-10-18' });
+    assert.deepEqual(rangoPeriodo('SEMANA', '2026-10-18'), { desde: '2026-10-12', hasta: '2026-10-18' });
+  });
+  it('mes: el mes calendario, también en febrero y diciembre', () => {
+    assert.deepEqual(rangoPeriodo('MES', '2026-10-15'), { desde: '2026-10-01', hasta: '2026-10-31' });
+    assert.deepEqual(rangoPeriodo('MES', '2026-02-10'), { desde: '2026-02-01', hasta: '2026-02-28' });
+    assert.deepEqual(rangoPeriodo('MES', '2026-12-31'), { desde: '2026-12-01', hasta: '2026-12-31' });
+  });
+  it('nombra los grupos en palabras', () => {
+    assert.equal(textoGrupo('VITRINA_PASABOCAS'), 'Vitrina de pasabocas');
+    assert.equal(textoGrupo('LAVANDERIA'), 'Lavandería');
   });
 });

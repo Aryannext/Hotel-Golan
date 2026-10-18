@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Regla (18-10-2026)
 «me gustaria saber que productos vende cada turno y que al finalizar el dia de 6:30am hasta el otro dia 6;30 am me salga o me muestre lo de ese dia, si quiero verlo semanal tambien o mensual tambien. sin contar cada cambio de turno eso es fastidioso.» (V5-20)
@@ -21,6 +21,7 @@
 - **Turno de un cargo:** el turno en cuyo periodo se registró, porque los cargos no guardan su turno. Las ventas sí lo guardan.
 - **Semana y mes:** un rango de días del hotel. Semana de lunes a domingo; mes calendario.
 - **Agrupación:** por grupo (nevera, vitrinas y lavandería) y producto, con subtotales.
+- **Al construir:** la lavandería de huéspedes ya se cuenta como cargo de producto. La de personas de afuera se suma desde sus pedidos, para no contarla dos veces. Lo de un turno abierto va hasta este momento.
 
 ## Invariantes de negocio
 - Solo la administración (403 para recepción).
@@ -29,12 +30,12 @@
 - Reglas evaluadas en America/Bogota.
 
 ## Criterios de aceptación
-- [ ] En un turno con 2 «Agua» cargadas a una habitación y 1 «Agua» de contado, el informe del turno muestra Agua × 3 con su valor.
-- [ ] Un día del hotel suma su turno de día y su turno de noche.
-- [ ] Anular el pago de una venta de contado la quita del informe.
-- [ ] Cambiar el precio de un producto no altera lo ya vendido en el informe.
-- [ ] Rango semanal y mensual con los totales correctos.
-- [ ] Recepción recibe 403.
+- [x] En un turno con 2 «Agua» cargadas a una habitación y 1 «Agua» de contado, el informe del turno muestra Agua × 3 con su valor.
+- [x] Un día del hotel suma su turno de día y su turno de noche.
+- [x] Anular el pago de una venta de contado la quita del informe.
+- [x] Cambiar el precio de un producto no altera lo ya vendido en el informe.
+- [x] Rango semanal y mensual con los totales correctos.
+- [x] Recepción recibe 403.
 
 ## Módulos a tocar
 reportes (productos vendidos), PWA (Historial: selector turno, día, semana y mes), CONTRATO_API (aditivo).
