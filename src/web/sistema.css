@@ -73,6 +73,9 @@
 .historial__importes dt { font: 500 13px/1.4 var(--f-ui); color: var(--texto-2); }
 .historial__importes dd { margin: 4px 0 0; font: 700 20px/1.3 var(--f-ui); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .historial__filtro { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 12px; }
+/* TICKET-35: periodo (día, semana o mes) en una fila y la fecha debajo. */
+.productos__filtro { display: grid; gap: 12px; }
+.productos__filtro .segmentado { display: grid; grid-template-columns: repeat(3, 1fr); }
 .historial .mov__txt { min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 600px) {
   .historial__importes { grid-template-columns: repeat(2, minmax(0, 1fr)); }

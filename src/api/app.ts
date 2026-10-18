@@ -28,6 +28,7 @@ import { rutasLavanderia } from './lavanderia/rutas.ts';
 import { rutasFacturacion } from './facturacion/rutas.ts';
 import { rutasCambioHabitacion } from './estadias/cambio.ts';
 import { rutasHuespedesHoy } from './estadias/huespedesHoy.ts';
+import { rutasProductosVendidos } from './reportes/productos.ts';
 import { Publicador, rutasEventos } from './tiempo_real/eventos.ts';
 import { ErrorRegla } from './reglas/reglas.ts';
 
@@ -106,6 +107,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rutasFacturacion(api, o.bd, ahora);
     rutasCambioHabitacion(api, o.bd, ahora);
     rutasHuespedesHoy(api, o.bd, ahora);
+    rutasProductosVendidos(api, o.bd, ahora);
     rutasEventos(api, o.bd, ahora, publicador, conexionesVivas);
     listo();
   }, { prefix: '/api/v1' });
