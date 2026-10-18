@@ -63,7 +63,7 @@ Salen de HG-ACT-001 §11 (V5-01 a V5-21) y de PRD v0.6. Aprobados por el usuario
 |---|---|---|---|
 | [TICKET-30](30-franja-de-salida-10am.md) | Nueva franja de salida: desde las 10:00 a. m., a las 12 m. del día siguiente | — | **done** |
 | [TICKET-31](31-registro-tardio-al-turno-de-entrada.md) | Registro tardío: la plata va al turno en que entró el huésped | — | ready-for-agent |
-| [TICKET-32](32-productos-de-la-familiar.md) | Productos de la familiar: la regla es por dueño, no por sección | — | ready-for-agent |
+| [TICKET-32](32-productos-de-la-familiar.md) | Productos de la familiar: la regla es por dueño, no por sección | — | **done** |
 | [TICKET-33](33-factura-de-1-a-3-dias-habiles.md) | Factura prevista entre 1 y 3 días hábiles | 25 (hecho) | ready-for-agent |
 | [TICKET-34](34-lista-para-la-policia.md) | Quiénes se quedan hoy (lista para la policía) | — | ready-for-agent |
 | [TICKET-35](35-informe-de-productos-vendidos.md) | Informe de productos vendidos por turno, día, semana y mes | — | ready-for-agent |

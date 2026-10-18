@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Regla (18-10-2026)
 «mi familiar vende shampoo, crema para el cabello cositas asi verdad como eso es de ella se deja aparte […] ese producto puedes estar en cualquer seccion de la vitrina pero en este caso esta en pa primera nada más. esto no debe de entrar en caja por que no es mio.» (V5-19)
@@ -21,10 +21,10 @@ Valor anterior: la API rechazaba productos de la sección 1 (TICKET-20; T4-10).
 - Los productos existentes no cambian.
 
 ## Criterios de aceptación
-- [ ] Crear un producto del hotel en la sección 1: 201.
-- [ ] Crear un producto con `pertenece_a: FAMILIAR`: 400, como hoy.
-- [ ] Ajustes muestra la nota sobre los productos de la familiar.
-- [ ] CONTRATO_API: `seccion` de 1 a 6 (v0.4.6, cambio aditivo).
+- [x] Crear un producto del hotel en la sección 1: 201.
+- [x] Crear un producto con `pertenece_a: FAMILIAR`: 400, como hoy.
+- [x] Ajustes muestra la nota sobre los productos de la familiar.
+- [x] CONTRATO_API: `seccion` de 1 a 6 (v0.4.6, cambio aditivo).
 
 ## Módulos a tocar
 configuración (productos), PWA (Ajustes), CONTRATO_API.

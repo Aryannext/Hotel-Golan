@@ -1,5 +1,6 @@
 // Catálogo para cargos (FR-06) y su configuración (FR-22, FR-24): la administración crea y edita productos de todos los grupos.
-// La sección 1 de la vitrina (de la familiar de la dueña) no va en el sistema (RN-13, T4-10): todo producto es del hotel.
+// Los productos de la familiar de la dueña no van en el sistema, estén en la sección que estén (RN-13, V5-19): todo
+// producto es del hotel. Antes se bloqueaba la sección 1 por número (T4-10).
 // Un cambio de precio aplica a los cargos nuevos: cada cargo guarda su valor unitario al registrarse.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
@@ -19,8 +20,7 @@ const ESQUEMA_PRODUCTO = {
     nombre: { type: 'string', minLength: 2, maxLength: 80 },
     grupo: { type: 'string', enum: ['NEVERA', 'VITRINA_ASEO', 'VITRINA_PASABOCAS', 'LAVANDERIA', 'OTROS'] },
     precio: { type: 'integer', minimum: 0, maximum: 10000000 },
-    // Sección 1 = productos de la familiar: fuera del sistema.
-    seccion: { type: 'integer', minimum: 2, maximum: 6 },
+    seccion: { type: 'integer', minimum: 1, maximum: 6 },
     pertenece_a: { type: 'string', enum: ['HOTEL'] },
     activo: { type: 'boolean' },
   },

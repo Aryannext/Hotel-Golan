@@ -1,7 +1,7 @@
 // TICKET-15 · presentación de la configuración (FR-22): tarifas, reglas y productos en palabras sencillas.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { etiquetaTarifa, tarifasCambiadas, reglasCambiadas, textoHora, erroresProducto, GRUPOS_EDITABLES, textoRegla, leerCantidadSurtido } from './ajustes.ts';
+import { etiquetaTarifa, tarifasCambiadas, reglasCambiadas, textoHora, erroresProducto, GRUPOS_EDITABLES, textoRegla, leerCantidadSurtido, NOTA_FAMILIAR } from './ajustes.ts';
 
 const tarifas = [
   { id: 't1', tipo_habitacion: 'AIRE' as const, modalidad: 'NOCHE' as const, personas: 1, valor: 60000, vigente_desde: '2026-10-01T00:00:00-05:00' },
@@ -63,5 +63,13 @@ describe('TICKET-21 · surtido en Ajustes', () => {
     for (const t of ['', '0', '-3', '2.5', 'abc', '10001']) {
       assert.deepEqual(leerCantidadSurtido(t), { cantidad: null, error: 'Escriba cuántas unidades llegaron (de 1 a 10.000).' }, t);
     }
+  });
+});
+
+describe('RN-13 (V5-19) — productos de la familiar', () => {
+  it('la nota de Ajustes habla de los productos de la familiar, estén en la sección que estén, y no de la sección 1', () => {
+    assert.match(NOTA_FAMILIAR, /familiar/);
+    assert.match(NOTA_FAMILIAR, /estén en la sección que estén/);
+    assert.doesNotMatch(NOTA_FAMILIAR, /sección 1/);
   });
 });
