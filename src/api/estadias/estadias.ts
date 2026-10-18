@@ -7,7 +7,7 @@ import { auditar } from '../comun/auditoria.ts';
 import { aBogota, horaTexto } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
-import { turnoAbiertoId } from '../caja/turnos.ts';
+import { diferenciaAjustada, turnoAbiertoId, turnoDeEntrada } from '../caja/turnos.ts';
 import { cotizar, type ModalidadCotizable, type TipoHabitacion } from '../reglas/reglas.ts';
 import { descuentoPedido, regla, tarifasVigentes } from './cotizaciones.ts';
 import { publicarEventos, type Evento } from '../comun/eventos.ts';
@@ -179,7 +179,10 @@ async function cobrarAlEntrar(tx: Bd, b: Cuerpo, e: { estadiaId: string; turnoId
 
 /** `momento` es cuándo se digita; `entrada` es la hora real (igual a `momento` salvo en un registro tardío, ADR-010). */
 async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuario: string }, momento: Date, entrada: Date) {
-  const turnoId = await turnoAbiertoId(tx);
+  const turnoAbierto = await turnoAbiertoId(tx);
+  // ADR-010 (V5-16): en un registro tardío, la estadía y su pago son del turno en que entró el huésped, aunque ya se entregó.
+  const delTalonario = b.registro_tardio ? await turnoDeEntrada(tx, entrada) : null;
+  const turnoId = delTalonario?.id ?? turnoAbierto;
   if (!b.autorizacion.otorgada) {
     throw new ErrorApi(422, 'AUTORIZACION_REQUERIDA', 'Sin la autorización del huésped para el tratamiento de sus datos no se puede registrar la entrada.');
   }
@@ -215,16 +218,25 @@ async function registrarEntrada(tx: Bd, b: Cuerpo, usuario: { id: string; usuari
   if (c.descuento > 0) await cargo('DESCUENTO', 'Descuento por noche (lo pidió el cliente)', noches, -c.descuento / noches);
 
   const eventoPago = alSalir ? null : await cobrarAlEntrar(tx, b, { estadiaId, turnoId, total: c.total, usuarioId: usuario.id, momento });
+  // En un turno ya entregado, su diferencia cambia: se avisa a la administración con la diferencia ajustada.
+  const eventoTurno: Evento | null = delTalonario?.cerrado && !alSalir ? ['turno.diferencia', {
+    turno_id: turnoId, momento: 'REGISTRO_TARDIO', valor: c.total, habitacion_numero: b.habitacion_numero,
+    registrado_por: usuario.usuario, diferencia_ajustada: await diferenciaAjustada(tx, turnoId),
+  }] : null;
 
   await tx.consultar('UPDATE habitaciones SET estado = $2, actualizado_en = $3 WHERE numero = $1', [b.habitacion_numero, 'OCUPADA', momento]);
   // Auditoría sin datos personales (FR-20, ADR-006).
   await auditar(tx, {
     usuarioId: usuario.id, accion: 'CREAR', entidad: 'estadias', entidadId: estadiaId,
-    detalle: { habitacion: b.habitacion_numero, modalidad: b.modalidad, total: String(c.total), pago: b.pago.forma, ...(b.registro_tardio ? { registro_tardio: 'si' } : {}) },
+    detalle: {
+      habitacion: b.habitacion_numero, modalidad: b.modalidad, total: String(c.total), pago: b.pago.forma,
+      ...(b.registro_tardio ? { registro_tardio: 'si' } : {}), ...(turnoId === turnoAbierto ? {} : { turno: 'de la entrada real' }),
+    },
     ocurrido: momento,
   });
   await publicarEventos(tx, [
     ...(eventoPago ? [eventoPago] : []),
+    ...(eventoTurno ? [eventoTurno] : []),
     ['estadia.creada', { entidad_id: estadiaId, habitacion_numero: b.habitacion_numero }],
     ['habitacion.actualizada', { numero: b.habitacion_numero, estado: 'OCUPADA' }],
   ], momento);

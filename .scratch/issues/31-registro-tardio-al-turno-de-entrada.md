@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Regla (18-10-2026)
 «le corresponde al turno en el cual el huesped entro» y, en el caso de A y B: «en la A» (V5-16). Valor anterior [P]: el dinero entraba a la caja del turno que digita (TICKET-18).
@@ -27,11 +27,11 @@
 - Auditoría con quién digitó, el turno destino y el valor, sin datos personales (FR-20).
 
 ## Criterios de aceptación
-- [ ] Entrada a las 3:00 a. m. (turno de noche de A) digitada por B a las 8:00 a. m.: el pago tiene el turno de A, y la caja abierta de B no sube.
-- [ ] El detalle del turno de A en el Historial muestra la entrada y la diferencia ajustada; el cierre original no cambia.
-- [ ] El resumen del día del hotel cuenta esa plata en el día de la entrada real.
-- [ ] La administración ve el aviso del registro tardío en un turno cerrado.
-- [ ] Un registro tardío dentro del turno abierto se comporta igual que hoy.
+- [x] Entrada a las 3:00 a. m. (turno de noche de A) digitada por B a las 8:00 a. m.: el pago tiene el turno de A, y la caja abierta de B no sube.
+- [x] El detalle del turno de A en el Historial muestra la entrada y la diferencia ajustada; el cierre original no cambia.
+- [x] El resumen del día del hotel cuenta esa plata en el día de la entrada real.
+- [x] La administración ve el aviso del registro tardío en un turno cerrado.
+- [x] Un registro tardío dentro del turno abierto se comporta igual que hoy.
 
 ## Módulos a tocar
 estadías (registro tardío), caja y turnos (turno por hora y diferencia ajustada), reportes, avisos, PWA (Historial y ficha), CONTRATO_API (aditivo).

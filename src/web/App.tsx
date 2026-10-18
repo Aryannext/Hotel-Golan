@@ -70,7 +70,7 @@ export function App() {
     setRecarga((n) => n + 1);
     const a = ev && avisoEvento(ev);
     // A la administración le interesa lo nuevo por confirmar; a recepción, si llegó o no.
-    if (a && (esAdmin ? ev.tipo === 'pago.por_verificar' : ev.tipo !== 'pago.por_verificar')) setAviso(a);
+    if (a && (esAdmin ? ['pago.por_verificar', 'turno.diferencia'].includes(ev.tipo) : ev.tipo !== 'pago.por_verificar')) setAviso(a);
   });
 
   async function salir() {

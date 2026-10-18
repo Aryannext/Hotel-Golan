@@ -128,6 +128,10 @@ describe('TICKET-05 · pagos por confirmar y avisos en vivo', () => {
   it('convierte el evento de verificación en un aviso sencillo para recepción', () => {
     const base = { id: '9', ocurrido_en: '2026-10-13T06:20:00-05:00', entidad_id: 'x', habitacion_numero: '211', valor: 30000 };
     assert.deepEqual(avisoEvento({ ...base, tipo: 'pago.verificado' }), { tono: 'exito', texto: 'Llegó la transferencia de $30.000 de la habitación 211.' });
+    // TICKET-31: un registro tardío en un turno ya entregado (trae habitación); la diferencia de una entrega no la trae.
+    assert.deepEqual(avisoEvento({ ...base, tipo: 'turno.diferencia', habitacion_numero: '206', valor: 45000 }), {
+      tono: 'info', texto: 'Se pasó al sistema una entrada del talonario (habitación 206, $45.000) en un turno ya entregado. Revise su diferencia en el Historial.' });
+    assert.equal(avisoEvento({ ...base, tipo: 'turno.diferencia', habitacion_numero: null, valor: null }), null);
     assert.deepEqual(avisoEvento({ ...base, tipo: 'pago.rechazado' }),
       { tono: 'alerta', texto: 'La transferencia de $30.000 de la habitación 211 NO llegó: cóbrela de nuevo antes de la salida.' });
     assert.deepEqual(avisoEvento({ ...base, tipo: 'pago.por_verificar' }), { tono: 'info', texto: 'Nueva transferencia por confirmar: $30.000 de la habitación 211.' });

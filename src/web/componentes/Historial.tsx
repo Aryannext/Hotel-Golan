@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, type ResumenDia, type Turno, type TurnoDetalle } from '../api.ts';
 import { horaBogota, lineasDelTurno, pesos } from '../logica.ts';
-import { diaHotelActual, errorRango, fechaReporte } from '../reportes.ts';
+import { diaHotelActual, errorRango, fechaReporte, textoAjuste } from '../reportes.ts';
 import { pillEstadoPago } from '../presentacion.ts';
 
 const tipoTurno = (t: Turno['tipo']) => t === 'DIA' ? 'Día' : 'Noche';
@@ -51,6 +51,7 @@ function Detalle({ id, recarga, alVolver }: { id: string; recarga: number; alVol
           <p>Pago del turno: <b>{turno.cierre.pago_tomado ? 'Sí lo tomó' : 'No lo tomó'}</b>.</p>
           <p>Esperado al entregar: <b>{pesos(turno.cierre.efectivo_esperado)}</b>. Entregó: <b>{turno.cierre.entregado_por}</b>.</p>
           {turno.cierre.motivo_diferencia && <p class="nota">Motivo de la diferencia: {turno.cierre.motivo_diferencia}</p>}
+          {textoAjuste(turno.cierre) && <p class="nota nota--info">{textoAjuste(turno.cierre)}</p>}
           <p class="ayuda">El conteo y la diferencia conservan lo registrado al cerrar. Los totales de cobros y salidas reflejan las anulaciones posteriores.</p>
         </> : <p class="ayuda">Este turno todavía no tiene un conteo de entrega.</p>}
       </section>

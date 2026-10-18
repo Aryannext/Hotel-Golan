@@ -33,7 +33,7 @@ describe('ADR-010 — Registro tardío', () => {
     assert.equal(est.salida_prevista_en, '2026-10-13T12:00:00-05:00');
     assert.deepEqual([est.registro_tardio, est.registrada_por, est.registrada_en], [true, 'recepcion2', '2026-10-13T06:10:00-05:00']);
     assert.equal(est.cargos.find((c: { tipo: string }) => c.tipo === 'ALOJAMIENTO').valor, 45000);
-    // El dinero entra a la caja del turno que digita, a la hora en que se digita.
+    // El dinero va al turno en que entró el huésped (V5-16); aquí es el mismo turno abierto. Se registra a la hora en que se digita.
     assert.equal(est.pagos[0].registrado_en, '2026-10-13T06:10:00-05:00');
     assert.equal(est.pagos[0].turno_id, e.semilla.turnoId);
     const [f] = await e.bd.consultar<{ registro_tardio: boolean }>('SELECT registro_tardio FROM estadias WHERE id = $1', [est.id]);

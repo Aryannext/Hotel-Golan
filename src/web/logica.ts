@@ -148,6 +148,10 @@ export function avisoEvento(ev: EventoVivo): { tono: 'exito' | 'alerta' | 'info'
   if (ev.tipo === 'pago.verificado') return { tono: 'exito', texto: `Llegó la transferencia de ${valor} ${de}.` };
   if (ev.tipo === 'pago.rechazado') return { tono: 'alerta', texto: `La transferencia de ${valor} ${de} NO llegó${siNoLlego}` };
   if (ev.tipo === 'pago.por_verificar') return { tono: 'info', texto: `Nueva transferencia por confirmar: ${valor} ${de}.` };
+  // TICKET-31: solo el registro tardío en un turno entregado trae habitación; la diferencia de una entrega o un recibo, no.
+  if (ev.tipo === 'turno.diferencia' && ev.habitacion_numero) {
+    return { tono: 'info', texto: `Se pasó al sistema una entrada del talonario (habitación ${ev.habitacion_numero}, ${valor}) en un turno ya entregado. Revise su diferencia en el Historial.` };
+  }
   return null;
 }
 
