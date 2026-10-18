@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   accionCuarto, claseAsistente, cuantos, detalleCuarto, etiquetaCampana, icoMovimiento, icoTono, notaCobro, notaFranja, pillEstadoPago,
-  pistaCuarto, textoCambio, textoDesistimiento, textoDevolucion, tituloFicha,
+  pistaCuarto, textoCambio, textoDesistimiento, textoDevolucion, textoDocumento, tituloFicha,
 } from './presentacion.ts';
 import type { Habitacion } from './api.ts';
 
@@ -112,5 +112,12 @@ describe('ficha', () => {
     assert.equal(textoDesistimiento('205', { valor: 45000, medio: 'TRANSFERENCIA' }),
       'Desistimiento registrado en la 205: se devolvieron $45.000 por transferencia. La habitación queda por revisar.');
     assert.equal(textoDesistimiento('205', { valor: 0, medio: null }), 'Desistimiento registrado en la 205, sin devolución. La habitación queda por revisar.');
+  });
+});
+
+describe('FR-31 — quiénes se quedan hoy', () => {
+  it('muestra el documento completo o «Sin documento»', () => {
+    assert.equal(textoDocumento({ tipo_documento: 'CC', numero_documento: 'PRUEBA0001' }), 'CC PRUEBA0001');
+    assert.equal(textoDocumento({ tipo_documento: null, numero_documento: null }), 'Sin documento');
   });
 });

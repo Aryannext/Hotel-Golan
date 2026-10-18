@@ -75,6 +75,7 @@ describe('FR-20 — actividad en palabras', () => {
       [r('ACTUALIZAR', 'productos', { nombre: 'Agua grande' }), 'Cambió el producto «Agua grande» del catálogo'],
       [r('ACTUALIZAR', 'estadias', { accion: 'CAMBIO_HABITACION', de: '206', a: '201', valor: '15000' }), 'Cambió la habitación 206 a la 201'],
       [r('CREAR', 'cargos', { tipo: 'DANO', valor: '25000' }), 'Cobró un daño de $25.000'],
+      [r('CONSULTAR', 'huespedes', { cantidad: '3' }), 'Consultó quiénes se quedan hoy (3 habitaciones)'],
       [r('CREAR', 'solicitudes_factura', { estado: 'PENDIENTE' }), 'Anotó una solicitud de factura'],
       [r('ACTUALIZAR', 'solicitudes_factura', { estado: 'ENVIADA_AL_CONTADOR' }), 'Pasó una solicitud de factura al contador'],
       [r('ACTUALIZAR', 'solicitudes_factura', { estado: 'ENTREGADA' }), 'Marcó una factura como entregada al huésped'],
