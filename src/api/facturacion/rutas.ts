@@ -7,7 +7,7 @@ import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
-import { fechaPrevista } from './fechas.ts';
+import { fechaPrevista, fechaPrevistaHasta } from './fechas.ts';
 
 type Estado = 'PENDIENTE' | 'ENVIADA_AL_CONTADOR' | 'ENTREGADA';
 interface Datos { documento: string; correo?: string; telefono?: string }
@@ -43,7 +43,10 @@ async function leer(bd: Bd, filtro: { id?: string; estadiaId?: string; estados?:
        LEFT JOIN usuarios env ON env.id = s.enviada_por LEFT JOIN usuarios ent ON ent.id = s.entregada_por
       WHERE ($1::uuid IS NULL OR s.id = $1) AND ($2::uuid IS NULL OR s.estadia_id = $2) AND ($3::text[] IS NULL OR s.estado = ANY($3))
       ORDER BY s.registrada_en, s.id`, [filtro.id ?? null, filtro.estadiaId ?? null, filtro.estados ?? null]);
-  return filas.map((f) => ({ ...f, registrada_en: fechaHora(f.registrada_en), enviada_en: fechaHora(f.enviada_en), entregada_en: fechaHora(f.entregada_en) }));
+  return filas.map((f) => ({
+    ...f, fecha_prevista_hasta: fechaPrevistaHasta(new Date(f.registrada_en)),
+    registrada_en: fechaHora(f.registrada_en), enviada_en: fechaHora(f.enviada_en), entregada_en: fechaHora(f.entregada_en),
+  }));
 }
 
 export function rutasFacturacion(app: FastifyInstance, bd: Bd, ahora: () => Date) {

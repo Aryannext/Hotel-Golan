@@ -1,10 +1,11 @@
-// Solicitudes de factura (TICKET-25; FR-28, RN-23): recepción anota el RUT o NIT y el correo o el celular; la
-// administración se los pasa al contador, que hace la factura y se la envía al huésped. El sistema no hace facturas.
+// Solicitudes de factura (TICKET-25 y TICKET-33; FR-28, RN-23): recepción anota el RUT o NIT y el correo o el celular;
+// la administración se los pasa al contador, que hace la factura en 1 a 3 días hábiles y se la devuelve. Ella, o
+// recepción, se la envía al huésped por WhatsApp o correo. El sistema no hace facturas.
 
 export type EstadoFactura = 'PENDIENTE' | 'ENVIADA_AL_CONTADOR' | 'ENTREGADA';
 export interface SolicitudFactura {
   id: string; estadia_id: string; habitacion_numero: string; documento: string | null; correo: string | null; telefono: string | null;
-  estado: EstadoFactura; fecha_prevista: string; registrada_por: string; registrada_en: string;
+  estado: EstadoFactura; fecha_prevista: string; fecha_prevista_hasta: string; registrada_por: string; registrada_en: string;
   enviada_por: string | null; enviada_en: string | null; entregada_por: string | null; entregada_en: string | null;
 }
 export interface FormFactura { documento: string; correo: string; telefono: string }
@@ -52,8 +53,14 @@ export function fechaLarga(fecha: string): string {
   return `${DIAS[d.getUTCDay()]} ${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`;
 }
 
+/** «entre el lunes 19 y el miércoles 21 de octubre»; si cambia de mes, cada fecha con su mes. */
+export function textoPrevista(desde: string, hasta: string): string {
+  const [d, h] = [fechaLarga(desde), fechaLarga(hasta)];
+  return desde.slice(0, 7) === hasta.slice(0, 7) ? `entre el ${d.replace(/ de \S+$/, '')} y el ${h}` : `entre el ${d} y el ${h}`;
+}
+
 const PASOS: Partial<Record<EstadoFactura, { estado: EstadoFactura; texto: string }>> = {
   PENDIENTE: { estado: 'ENVIADA_AL_CONTADOR', texto: 'Ya se la pasé al contador' },
-  ENVIADA_AL_CONTADOR: { estado: 'ENTREGADA', texto: 'El contador ya la envió' },
+  ENVIADA_AL_CONTADOR: { estado: 'ENTREGADA', texto: 'Ya se la envié al huésped' },
 };
 export const siguientePaso = (estado: EstadoFactura) => PASOS[estado] ?? null;
