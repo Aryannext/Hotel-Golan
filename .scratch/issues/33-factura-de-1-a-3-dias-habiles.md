@@ -7,7 +7,7 @@
 
 **Blocked by:** TICKET-25 (Solicitudes de factura; ya hecho).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Regla (18-10-2026)
 - «depende se demora 1 hasta 3 dias en mandarme la factura»; «no sabados y domingos no trabaja el contador y los festivos tampoco» (V5-09, V5-10).
@@ -18,17 +18,17 @@ Valor anterior [P/V]: una sola fecha, el siguiente día hábil, y un texto que d
 ## Invariantes de negocio
 - Se reutiliza el cálculo de días hábiles y festivos del TICKET-25.
 - La respuesta agrega `fecha_prevista_hasta` (cambio aditivo). `fecha_prevista` sigue siendo el primer día del rango.
-- Las solicitudes ya anotadas reciben su `fecha_prevista_hasta` calculado desde su fecha de registro.
+- Las solicitudes ya anotadas reciben su `fecha_prevista_hasta` calculado desde su fecha de registro. Al construir se calculó al leer, sin migración ni columna nueva: sale siempre de `registrada_en`.
 
 ## Criterios de aceptación
-- [ ] Pedida el viernes 16-10-2026: entre el 19 y el 21 de octubre.
-- [ ] Pedida el viernes 13-11-2026 (el lunes 16 es festivo): entre el 17 y el 19 de noviembre.
-- [ ] La ficha y «Por confirmar» muestran «entre el … y el …».
-- [ ] La nota de la ficha dice que la factura la envía la administración o recepción por WhatsApp o correo.
-- [ ] Los escenarios @pendiente de RN-23 de docs/TESTS_ACEPTACION.feature v0.4 pasan.
+- [x] Pedida el viernes 16-10-2026: entre el 19 y el 21 de octubre.
+- [x] Pedida el viernes 13-11-2026 (el lunes 16 es festivo): entre el 17 y el 19 de noviembre.
+- [x] La ficha y «Por confirmar» muestran «entre el … y el …».
+- [x] La nota de la ficha dice que la factura la envía la administración o recepción por WhatsApp o correo.
+- [x] Los escenarios @pendiente de RN-23 de docs/TESTS_ACEPTACION.feature v0.4 pasan.
 
 ## Módulos a tocar
-facturación (fechas y respuesta), migración aditiva, PWA (ficha y «Por confirmar»), CONTRATO_API (aditivo).
+facturación (fechas y respuesta), PWA (ficha y «Por confirmar»), CONTRATO_API (aditivo).
 
 ## Verificación
 `npm test -- --test-name-pattern="RN-23|factura" && npm run tipos`

@@ -3,7 +3,7 @@
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { crearEntorno, type Entorno } from './pruebas/entorno.ts';
-import { fechaPrevista, festivosColombia } from './facturacion/fechas.ts';
+import { fechaPrevista, fechaPrevistaHasta, festivosColombia } from './facturacion/fechas.ts';
 import { anonimizarVencidos } from './privacidad/anonimizacion.ts';
 
 describe('RN-23 — fecha prevista de la factura', () => {
@@ -22,6 +22,17 @@ describe('RN-23 — fecha prevista de la factura', () => {
     it(porque, () => assert.equal(fechaPrevista(new Date(pedida)), esperada));
   }
 
+  // V5-09 y V5-10: el contador tarda de 1 a 3 días hábiles (sin sábados, domingos ni festivos).
+  const hasta: Array<[string, string, string]> = [
+    ['2026-10-16T10:00:00-05:00', '2026-10-21', 'viernes: hasta el miércoles (3 días hábiles)'],
+    ['2026-11-13T09:00:00-05:00', '2026-11-19', 'viernes antes del festivo del lunes 16: hasta el jueves'],
+    ['2026-10-13T08:00:00-05:00', '2026-10-16', 'martes: hasta el viernes'],
+    ['2026-12-30T10:00:00-05:00', '2027-01-05', 'fin de año: salta el 1 de enero y el fin de semana'],
+  ];
+  for (const [pedida, esperada, porque] of hasta) {
+    it(`hasta 3 días hábiles — ${porque}`, () => assert.equal(fechaPrevistaHasta(new Date(pedida)), esperada));
+  }
+
   it('festivos de Colombia en 2026 (Ley 51 de 1983: los trasladables pasan al lunes)', () => {
     assert.deepEqual(festivosColombia(2026), [
       '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03', '2026-05-01', '2026-05-18', '2026-06-08',
@@ -33,7 +44,7 @@ describe('RN-23 — fecha prevista de la factura', () => {
 
 interface Solicitud {
   id: string; estadia_id: string; habitacion_numero: string; documento: string | null; correo: string | null; telefono: string | null;
-  estado: string; fecha_prevista: string; registrada_por: string; registrada_en: string;
+  estado: string; fecha_prevista: string; fecha_prevista_hasta: string; registrada_por: string; registrada_en: string;
   enviada_por: string | null; enviada_en: string | null; entregada_por: string | null; entregada_en: string | null;
 }
 
@@ -64,6 +75,7 @@ describe('FR-28 — recepción anota la solicitud desde la estadía', () => {
     assert.deepEqual([s.habitacion_numero, s.documento, s.correo, s.telefono, s.estado, s.registrada_por, s.fecha_prevista],
       ['205', DATOS.documento, DATOS.correo, DATOS.telefono, 'PENDIENTE', 'recepcion2', '2026-10-19']);
     assert.equal(s.registrada_en, '2026-10-16T10:00:00-05:00');
+    assert.equal(s.fecha_prevista_hasta, '2026-10-21', 'entre 1 y 3 días hábiles: del lunes 19 al miércoles 21');
   });
 
   it('la ficha de la estadía la muestra con su estado', async () => {

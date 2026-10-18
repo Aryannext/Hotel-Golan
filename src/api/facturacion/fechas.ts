@@ -1,6 +1,6 @@
-// Fecha prevista de una solicitud de factura (RN-23): el contador trabaja días hábiles. Pedida un viernes, el lunes;
-// si ese lunes es festivo, el martes (T2-20). Entre semana se supone el siguiente día hábil: el tiempo normal del
-// trámite está por confirmar [P/V]. Los festivos de Colombia siguen la Ley 51 de 1983 (trasladables al lunes) [P].
+// Fecha prevista de una solicitud de factura (RN-23): el contador tarda de 1 a 3 días hábiles y no trabaja sábados,
+// domingos ni festivos (administradora, HG-ACT-001 V5-09 y V5-10). Los festivos de Colombia siguen la Ley 51 de 1983
+// (trasladables al lunes) [P].
 import { aBogota } from '../comun/tiempo.ts';
 
 const DIA_MS = 86_400_000;
@@ -29,12 +29,19 @@ export function festivosColombia(anio: number): string[] {
   return [...fijos, ...trasladables, ...religiosos].map(iso).sort((a, b) => a.localeCompare(b));
 }
 
-/** Primer día hábil (lunes a viernes, sin festivos) después del día en Bogotá en que se pidió. */
-export function fechaPrevista(momento: Date): string {
+/** El n-ésimo día hábil (lunes a viernes, sin festivos) después del día en Bogotá en que se pidió. */
+function diaHabil(momento: Date, n: number): string {
   let d = new Date(`${aBogota(momento).slice(0, 10)}T00:00:00Z`);
   // También los del año siguiente: una solicitud de fin de diciembre pasa a enero.
   const festivos = new Set([...festivosColombia(d.getUTCFullYear()), ...festivosColombia(d.getUTCFullYear() + 1)]);
-  do d = masDias(d, 1);
-  while (d.getUTCDay() === 0 || d.getUTCDay() === 6 || festivos.has(iso(d)));
+  for (let contados = 0; contados < n;) {
+    d = masDias(d, 1);
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6 && !festivos.has(iso(d))) contados++;
+  }
   return iso(d);
 }
+
+/** Desde cuándo puede estar lista: el primer día hábil después de pedirla. */
+export const fechaPrevista = (momento: Date) => diaHabil(momento, 1);
+/** Hasta cuándo: el tercer día hábil (V5-09). */
+export const fechaPrevistaHasta = (momento: Date) => diaHabil(momento, 3);

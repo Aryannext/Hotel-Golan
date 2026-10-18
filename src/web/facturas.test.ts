@@ -1,7 +1,7 @@
 // TICKET-25 · solicitudes de factura en la PWA: revisar los datos, enviarlos limpios y mostrar el estado en palabras.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { aSolicitudInput, erroresFactura, estadoFactura, fechaLarga, siguientePaso } from './facturas.ts';
+import { aSolicitudInput, erroresFactura, estadoFactura, fechaLarga, siguientePaso, textoPrevista } from './facturas.ts';
 
 const base = { documento: '900.123.456-7', correo: '', telefono: '' };
 
@@ -42,9 +42,15 @@ describe('FR-28 — estado y fecha prevista en palabras', () => {
     assert.equal(fechaLarga('2026-11-17'), 'martes 17 de noviembre');
   });
 
+  it('el rango de 1 a 3 días hábiles en palabras (V5-09)', () => {
+    assert.equal(textoPrevista('2026-10-19', '2026-10-21'), 'entre el lunes 19 y el miércoles 21 de octubre');
+    assert.equal(textoPrevista('2026-12-31', '2027-01-05'), 'entre el jueves 31 de diciembre y el martes 5 de enero');
+  });
+
   it('el siguiente paso solo lo da la administración, en orden', () => {
     assert.deepEqual(siguientePaso('PENDIENTE'), { estado: 'ENVIADA_AL_CONTADOR', texto: 'Ya se la pasé al contador' });
-    assert.deepEqual(siguientePaso('ENVIADA_AL_CONTADOR'), { estado: 'ENTREGADA', texto: 'El contador ya la envió' });
+    // V5-10: el contador se la manda a la administración, y ella (o recepción) se la envía al huésped.
+    assert.deepEqual(siguientePaso('ENVIADA_AL_CONTADOR'), { estado: 'ENTREGADA', texto: 'Ya se la envié al huésped' });
     assert.equal(siguientePaso('ENTREGADA'), null);
   });
 });
