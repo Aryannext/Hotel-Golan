@@ -40,3 +40,16 @@ export async function crearEntorno(opciones: { dirWeb?: string } = {}): Promise<
     },
   };
 }
+
+/**
+ * Entorno con recepción (recepcion2) y administración ya dentro a la hora dada, y la estadía activa de la 205 de la
+ * semilla: la preparación que comparten varias pruebas.
+ */
+export async function entornoConSesiones(hora: string) {
+  const e = await crearEntorno();
+  e.fijarHora(hora);
+  const recepcion = await e.entrar('recepcion2');
+  const admin = await e.entrar('admin');
+  const [{ id: e205 }] = await e.bd.consultar<{ id: string }>(`SELECT id FROM estadias WHERE habitacion_numero = '205' AND estado = 'ACTIVA'`);
+  return { e, recepcion, admin, e205 };
+}

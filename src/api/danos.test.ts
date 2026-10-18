@@ -2,19 +2,13 @@
 // llama (administradora, HG-ACT-001 V5-06). Datos sintéticos.
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { crearEntorno, type Entorno } from './pruebas/entorno.ts';
+import { entornoConSesiones, type Entorno } from './pruebas/entorno.ts';
 
 let e: Entorno;
 let recepcion: string;
 let admin: string;
 let e205: string;
-before(async () => {
-  e = await crearEntorno();
-  e.fijarHora('2026-10-13T06:15:00-05:00');
-  recepcion = await e.entrar('recepcion2');
-  admin = await e.entrar('admin');
-  [{ id: e205 }] = await e.bd.consultar<{ id: string }>(`SELECT id FROM estadias WHERE habitacion_numero = '205' AND estado = 'ACTIVA'`);
-});
+before(async () => { ({ e, recepcion, admin, e205 } = await entornoConSesiones('2026-10-13T06:15:00-05:00')); });
 after(async () => e.cerrar());
 
 const danar = (payload: unknown, cookie = admin, id = e205) =>
