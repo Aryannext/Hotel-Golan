@@ -48,9 +48,30 @@ Salen de HG-AUD-001 v0.1. Aprobados por el usuario el 17-10-2026. Los marcados `
 
 | Ticket | Título | Bloqueado por | Estado |
 |---|---|---|---|
-| [TICKET-26](26-cambio-de-habitacion.md) | Cambio de habitación (y aviso de ropa en lavandería al dar salida) | — | needs-info |
-| [TICKET-27](27-cobrar-un-dano.md) | Cobrar un daño | — | needs-info |
-| [TICKET-28](28-aviso-de-privacidad.md) | Aviso de privacidad visible en la entrada | — | needs-info |
+| [TICKET-26](26-cambio-de-habitacion.md) | Cambio de habitación (y aviso de ropa en lavandería al dar salida) | — | ready-for-agent (reglas confirmadas el 18-10-2026) |
+| [TICKET-27](27-cobrar-un-dano.md) | Cobrar un daño (solo la administración) | — | ready-for-agent (confirmado el 18-10-2026) |
+| [TICKET-28](28-aviso-de-privacidad.md) | Aviso de privacidad visible en la entrada | — | needs-info (falta el texto aprobado) |
 | [TICKET-29](29-guia-y-practica.md) | Guía corta de uso y sesión de práctica | 19, 28 | ready-for-agent |
 
 **Orden propuesto:** 19 (cuando el usuario avise) · 26, 27 y 28 apenas responda la administradora · 29 al final.
+
+## Validaciones de la administradora (18-10-2026)
+
+Salen de HG-ACT-001 §11 (V5-01 a V5-21) y de PRD v0.6. Aprobados por el usuario el 18-10-2026.
+
+| Ticket | Título | Bloqueado por | Estado |
+|---|---|---|---|
+| [TICKET-30](30-franja-de-salida-10am.md) | Nueva franja de salida: desde las 10:00 a. m., a las 12 m. del día siguiente | — | ready-for-agent |
+| [TICKET-31](31-registro-tardio-al-turno-de-entrada.md) | Registro tardío: la plata va al turno en que entró el huésped | — | ready-for-agent |
+| [TICKET-32](32-productos-de-la-familiar.md) | Productos de la familiar: la regla es por dueño, no por sección | — | ready-for-agent |
+| [TICKET-33](33-factura-de-1-a-3-dias-habiles.md) | Factura prevista entre 1 y 3 días hábiles | 25 (hecho) | ready-for-agent |
+| [TICKET-34](34-lista-para-la-policia.md) | Quiénes se quedan hoy (lista para la policía) | — | ready-for-agent |
+| [TICKET-35](35-informe-de-productos-vendidos.md) | Informe de productos vendidos por turno, día, semana y mes | — | ready-for-agent |
+
+**Orden propuesto:**
+- primero los pequeños que corrigen reglas: 30 → 32 → 33;
+- luego 31, 26 y 27;
+- después 34 y 35;
+- el 28 cuando haya texto aprobado;
+- el 19 cuando el usuario avise;
+- el 29 al final.
