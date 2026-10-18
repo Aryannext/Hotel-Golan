@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Regla (18-10-2026)
 | Entrada | Salida con 1 noche | Franja |
@@ -25,11 +25,11 @@ Con N noches se suman N−1 días (o N × 24 horas en la franja de 24 horas), co
 - Reglas evaluadas en America/Bogota.
 
 ## Criterios de aceptación
-- [ ] Entrar a las 9:59 a. m. con 1 noche: sale a las 9:59 a. m. del día siguiente.
-- [ ] Entrar a las 10:00 a. m. o a las 11:00 a. m. con 1 noche: sale a las 12:00 m. del día siguiente, en la franja MEDIODIA_SIGUIENTE.
-- [ ] Entrar a las 10:00 a. m. con 2 noches: sale a las 12:00 m. de dos días después.
-- [ ] Los ejemplos de RN-01 de docs/TESTS_ACEPTACION.feature v0.4 pasan en las pruebas de reglas.
-- [ ] Los textos de ayuda de la PWA que expliquen la franja (si los hay) dicen «desde las 10:00 a. m.».
+- [x] Entrar a las 9:59 a. m. con 1 noche: sale a las 9:59 a. m. del día siguiente.
+- [x] Entrar a las 10:00 a. m. o a las 11:00 a. m. con 1 noche: sale a las 12:00 m. del día siguiente, en la franja MEDIODIA_SIGUIENTE.
+- [x] Entrar a las 10:00 a. m. con 2 noches: sale a las 12:00 m. de dos días después.
+- [x] Los ejemplos de RN-01 de docs/TESTS_ACEPTACION.feature v0.4 pasan en las pruebas de reglas.
+- [x] Los textos de ayuda de la PWA que expliquen la franja (si los hay) dicen «desde las 10:00 a. m.».
 
 ## Módulos a tocar
 reglas (cálculo de la salida), sus pruebas, textos de ayuda de la PWA.
