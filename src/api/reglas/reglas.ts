@@ -18,7 +18,9 @@ const HORA_MS = 3_600_000;
 const DIA_MS = 24 * HORA_MS;
 const DESFASE_MS = 5 * HORA_MS;           // Bogotá = UTC−5
 const MADRUGADA_HASTA_MIN = 6 * 60;       // hasta las 6:00 a. m. → sale a las 12 m. del mismo día
-const VEINTICUATRO_HASTA_MIN = 12 * 60;   // de 6:01 a 11:59 a. m. → 24 horas
+// De 6:01 a 9:59 a. m. → 24 horas; desde las 10:00 a. m., 12 m. del día siguiente (administradora, 18-10-2026;
+// HG-ACT-001 V5-11 a V5-13). Antes daba 24 horas hasta las 11:59 a. m.
+const VEINTICUATRO_HASTA_MIN = 10 * 60;
 const MAX_PERSONAS = { NOCHE: 3, TRES_HORAS: 2 } as const;
 
 /** Minutos desde la medianoche de Bogotá. */

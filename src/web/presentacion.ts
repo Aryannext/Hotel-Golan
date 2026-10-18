@@ -30,7 +30,7 @@ export function claseAsistente(paso: number, i: number): string {
 }
 
 const NOTA_FRANJA: Record<string, string> = {
-  VEINTICUATRO_HORAS: ' (entró de 6:01 a 11:59 a. m.: 24 horas).',
+  VEINTICUATRO_HORAS: ' (entró de 6:01 a 9:59 a. m.: 24 horas).',
   MADRUGADA_MISMO_DIA: ' (entró de madrugada: sale hoy al mediodía).',
 };
 export const notaFranja = (franja: string) => NOTA_FRANJA[franja] ?? '';

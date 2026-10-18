@@ -52,7 +52,7 @@ describe('claseAsistente', () => {
 
 describe('notas de la cotización', () => {
   it('notaFranja explica la salida especial', () => {
-    assert.equal(notaFranja('VEINTICUATRO_HORAS'), ' (entró de 6:01 a 11:59 a. m.: 24 horas).');
+    assert.equal(notaFranja('VEINTICUATRO_HORAS'), ' (entró de 6:01 a 9:59 a. m.: 24 horas).');
     assert.equal(notaFranja('MADRUGADA_MISMO_DIA'), ' (entró de madrugada: sale hoy al mediodía).');
     assert.equal(notaFranja('MEDIODIA_SIGUIENTE'), '');
   });
