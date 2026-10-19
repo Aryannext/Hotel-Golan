@@ -8,10 +8,11 @@ import {
   erroresProducto, etiquetaTarifa, GRUPOS_EDITABLES, leerCantidadSurtido, NOTA_FAMILIAR, REGLAS, reglasCambiadas, tarifasCambiadas, textoHora,
   type ClaveRegla, type Reglas, type Tarifa,
 } from '../ajustes.ts';
+import { AvisoHotel } from './AjustesAviso.tsx';
 import { Ico } from './Ico.tsx';
 import type { Existencia } from '../avisos.ts';
 
-export type Seccion = 'tarifas' | 'reglas' | 'productos' | 'existencias';
+export type Seccion = 'tarifas' | 'reglas' | 'productos' | 'existencias' | 'aviso';
 const mensaje = (e: unknown) => e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo.';
 const HORAS = Array.from({ length: 12 }, (_, i) => 12 + i);
 
@@ -301,6 +302,7 @@ export function Ajustes({ inicial = 'tarifas', alCambiar }: { inicial?: Seccion;
       <button type="button" class="opcion" aria-pressed={seccion === 'reglas'} onClick={() => elegir('reglas')}>Reglas</button>
       <button type="button" class="opcion" aria-pressed={seccion === 'productos'} onClick={() => elegir('productos')}>Productos</button>
       <button type="button" class="opcion" aria-pressed={seccion === 'existencias'} onClick={() => elegir('existencias')}>Existencias</button>
+      <button type="button" class="opcion" aria-pressed={seccion === 'aviso'} onClick={() => elegir('aviso')}>Aviso</button>
     </div>
     {aviso && <output class="nota nota--exito"><Ico id="check" clase="ico--s" /><p>{aviso}</p>
       <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso('')}><Ico id="cerrar" clase="ico--xs" /></button></output>}
@@ -308,5 +310,6 @@ export function Ajustes({ inicial = 'tarifas', alCambiar }: { inicial?: Seccion;
     {seccion === 'reglas' && <ReglasHotel alGuardar={setAviso} />}
     {seccion === 'productos' && <Productos alGuardar={setAviso} />}
     {seccion === 'existencias' && <Existencias alGuardar={setAviso} alCambiar={alCambiar} />}
+    {seccion === 'aviso' && <AvisoHotel alGuardar={setAviso} />}
   </div>;
 }

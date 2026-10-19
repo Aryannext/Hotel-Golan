@@ -30,6 +30,7 @@ import { rutasCambioHabitacion } from './estadias/cambio.ts';
 import { rutasHuespedesHoy } from './estadias/huespedesHoy.ts';
 import { rutasProductosVendidos } from './reportes/productos.ts';
 import { rutasMigracion } from './migracion/rutas.ts';
+import { rutasDatosHotel } from './configuracion/hotel.ts';
 import { Publicador, rutasEventos } from './tiempo_real/eventos.ts';
 import { ErrorRegla } from './reglas/reglas.ts';
 
@@ -100,6 +101,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rutasDevoluciones(api, o.bd, ahora);
     rutasProductos(api, o.bd, ahora);
     rutasMigracion(api, o.bd, ahora);
+    rutasDatosHotel(api, o.bd, ahora);
     rutasTarifas(api, o.bd, ahora);
     rutasReglas(api, o.bd, ahora);
     rutasReportes(api, o.bd, ahora);

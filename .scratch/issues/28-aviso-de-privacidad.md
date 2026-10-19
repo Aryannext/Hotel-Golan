@@ -7,14 +7,14 @@
 
 **Blocked by:** None para construir la pantalla. Para usarlo con huéspedes reales hay que esperar la revisión del asesor y los TICKETS 36 a 38.
 
-**Status:** ready-for-agent (el texto corto está aprobado; la parte legal espera la revisión del asesor)
+**Status:** done (la pantalla). Para usarlo con huéspedes reales falta la revisión del asesor [V].
 
 ## Lo decidido (18-10-2026)
 - **Enfoque:** el hotel registra a los huéspedes porque la ley lo exige: la Tarjeta de Registro de Alojamiento (Ley 2068 de 2020, art. 22) y, para los extranjeros, el reporte a Migración Colombia (SIRE). Lo pidió el usuario: la ley prevalece sobre lo que pida el hotel.
 - **Texto corto aprobado por la dueña:** «el texto me suena bien» (V6-09). Está en HG-PRIV-001 v0.4 §1, en `docs/` de OneDrive. Se copia al código tal cual, sin datos del hotel.
 - **Quién atiende** las solicitudes: la recepción, que se comunica con la dueña (V6-08).
 - **Datos del hotel:** la dueña los dio (V6-06, V6-10 a V6-12) y están en el acta, fuera del repositorio. Su número de documento no se registra: lo escribe ella en persona.
-- **Plazo de conservación:** por definir con la ley (TICKET-38). El texto completo no promete un plazo hasta tenerlo.
+- **Plazo de conservación:** por definir con la ley (TICKET-38). Mientras tanto, la política dice el plazo configurado («hoy el sistema borra… N días después de su salida») y que está en revisión.
 
 ## Invariantes de negocio
 - Sin la casilla no se guarda la entrada (422; ya implementado, FR-05).
@@ -28,10 +28,10 @@
 - [x] Existe el borrador del aviso en `docs/` (HG-PRIV-001, fuera del repositorio público).
 - [x] La dueña aprobó el texto corto, con constancia y fecha (HG-ACT-001 V6-09, 18-10-2026).
 - [ ] Un asesor revisó la parte legal [V].
-- [ ] La administración escribe los datos del hotel en Ajustes, y el aviso los muestra.
-- [ ] En la entrada se ve el texto corto. «Ver completo» muestra la política entera y se cierra con Escape.
-- [ ] La autorización guardada tiene la versión del texto mostrado.
-- [ ] Se ve bien en un celular de 360 px.
+- [x] La administración escribe los datos del hotel en Ajustes → Aviso (`GET`/`PUT /hotel`, migración 0010), y la política los muestra. Si falta alguno, dice «(falta en Ajustes)» y avisa cuáles faltan.
+- [x] En la entrada se ve el texto corto («Dígale al huésped»). «Ver la política completa» muestra la política entera y se cierra con Escape.
+- [x] La autorización guardada tiene la versión del texto mostrado (`AVISO_VERSION`, AV-2026-10, que la política también muestra).
+- [x] Se ve bien en un celular de 360 px.
 
 ## Módulos a tocar
 PWA (paso del titular, vista de la política), constante del texto y la versión del aviso, configuración (datos del hotel: migración y Ajustes), CONTRATO_API (aditivo).

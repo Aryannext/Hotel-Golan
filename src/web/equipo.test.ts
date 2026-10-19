@@ -80,6 +80,7 @@ describe('FR-20 — actividad en palabras', () => {
       [r('CREAR', 'reporte_migracion', { habitacion: '206', tipo: 'LLEGADA' }), 'Reportó a Migración la llegada de la 206'],
       [r('CREAR', 'reporte_migracion', { habitacion: '206', tipo: 'SALIDA' }), 'Reportó a Migración la salida de la 206'],
       [r('CONSULTAR', 'reporte_migracion', { habitacion: '206' }), 'Consultó los datos para Migración de la 206'],
+      [r('ACTUALIZAR', 'datos_hotel', { campos: 'telefono' }), 'Actualizó los datos del hotel del aviso de privacidad'],
       [r('CREAR', 'solicitudes_factura', { estado: 'PENDIENTE' }), 'Anotó una solicitud de factura'],
       [r('ACTUALIZAR', 'solicitudes_factura', { estado: 'ENVIADA_AL_CONTADOR' }), 'Pasó una solicitud de factura al contador'],
       [r('ACTUALIZAR', 'solicitudes_factura', { estado: 'ENTREGADA' }), 'Marcó una factura como entregada al huésped'],
