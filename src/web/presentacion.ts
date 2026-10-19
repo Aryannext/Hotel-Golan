@@ -93,3 +93,6 @@ export const nombreTipoDocumento = (tipo: string) => TIPOS_DOCUMENTO.find(([v]) 
 
 export const textoDocumento = (t: { tipo_documento: string | null; numero_documento: string | null }) =>
   t.numero_documento ? `${t.tipo_documento ? nombreTipoDocumento(t.tipo_documento) : ''} ${t.numero_documento}`.trim() : 'Sin documento';
+
+/** Los avisos del inicio, en una sola línea: «1 cosa por atender», «3 cosas por atender». */
+export const textoPendientes = (n: number) => `${n} ${n === 1 ? 'cosa' : 'cosas'} por atender`;

@@ -36,12 +36,15 @@ export function Mapa({ habitaciones, alElegir, alAbrir, alRevisar }: {
   const c = contarEstados(habitaciones);
   return (
     <>
-      <div class="titulo-vista"><div><h1>Habitaciones</h1><p>Toque una habitación para registrar una entrada, ver su cuenta o cambiar su estado</p></div></div>
-      <div class="stats" style="margin:0 0 16px">
-        <div class="stat stat--libre"><span class="stat__ico"><Ico id="habitaciones" clase="ico--l" /></span><span><strong>{c.disponibles}</strong><span>Disponibles</span></span></div>
-        <div class="stat stat--ocupada"><span class="stat__ico"><Ico id="habitaciones" clase="ico--l" /></span><span><strong>{c.ocupadas}</strong><span>Ocupadas</span></span></div>
-        <div class="stat stat--limpieza"><span class="stat__ico"><Ico id="escoba" clase="ico--l" /></span><span><strong>{c.limpiezaORevision}</strong><span>Limpieza o revisión</span></span></div>
-        <div class="stat stat--fuera"><span class="stat__ico"><Ico id="herramienta" clase="ico--l" /></span><span><strong>{c.mantenimiento}</strong><span>Mantenimiento</span></span></div>
+      {/* Una línea con los colores y cuántas hay de cada una: las habitaciones quedan a la vista sin bajar. */}
+      <div class="mapa__cab">
+        <h2>Habitaciones <span>Toque una para ver su cuenta o registrar una entrada.</span></h2>
+        <ul class="leyenda" aria-label="Cuántas habitaciones hay en cada estado">
+          <li class="leyenda__item leyenda__item--libre">{c.disponibles} disponibles</li>
+          <li class="leyenda__item leyenda__item--ocupada">{c.ocupadas} ocupadas</li>
+          <li class="leyenda__item leyenda__item--limpieza">{c.limpiezaORevision} en limpieza o revisión</li>
+          <li class="leyenda__item leyenda__item--fuera">{c.mantenimiento} en mantenimiento</li>
+        </ul>
       </div>
       <div class="mapa">{habitaciones.map((h) => <Cuarto key={h.numero} h={h} alElegir={alElegir} alAbrir={alAbrir} alRevisar={alRevisar} />)}</div>
     </>

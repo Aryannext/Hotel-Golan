@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   accionCuarto, claseAsistente, cuantos, detalleCuarto, etiquetaCampana, icoMovimiento, icoTono, notaCobro, notaFranja, pillEstadoPago,
-  nombreTipoDocumento, pistaCuarto, textoCambio, textoDesistimiento, textoDevolucion, textoDocumento, tituloFicha,
+  nombreTipoDocumento, pistaCuarto, textoCambio, textoDesistimiento, textoDevolucion, textoDocumento, textoPendientes, tituloFicha,
 } from './presentacion.ts';
 import type { Habitacion } from './api.ts';
 
@@ -122,5 +122,12 @@ describe('FR-31 — quiénes se quedan hoy', () => {
     assert.equal(nombreTipoDocumento('PPT'), 'Permiso (PPT)');
     assert.equal(nombreTipoDocumento('OTRO'), 'OTRO');
     assert.equal(textoDocumento({ tipo_documento: null, numero_documento: null }), 'Sin documento');
+  });
+});
+
+describe('Inicio de recepción más simple', () => {
+  it('resume los avisos en una sola línea', () => {
+    assert.equal(textoPendientes(1), '1 cosa por atender');
+    assert.equal(textoPendientes(3), '3 cosas por atender');
   });
 });
