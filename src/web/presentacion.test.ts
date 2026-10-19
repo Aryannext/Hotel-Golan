@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   accionCuarto, claseAsistente, cuantos, detalleCuarto, etiquetaCampana, icoMovimiento, icoTono, notaCobro, notaFranja, pillEstadoPago,
-  pistaCuarto, textoCambio, textoDesistimiento, textoDevolucion, textoDocumento, tituloFicha,
+  nombreTipoDocumento, pistaCuarto, textoCambio, textoDesistimiento, textoDevolucion, textoDocumento, tituloFicha,
 } from './presentacion.ts';
 import type { Habitacion } from './api.ts';
 
@@ -116,8 +116,11 @@ describe('ficha', () => {
 });
 
 describe('FR-31 — quiénes se quedan hoy', () => {
-  it('muestra el documento completo o «Sin documento»', () => {
-    assert.equal(textoDocumento({ tipo_documento: 'CC', numero_documento: 'PRUEBA0001' }), 'CC PRUEBA0001');
+  it('muestra el documento completo con el nombre del tipo, o «Sin documento»', () => {
+    assert.equal(textoDocumento({ tipo_documento: 'CC', numero_documento: 'PRUEBA0001' }), 'Cédula PRUEBA0001');
+    assert.equal(textoDocumento({ tipo_documento: 'PASAPORTE', numero_documento: 'PRUEBA0208' }), 'Pasaporte PRUEBA0208');
+    assert.equal(nombreTipoDocumento('PPT'), 'Permiso (PPT)');
+    assert.equal(nombreTipoDocumento('OTRO'), 'OTRO');
     assert.equal(textoDocumento({ tipo_documento: null, numero_documento: null }), 'Sin documento');
   });
 });
