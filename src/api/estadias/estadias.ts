@@ -85,7 +85,7 @@ export async function leerEstadia(bd: Bd, id: string) {
 interface Cuerpo {
   habitacion_numero: string; modalidad: ModalidadCotizable; personas: number; noches?: number; aplicar_descuento?: boolean; valor_descuento?: number;
   registro_tardio?: boolean; entrada_en?: string;
-  huesped: { nombre: string; tipo_documento?: string; numero_documento?: string; nacionalidad: string; telefono?: string; es_menor: boolean; acompanante_verificado?: boolean };
+  huesped: { nombre: string; tipo_documento: string; numero_documento: string; nacionalidad: string; telefono?: string; es_menor: boolean; acompanante_verificado?: boolean };
   autorizacion: { otorgada: boolean; version_aviso: string };
   pago: { forma: 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' | 'AL_SALIR'; valor_recibido?: number };
 }
@@ -102,7 +102,8 @@ const esquemaCuerpo = {
     registro_tardio: { type: 'boolean', default: false },
     entrada_en: { type: 'string', format: 'date-time' },
     huesped: {
-      type: 'object', additionalProperties: false, required: ['nombre', 'nacionalidad', 'es_menor'],
+      // TICKET-36: el registro de huéspedes que exige la ley pide nombre, documento y nacionalidad (Ley 2068 de 2020, art. 22).
+      type: 'object', additionalProperties: false, required: ['nombre', 'tipo_documento', 'numero_documento', 'nacionalidad', 'es_menor'],
       properties: {
         nombre: { type: 'string', minLength: 3, maxLength: 120 },
         tipo_documento: { type: 'string', enum: ['CC', 'CE', 'TI', 'RC', 'PASAPORTE', 'PPT'] },
@@ -112,8 +113,6 @@ const esquemaCuerpo = {
         es_menor: { type: 'boolean' },
         acompanante_verificado: { type: 'boolean' },
       },
-      // Un número de documento necesita su tipo.
-      dependencies: { numero_documento: ['tipo_documento'] },
       // RN-16: un menor solo entra con acompañante verificado.
       if: { properties: { es_menor: { const: true } } },
       then: { required: ['acompanante_verificado'], properties: { acompanante_verificado: { const: true } } },
@@ -145,7 +144,7 @@ async function crearHuesped(tx: Bd, b: Cuerpo, usuarioId: string, entrada: Date)
   const [huesped] = await tx.consultar<{ id: string }>(
     `INSERT INTO huespedes (nombre, tipo_documento, numero_documento, nacionalidad, telefono, es_menor, acompanante_verificado)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-    [hu.nombre.trim(), hu.tipo_documento ?? null, hu.numero_documento ?? null, hu.nacionalidad.trim(), hu.telefono ?? null, hu.es_menor, hu.acompanante_verificado ?? false]);
+    [hu.nombre.trim(), hu.tipo_documento, hu.numero_documento, hu.nacionalidad.trim(), hu.telefono ?? null, hu.es_menor, hu.acompanante_verificado ?? false]);
   await tx.consultar('INSERT INTO autorizaciones_datos (huesped_id, version_aviso, otorgada_en, registrada_por) VALUES ($1, $2, $3, $4)',
     [huesped.id, b.autorizacion.version_aviso, entrada, usuarioId]);
   return huesped.id;

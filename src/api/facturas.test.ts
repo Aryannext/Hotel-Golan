@@ -154,7 +154,7 @@ describe('FR-21 — los datos de la solicitud se borran con la anonimización', 
     recepcion = await e.entrar('recepcion2');
     const entrada = await pedir('POST', '/estadias', {
       habitacion_numero: '201', modalidad: 'NOCHE', personas: 1,
-      huesped: { nombre: 'Huésped Prueba Factura', nacionalidad: 'Colombia', es_menor: false },
+      huesped: { nombre: 'Huésped Prueba Factura', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false },
       autorizacion: { otorgada: true, version_aviso: 'AV-2026-10' }, pago: { forma: 'EFECTIVO', valor_recibido: 60000 },
     });
     assert.equal(entrada.statusCode, 201, entrada.body);

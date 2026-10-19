@@ -31,7 +31,7 @@ before(async () => {
   admin = await e.entrar('admin');
   const r = await pedir('POST', '/estadias', b, {
     habitacion_numero: '206', modalidad: 'NOCHE', personas: 1,
-    huesped: { nombre: 'Huésped Prueba Talonario', nacionalidad: 'Colombia', es_menor: false },
+    huesped: { nombre: 'Huésped Prueba Talonario', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false },
     autorizacion: { otorgada: true, version_aviso: 'AV-2026-10' }, pago: { forma: 'EFECTIVO', valor_recibido: 45000 },
     registro_tardio: true, entrada_en: '2026-10-13T03:00:00-05:00',
   });

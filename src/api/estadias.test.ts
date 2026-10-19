@@ -97,18 +97,26 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
     assert.equal((await registrar(entrada({ habitacion_numero: '209', huesped: sinCampo }))).statusCode, 400);
   });
 
-  it('el documento es opcional, pero un número sin tipo de documento es 400', async () => {
-    const huesped = { nombre: 'Huésped Prueba 32', numero_documento: 'PRUEBA0032', nacionalidad: 'Colombia', es_menor: false };
-    assert.equal((await registrar(entrada({ habitacion_numero: '209', huesped }))).statusCode, 400);
+  it('TICKET-36: el documento es obligatorio por ley (registro de huéspedes); sin tipo o sin número, 400 y nada se crea', async () => {
+    const antes = await contar('SELECT count(*)::int AS n FROM estadias');
+    const base = { nombre: 'Huésped Prueba 32', nacionalidad: 'Colombia', es_menor: false };
+    for (const huesped of [base, { ...base, numero_documento: 'PRUEBA0032' }, { ...base, tipo_documento: 'CC' }]) {
+      const r = await registrar(entrada({ habitacion_numero: '209', huesped }));
+      assert.equal(r.statusCode, 400, JSON.stringify(huesped));
+      assert.equal(r.json().codigo, 'INVALID_PAYLOAD');
+      assert.ok((r.json().detalles as { campo: string; problema: string }[]).some((d) => /documento/.test(d.campo + d.problema)), r.body);
+    }
+    assert.equal(await contar('SELECT count(*)::int AS n FROM estadias'), antes);
+    assert.equal(await estadoHabitacion('209'), 'DISPONIBLE');
   });
 
   it('pagar al salir se permite con una noche: forma_cobro AL_SALIR, sin pago y saldo igual a la tarifa', async () => {
-    const huesped = { nombre: 'Huésped Prueba 33', nacionalidad: 'Colombia', es_menor: false };
+    const huesped = { nombre: 'Huésped Prueba 33', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false };
     const r = await registrar(entrada({ habitacion_numero: '209', personas: 1, huesped, pago: { forma: 'AL_SALIR' } }));
     assert.equal(r.statusCode, 201);
     const est = r.json();
     assert.equal(est.forma_cobro, 'AL_SALIR');
-    assert.equal(est.huesped.documento_enmascarado, null);
+    assert.equal(est.huesped.documento_enmascarado, '••••099');
     assert.deepEqual(est.pagos, []);
     assert.deepEqual(est.cuenta, { total_cargos: 45000, pagado: 0, por_verificar: 0, saldo: 45000, a_favor: 0, devuelto: 0 });
   });
@@ -133,7 +141,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
   it('dos entradas a la vez en la misma habitación: solo una se registra', async () => {
     const [a, b] = await Promise.all([
       registrar(entrada({ habitacion_numero: '201' })),
-      registrar(entrada({ habitacion_numero: '201', huesped: { nombre: 'Huésped Prueba 34', nacionalidad: 'Colombia', es_menor: false } })),
+      registrar(entrada({ habitacion_numero: '201', huesped: { nombre: 'Huésped Prueba 34', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false } })),
     ]);
     assert.deepEqual([a.statusCode, b.statusCode].sort(), [201, 409]);
     assert.equal(await contar(`SELECT count(*)::int AS n FROM estadias WHERE habitacion_numero = '201'`), 1);
@@ -156,13 +164,13 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
   it('un descuento menor al máximo queda con su valor; por encima del máximo no se registra nada', async () => {
     // Las habitaciones libres de la semilla ya se usan en otras pruebas: se liberan 204 y 301 solo para esta.
     await e.bd.consultar(`UPDATE habitaciones SET estado = 'DISPONIBLE', nota = NULL WHERE numero IN ('204', '301')`);
-    const huesped = { nombre: 'Huésped Prueba 38', nacionalidad: 'Colombia', es_menor: false };
+    const huesped = { nombre: 'Huésped Prueba 38', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false };
     const r = await registrar(entrada({ habitacion_numero: '204', personas: 1, noches: 2, valor_descuento: 2000, huesped, pago: { forma: 'EFECTIVO', valor_recibido: 116000 } }));
     assert.equal(r.statusCode, 201);
     assert.deepEqual(r.json().cargos.map((c: Record<string, unknown>) => [c.tipo, c.cantidad, c.valor_unitario, c.valor]),
       [['ALOJAMIENTO', 2, 60000, 120000], ['DESCUENTO', 2, -2000, -4000]]);
     assert.equal(r.json().pagos[0].valor, 116000);
-    const huesped2 = { nombre: 'Huésped Prueba 39', nacionalidad: 'Colombia', es_menor: false };
+    const huesped2 = { nombre: 'Huésped Prueba 39', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false };
     const excede = await registrar(entrada({ habitacion_numero: '301', personas: 1, valor_descuento: 7000, huesped: huesped2 }));
     assert.equal(excede.statusCode, 422);
     assert.equal(excede.json().codigo, 'DESCUENTO_EXCEDE_MAXIMO');
@@ -170,7 +178,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
   });
 
   it('efectivo menor que el total queda como abono y el resto como saldo', async () => {
-    const huesped = { nombre: 'Huésped Prueba 35', nacionalidad: 'Venezuela', es_menor: false };
+    const huesped = { nombre: 'Huésped Prueba 35', tipo_documento: 'PASAPORTE', numero_documento: 'PRUEBA0035', nacionalidad: 'Venezuela', es_menor: false };
     const r = await registrar(entrada({ habitacion_numero: '203', personas: 1, huesped, pago: { forma: 'EFECTIVO', valor_recibido: 20000 } }));
     assert.equal(r.statusCode, 201);
     assert.equal(r.json().pagos[0].valor, 20000);
@@ -178,7 +186,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
   });
 
   it('pago por Nequi: queda POR_VERIFICAR, no entra a la caja y la habitación se entrega igual', async () => {
-    const huesped = { nombre: 'Huésped Prueba 36', nacionalidad: 'Colombia', es_menor: false };
+    const huesped = { nombre: 'Huésped Prueba 36', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false };
     const r = await registrar(entrada({ habitacion_numero: '210', personas: 1, huesped, pago: { forma: 'NEQUI' } }));
     assert.equal(r.statusCode, 201);
     const est = r.json();
@@ -186,7 +194,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
     assert.deepEqual(est.cuenta, { total_cargos: 45000, pagado: 0, por_verificar: 45000, saldo: 0, a_favor: 0, devuelto: 0 });
     assert.equal(await estadoHabitacion('210'), 'OCUPADA');
     assert.equal(await contar(`SELECT count(*)::int AS n FROM eventos_salida WHERE tipo = 'pago.por_verificar'`), 1);
-    const huesped2 = { nombre: 'Huésped Prueba 37', nacionalidad: 'Colombia', es_menor: false };
+    const huesped2 = { nombre: 'Huésped Prueba 37', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false };
     const conValor = await registrar(entrada({ habitacion_numero: '209', huesped: huesped2, pago: { forma: 'BANCOLOMBIA', valor_recibido: 50000 } }));
     assert.equal(conValor.statusCode, 400);
   });
@@ -197,7 +205,7 @@ describe('RN-06, RN-16, FR-05 — Registro de la entrada', () => {
 describe('FR-03 — Idempotencia: un doble toque no duplica el registro', () => {
   it('reenviar con la misma Idempotency-Key devuelve la misma estadía y existe un solo pago', async () => {
     const clave = '7f3c2a1e-5b4d-4c8e-9a10-2f6b8d3e4c51';
-    const huesped = { nombre: 'Huésped Prueba 38', nacionalidad: 'Colombia', es_menor: false };
+    const huesped = { nombre: 'Huésped Prueba 38', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false };
     await e.bd.consultar(`UPDATE habitaciones SET estado = 'DISPONIBLE', nota = NULL WHERE numero = '207'`);
     const p = entrada({ habitacion_numero: '207', personas: 1, huesped, pago: { forma: 'EFECTIVO', valor_recibido: 45000 } });
     const a = await registrar(p, clave);

@@ -140,13 +140,13 @@ function PasoHuesped({ h, alCambiar, err }: { h: FormHuesped; alCambiar: (h: For
   const campo = <K extends keyof FormHuesped>(k: K, v: FormHuesped[K]) => alCambiar({ ...h, [k]: v });
   return <section class="tarjeta">
     <div class="tarjeta__cab"><h2>Datos del titular</h2></div>
-    <p class="ayuda">Solo se registra a quien toma la habitación. El documento es opcional.</p>
+    <p class="ayuda">Solo se registra a quien toma la habitación. La ley pide su nombre, su documento y su nacionalidad; el celular es opcional.</p>
     <div class="form-rejilla form-rejilla--2">
       <CampoTexto id="h-nombre" etiqueta="Nombre completo" req valor={h.nombre} error={err('nombre')} alEscribir={(v) => campo('nombre', v)} />
-      <div class={`campo${err('numeroDocumento') ? ' campo--error' : ''}`}><label htmlFor="h-doc">Documento</label>
+      <div class={`campo${err('numeroDocumento') ? ' campo--error' : ''}`}><label htmlFor="h-doc">Documento <span class="req">*</span></label>
         <div class="doble">
           <select aria-label="Tipo de documento" value={h.tipoDocumento} onChange={(e) => campo('tipoDocumento', (e.target as HTMLSelectElement).value)}>
-            <option value="">Sin documento</option>
+            <option value="">Tipo…</option>
             {TIPOS_DOCUMENTO.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
           <input id="h-doc" autocomplete="off" disabled={!h.tipoDocumento} value={h.numeroDocumento}

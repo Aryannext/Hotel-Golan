@@ -82,7 +82,7 @@ describe('FR-17, FR-20 — Anulaciones de la administración', () => {
     const r = await e.app.inject({
       method: 'POST', url: '/api/v1/estadias', headers: { cookie: recepcion },
       payload: {
-        habitacion_numero: '206', modalidad: 'NOCHE', personas: 1, huesped: { nombre: 'Huésped Prueba 90', nacionalidad: 'Colombia', es_menor: false },
+        habitacion_numero: '206', modalidad: 'NOCHE', personas: 1, huesped: { nombre: 'Huésped Prueba 90', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false },
         autorizacion: { otorgada: true, version_aviso: 'AV-2026-10' }, pago: { forma: 'EFECTIVO', valor_recibido: 45000 },
       },
     });

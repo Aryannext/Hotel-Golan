@@ -17,7 +17,7 @@ async function estadiaQueSaleAlMediodia(hab: string, personas = 1): Promise<stri
   const r = await e.app.inject({
     method: 'POST', url: '/api/v1/estadias', headers: { cookie },
     payload: {
-      habitacion_numero: hab, modalidad: 'NOCHE', personas, huesped: { nombre: `Huésped Prueba ${hab}`, nacionalidad: 'Colombia', es_menor: false },
+      habitacion_numero: hab, modalidad: 'NOCHE', personas, huesped: { nombre: `Huésped Prueba ${hab}`, tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false },
       autorizacion: { otorgada: true, version_aviso: 'AV-2026-10' }, pago: { forma: 'AL_SALIR' },
     },
   });

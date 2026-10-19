@@ -95,7 +95,9 @@ const digitos = (s: string) => s.replace(/\D/g, '');
 export function erroresHuesped(h: FormHuesped): Partial<Record<keyof FormHuesped, string>> {
   const e: Partial<Record<keyof FormHuesped, string>> = {};
   if (h.nombre.trim().length < 3) e.nombre = 'Escriba el nombre del titular.';
-  if (h.tipoDocumento && !/^[A-Za-z0-9-]{4,20}$/.test(soloDocumento(h.numeroDocumento))) e.numeroDocumento = 'Escriba el número del documento (mínimo 4 caracteres).';
+  // TICKET-36: el documento es obligatorio; lo pide el registro de huéspedes de la ley.
+  if (!h.tipoDocumento || !h.numeroDocumento.trim()) e.numeroDocumento = 'Escriba el documento: lo pide la ley para registrar al huésped.';
+  else if (!/^[A-Za-z0-9-]{4,20}$/.test(soloDocumento(h.numeroDocumento))) e.numeroDocumento = 'Escriba el número del documento (mínimo 4 caracteres).';
   if (h.nacionalidad.trim().length < 2) e.nacionalidad = 'Escriba la nacionalidad.';
   if (h.telefono.trim() && !/^3\d{9}$/.test(digitos(h.telefono))) e.telefono = 'El celular tiene 10 números y empieza por 3.';
   if (h.esMenor && !h.acompanante) e.acompanante = 'Un menor solo entra con su acompañante verificado.';
@@ -107,7 +109,7 @@ export function aHuespedInput(h: FormHuesped) {
   return {
     nombre: h.nombre.trim(), nacionalidad: h.nacionalidad.trim(), es_menor: h.esMenor,
     ...(h.esMenor ? { acompanante_verificado: h.acompanante } : {}),
-    ...(h.tipoDocumento ? { tipo_documento: h.tipoDocumento, numero_documento: soloDocumento(h.numeroDocumento) } : {}),
+    tipo_documento: h.tipoDocumento, numero_documento: soloDocumento(h.numeroDocumento),
     ...(h.telefono.trim() ? { telefono: '+57' + digitos(h.telefono) } : {}),
   };
 }
