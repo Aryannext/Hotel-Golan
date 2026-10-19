@@ -2,6 +2,7 @@ import type { CotizacionExtension, Producto, SalidaTurno, TipoSalida } from './l
 import type { RegistroActividad, UsuarioAdmin } from './equipo.ts';
 import type { Reglas, Tarifa, TarifaInput } from './ajustes.ts';
 import type { Existencia, PendienteMigracion, TipoReporte } from './avisos.ts';
+import type { DatosHotel } from './aviso.ts';
 import type { PedidoLavanderia } from './lavanderia.ts';
 import type { EstadoFactura, SolicitudFactura, SolicitudInput } from './facturas.ts';
 import type { CotizacionCambio } from './cambio.ts';
@@ -153,6 +154,9 @@ export const api = {
   guardarTarifas: (items: TarifaInput[]) => pedir<{ items: Tarifa[] }>('PUT', '/tarifas', { items }),
   reglas: () => pedir<Reglas>('GET', '/reglas'),
   guardarReglas: (cambios: Partial<Reglas>) => pedir<Reglas>('PATCH', '/reglas', cambios),
+  // TICKET-28 · datos del hotel para el aviso de privacidad (los escribe la administración).
+  datosHotel: () => pedir<DatosHotel>('GET', '/hotel'),
+  guardarDatosHotel: (d: Record<keyof DatosHotel, string>) => pedir<DatosHotel>('PUT', '/hotel', d),
   // TICKET-23 · lavandería.
   pedirLavanderia: (estadiaId: string, items: Array<{ producto_id: string; cantidad: number }>) =>
     pedir<PedidoLavanderia>('POST', `/estadias/${estadiaId}/lavanderia`, { items }),

@@ -103,6 +103,7 @@ const FRASES: Record<string, Frase> = {
   'ACTUALIZAR tarifas': textoTarifas,
   'CONSULTAR huespedes': (d) => `Consultó quiénes se quedan hoy (${d.cantidad ?? 0} habitaciones)`,
   'CREAR reporte_migracion': (d) => `Reportó a Migración la ${d.tipo === 'SALIDA' ? 'salida' : 'llegada'} de la ${d.habitacion ?? 'habitación'}`,
+  'ACTUALIZAR datos_hotel': () => 'Actualizó los datos del hotel del aviso de privacidad',
   'CONSULTAR reporte_migracion': (d) => `Consultó los datos para Migración de la ${d.habitacion ?? 'habitación'}`,
   'ACTUALIZAR reglas': (d) => 'Cambió ' + Object.entries(d).map(([k, v]) => textoRegla(k, Number(v))).join('; '),
   'CREAR productos': (d) => `Agregó un producto de ${valor(d, 'precio')} al catálogo`,

@@ -8,6 +8,7 @@ import {
 } from '../logica.ts';
 import { PasoServicio, SERVICIO_INICIAL, type Servicio } from './PasoServicio.tsx';
 import { Ico } from './Ico.tsx';
+import { AvisoCorto, PoliticaCompleta } from './AvisoPrivacidad.tsx';
 import { entradaIso, errorTardio } from '../tardio.ts';
 import { fechaReporte } from '../reportes.ts';
 import type { Reglas, Tarifa } from '../ajustes.ts';
@@ -138,6 +139,7 @@ export function CampoTexto({ id, etiqueta, req = false, valor, error, alEscribir
 
 function PasoHuesped({ h, alCambiar, err }: { h: FormHuesped; alCambiar: (h: FormHuesped) => void; err: (k: keyof FormHuesped) => string | undefined }) {
   const campo = <K extends keyof FormHuesped>(k: K, v: FormHuesped[K]) => alCambiar({ ...h, [k]: v });
+  const [viendoPolitica, setViendoPolitica] = useState(false);
   return <section class="tarjeta">
     <div class="tarjeta__cab"><h2>Datos del titular</h2></div>
     <p class="ayuda">Solo se registra a quien toma la habitación. La ley pide su nombre, su documento y su nacionalidad; el celular es opcional.</p>
@@ -163,9 +165,12 @@ function PasoHuesped({ h, alCambiar, err }: { h: FormHuesped; alCambiar: (h: For
       <input type="checkbox" checked={h.acompanante} onChange={(e) => campo('acompanante', (e.target as HTMLInputElement).checked)} />
       <span>Verifiqué el registro civil y que viene con su padre, madre o tutor.</span></label>}
     {err('acompanante') && <span class="campo__error">{err('acompanante')}</span>}
+    {/* TICKET-28: el aviso aprobado, para decírselo al huésped antes de marcar la casilla. */}
+    <AvisoCorto alVerCompleto={() => setViendoPolitica(true)} />
+    {viendoPolitica && <PoliticaCompleta alCerrar={() => setViendoPolitica(false)} />}
     <label class={`casilla casilla--fuerte${err('autorizo') ? ' casilla--error' : ''}`}>
       <input type="checkbox" checked={h.autorizo} onChange={(e) => campo('autorizo', (e.target as HTMLInputElement).checked)} />
-      <span>Le leí el aviso de privacidad ({AVISO_VERSION}) y <b>el huésped autorizó</b> el uso de sus datos.</span></label>
+      <span>Le dije el aviso ({AVISO_VERSION}) y <b>el huésped autorizó</b> el tratamiento de sus datos.</span></label>
     {err('autorizo') && <span class="campo__error">{err('autorizo')}</span>}
   </section>;
 }
