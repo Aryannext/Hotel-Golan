@@ -14,6 +14,8 @@ const LIMITES = {
   retencion_datos_dias: { minimum: 1, maximum: 3650 },
   // TICKET-26: minutos desde la entrada en que un cambio de habitación ajusta la diferencia (V5-03, «3 o 5») [P/V].
   minutos_cambio_sin_cargo: { minimum: 0, maximum: 120 },
+  // TICKET-37: horas para marcar «atrasado» un reporte a Migración; el plazo legal está por confirmar [P/V].
+  horas_reporte_migracion: { minimum: 1, maximum: 720 },
 };
 type Clave = keyof typeof LIMITES;
 const CLAVES = Object.keys(LIMITES) as Clave[];

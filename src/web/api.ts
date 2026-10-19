@@ -1,7 +1,7 @@
 import type { CotizacionExtension, Producto, SalidaTurno, TipoSalida } from './logica.ts';
 import type { RegistroActividad, UsuarioAdmin } from './equipo.ts';
 import type { Reglas, Tarifa, TarifaInput } from './ajustes.ts';
-import type { Existencia } from './avisos.ts';
+import type { Existencia, PendienteMigracion, TipoReporte } from './avisos.ts';
 import type { PedidoLavanderia } from './lavanderia.ts';
 import type { EstadoFactura, SolicitudFactura, SolicitudInput } from './facturas.ts';
 import type { CotizacionCambio } from './cambio.ts';
@@ -55,6 +55,11 @@ export interface InformeProductos {
   grupos: Array<{ grupo: string; cantidad: number; valor: number; productos: Array<{ nombre: string; cantidad: number; valor: number }> }>;
 }
 /** FR-31: titular de una habitación ocupada, con el documento completo (para la ronda de la policía). */
+/** Datos para llenar el reporte del SIRE (TICKET-37); cada consulta queda en la auditoría. */
+export interface DatosMigracion {
+  habitacion_numero: string; nombre: string | null; tipo_documento: string | null; numero_documento: string | null; nacionalidad: string | null;
+  entrada_en: string; salida_en: string | null; salida_prevista_en: string;
+}
 export interface TitularHoy { habitacion_numero: string; nombre: string; tipo_documento: string | null; numero_documento: string | null; entrada_en: string; salida_prevista_en: string }
 /** Medios con los que se paga: el efectivo entra a la caja; las transferencias quedan por confirmar (RN-12). */
 export type MedioPago = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA';
@@ -122,6 +127,10 @@ export const api = {
     pedir<Turno>('POST', '/turnos/actual/entrega', cuerpo),
   // TICKET-34 · quiénes se quedan hoy (queda en la auditoría).
   huespedesHoy: () => pedir<{ items: TitularHoy[] }>('GET', '/huespedes/hoy'),
+  // TICKET-37 · reportes de extranjeros a Migración Colombia (el sistema no se conecta al SIRE).
+  migracionPendientes: () => pedir<{ items: PendienteMigracion[] }>('GET', '/migracion/pendientes'),
+  migracionDatos: (estadiaId: string) => pedir<DatosMigracion>('GET', `/migracion/datos/${estadiaId}`),
+  reportarMigracion: (estadia_id: string, tipo: TipoReporte) => pedir<{ id: string }>('POST', '/migracion/reportes', { estadia_id, tipo }),
   // TICKET-27 · daños: solo la administración pone el valor.
   cobrarDano: (id: string, descripcion: string, valor: number) => pedir<Estadia>('POST', `/estadias/${id}/danos`, { descripcion, valor }),
   // TICKET-26 · cambio de habitación.

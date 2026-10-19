@@ -8,7 +8,7 @@ const tarifas = [
   { id: 't2', tipo_habitacion: 'AIRE' as const, modalidad: 'TRES_HORAS' as const, personas: 2, valor: 35000, vigente_desde: '2026-10-01T00:00:00-05:00' },
   { id: 't3', tipo_habitacion: 'VENTILADOR' as const, modalidad: 'NOCHE' as const, personas: 3, valor: 80000, vigente_desde: '2026-10-01T00:00:00-05:00' },
 ];
-const reglas = { valor_hora: 8000, hora_noche_completa: 16, descuento_noche: 5000, pago_turno_dia: 70000, pago_turno_noche: 50000, retencion_datos_dias: 90, minutos_cambio_sin_cargo: 5 };
+const reglas = { valor_hora: 8000, hora_noche_completa: 16, descuento_noche: 5000, pago_turno_dia: 70000, pago_turno_noche: 50000, retencion_datos_dias: 90, minutos_cambio_sin_cargo: 5, horas_reporte_migracion: 24 };
 
 describe('FR-22 — tarifas en la PWA', () => {
   it('nombra cada tarifa como la dice el hotel', () => {
@@ -31,7 +31,7 @@ describe('FR-22 — reglas en la PWA', () => {
   });
 
   it('envía solo las reglas que cambiaron, con sus límites', () => {
-    const f = { valor_hora: '9.000', hora_noche_completa: '16', descuento_noche: '5000', pago_turno_dia: '70000', pago_turno_noche: '50000', retencion_datos_dias: '90', minutos_cambio_sin_cargo: '5' };
+    const f = { valor_hora: '9.000', hora_noche_completa: '16', descuento_noche: '5000', pago_turno_dia: '70000', pago_turno_noche: '50000', retencion_datos_dias: '90', minutos_cambio_sin_cargo: '5', horas_reporte_migracion: '24' };
     assert.deepEqual(reglasCambiadas(reglas, f), { cambios: { valor_hora: 9000 }, errores: {} });
     assert.deepEqual(reglasCambiadas(reglas, { ...f, valor_hora: '8000', retencion_datos_dias: '0', descuento_noche: '' }).errores,
       { retencion_datos_dias: 'Debe estar entre 1 y 3650.', descuento_noche: 'Escriba un número.' });
@@ -45,6 +45,7 @@ describe('FR-22 — reglas en la PWA', () => {
     assert.equal(textoRegla('descuento_noche', 6000), 'Descuento máximo por noche: $6.000');
     assert.equal(textoRegla('hora_noche_completa', 17), 'Desde qué hora se cobra la noche completa: 5:00 p. m.');
     assert.equal(textoRegla('retencion_datos_dias', 90), 'Días que se guardan los datos del huésped: 90');
+    assert.equal(textoRegla('horas_reporte_migracion', 24), 'Horas para reportar a Migración antes de marcarlo atrasado: 24');
   });
 });
 
