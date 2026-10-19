@@ -10,13 +10,16 @@ let e: Entorno;
 let recepcion: string;
 before(async () => {
   ({ e, recepcion } = await entornoConSesiones('2026-10-13T06:20:00-05:00'));
-  // Un titular sin documento (el documento es opcional, RN-16).
+  // Una estadía antigua sin documento: antes del TICKET-36 el documento era opcional (RN-16). Hoy la API lo exige,
+  // así que se registra con documento y luego se le quita, como quedaron las entradas viejas.
   const r = await e.app.inject({ method: 'POST', url: '/api/v1/estadias', headers: { cookie: recepcion }, payload: {
     habitacion_numero: '201', modalidad: 'NOCHE', personas: 1,
-    huesped: { nombre: 'Huésped Prueba Sin Documento', nacionalidad: 'Colombia', es_menor: false },
+    huesped: { nombre: 'Huésped Prueba Sin Documento', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false },
     autorizacion: { otorgada: true, version_aviso: 'AV-2026-10' }, pago: { forma: 'EFECTIVO', valor_recibido: 60000 },
   } });
   assert.equal(r.statusCode, 201, r.body);
+  await e.bd.consultar(`UPDATE huespedes SET tipo_documento = NULL, numero_documento = NULL
+    WHERE id = (SELECT huesped_id FROM estadias WHERE id = $1)`, [r.json().id]);
 });
 after(async () => e.cerrar());
 

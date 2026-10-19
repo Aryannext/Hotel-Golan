@@ -7,13 +7,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Por qué
 La ley obliga a los hoteles a llevar el registro de huéspedes con la Tarjeta de Registro de Alojamiento (Ley 2068 de 2020, art. 22). Ese registro pide como mínimo el nombre, el tipo y el número de documento, la nacionalidad y las fechas de entrada y salida (Decreto 2119 de 2018) [V]. Antes el documento era opcional (RN-16, T3-5). **La ley prevalece sobre lo que pida el hotel** (indicación del usuario, 18-10-2026). La dueña aprobó el aviso que lo dice así (HG-ACT-001 V6-09).
 
 ## Invariantes de negocio
-- `POST /estadias` sin `tipo_documento` o sin `numero_documento` en el titular → **422** `VALIDACION`. Aplica también al registro tardío (TICKET-18).
+- `POST /estadias` sin `tipo_documento` o sin `numero_documento` en el titular → **400** `INVALID_PAYLOAD`, como los demás errores de esquema. Aplica también al registro tardío (TICKET-18). (Al escribir el ticket decía 422 `VALIDACION`, pero la API no tiene ese código.)
 - Los tipos siguen siendo CC, CE, TI, RC, PASAPORTE y PPT. Si el asesor pide otro (por ejemplo, salvoconducto), se agrega por migración [V].
 - Menor de edad: su documento es el registro civil o la tarjeta de identidad. Las reglas del acompañante (RN-16) no cambian.
 - Las estadías ya guardadas sin documento y los huéspedes anonimizados siguen siendo válidos. Si se agrega una restricción en la base, se crea con `NOT VALID` o solo para las filas nuevas.
@@ -25,11 +25,11 @@ La ley obliga a los hoteles a llevar el registro de huéspedes con la Tarjeta de
 - Enviar los datos a la TRA del Ministerio de Comercio. El sistema no la reemplaza.
 
 ## Criterios de aceptación
-- [ ] Una entrada sin documento → 422. Con documento → 201, igual que antes.
-- [ ] El registro tardío sin documento → 422.
-- [ ] En el paso del titular, «Tipo de documento» y «Número» son obligatorios. Si faltan, el error dice «Escriba el documento: lo pide la ley para registrar al huésped».
-- [ ] Las pruebas que registran titulares sin documento se actualizan a la regla nueva. Esto no debilita las pruebas: cambia la especificación. La lista para la policía deja de tener el caso «Sin documento» para entradas nuevas, pero lo conserva para las estadías antiguas.
-- [ ] CONTRATO_API pasa a v0.5.0. El cambio rompe compatibilidad: `EstadiaInput.huesped.required` agrega el tipo y el número de documento.
+- [x] Una entrada sin documento → 400. Con documento → 201, igual que antes.
+- [x] El registro tardío sin documento → 400.
+- [x] En el paso del titular, «Tipo de documento» y «Número» son obligatorios. Si faltan, el error dice «Escriba el documento: lo pide la ley para registrar al huésped».
+- [x] Las pruebas que registran titulares sin documento se actualizan a la regla nueva. Esto no debilita las pruebas: cambia la especificación. La lista para la policía deja de tener el caso «Sin documento» para entradas nuevas, pero lo conserva para las estadías antiguas.
+- [x] CONTRATO_API pasa a v0.5.0. El cambio rompe compatibilidad: `EstadiaInput.huesped.required` agrega el tipo y el número de documento.
 
 ## Módulos a tocar
 estadías (esquema de entrada), PWA (paso del titular, `logica.ts`), pruebas de entrada y de registro tardío, CONTRATO_API, TESTS_ACEPTACION (RN-16).

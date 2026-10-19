@@ -82,12 +82,17 @@ describe('TICKET-03 · recibir el turno y caja', () => {
 });
 
 describe('TICKET-04 · asistente de entrada', () => {
-  const base = { ...HUESPED_VACIO, nombre: 'Huésped Prueba 40', autorizo: true };
+  const base = { ...HUESPED_VACIO, nombre: 'Huésped Prueba 40', tipoDocumento: 'CC', numeroDocumento: 'PRUEBA0040', autorizo: true };
   it('pide nombre, autorización y, para un menor, el acompañante verificado', () => {
     assert.deepEqual(erroresHuesped(base), {});
-    assert.deepEqual(Object.keys(erroresHuesped({ ...HUESPED_VACIO })).sort(), ['autorizo', 'nombre']);
+    assert.deepEqual(Object.keys(erroresHuesped({ ...HUESPED_VACIO })).sort(), ['autorizo', 'nombre', 'numeroDocumento']);
     assert.ok(erroresHuesped({ ...base, esMenor: true }).acompanante);
     assert.deepEqual(erroresHuesped({ ...base, esMenor: true, acompanante: true }), {});
+  });
+  it('TICKET-36: el documento es obligatorio, con un mensaje que dice por qué', () => {
+    const sinTipo = erroresHuesped({ ...base, tipoDocumento: '', numeroDocumento: '' });
+    assert.equal(sinTipo.numeroDocumento, 'Escriba el documento: lo pide la ley para registrar al huésped.');
+    assert.ok(Object.keys(erroresHuesped({ ...HUESPED_VACIO })).includes('numeroDocumento'));
   });
   it('valida el número de documento y el teléfono de 10 dígitos', () => {
     assert.ok(erroresHuesped({ ...base, tipoDocumento: 'CC', numeroDocumento: '12' }).numeroDocumento);
@@ -95,8 +100,8 @@ describe('TICKET-04 · asistente de entrada', () => {
     assert.ok(erroresHuesped({ ...base, telefono: '300 12' }).telefono);
     assert.deepEqual(erroresHuesped({ ...base, telefono: '300 123 4567' }), {});
   });
-  it('arma el huésped para la API: sin documento si no lo dio, teléfono con +57 y documento sin puntos', () => {
-    assert.deepEqual(aHuespedInput(base), { nombre: 'Huésped Prueba 40', nacionalidad: 'Colombia', es_menor: false });
+  it('arma el huésped para la API: siempre con documento (TICKET-36), teléfono con +57 y documento sin puntos', () => {
+    assert.deepEqual(aHuespedInput(base), { nombre: 'Huésped Prueba 40', nacionalidad: 'Colombia', es_menor: false, tipo_documento: 'CC', numero_documento: 'PRUEBA0040' });
     assert.deepEqual(aHuespedInput({ ...base, tipoDocumento: 'CC', numeroDocumento: '98.765.432', telefono: '300 123 4567', esMenor: true, acompanante: true }), {
       nombre: 'Huésped Prueba 40', nacionalidad: 'Colombia', es_menor: true, acompanante_verificado: true,
       tipo_documento: 'CC', numero_documento: '98765432', telefono: '+573001234567',

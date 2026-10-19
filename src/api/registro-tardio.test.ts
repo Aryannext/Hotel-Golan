@@ -15,7 +15,7 @@ after(async () => e.cerrar());
 
 const entrada = (o: Record<string, unknown> = {}) => ({
   habitacion_numero: '206', modalidad: 'NOCHE', personas: 1,
-  huesped: { nombre: 'Huésped Prueba 60', nacionalidad: 'Colombia', es_menor: false },
+  huesped: { nombre: 'Huésped Prueba 60', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false },
   autorizacion: { otorgada: true, version_aviso: 'AV-2026-10' },
   pago: { forma: 'EFECTIVO', valor_recibido: 45000 },
   ...o,
@@ -24,6 +24,12 @@ const registrar = (payload: Record<string, unknown>) =>
   e.app.inject({ method: 'POST', url: '/api/v1/estadias', payload, headers: { cookie } });
 
 describe('ADR-010 — Registro tardío', () => {
+  it('TICKET-36: lo del talonario también necesita el documento (400 sin él)', async () => {
+    const r = await registrar(entrada({ habitacion_numero: '211', registro_tardio: true, entrada_en: '2026-10-13T03:00:00-05:00',
+      huesped: { nombre: 'Huésped Prueba 59', nacionalidad: 'Colombia', es_menor: false } }));
+    assert.equal(r.statusCode, 400, r.body);
+  });
+
   it('una entrada de hace 3 horas calcula la salida con la hora real (3:10 a. m. → 12 m. del mismo día)', async () => {
     const r = await registrar(entrada({ registro_tardio: true, entrada_en: '2026-10-13T03:10:00-05:00' }));
     assert.equal(r.statusCode, 201, r.body);
@@ -45,21 +51,21 @@ describe('ADR-010 — Registro tardío', () => {
 
   it('el precio es el de la tarifa vigente a la hora real de entrada', async () => {
     await e.bd.consultar(`INSERT INTO tarifas (tipo_habitacion, modalidad, personas, valor, vigente_desde) VALUES ('VENTILADOR', 'NOCHE', 1, 50000, '2026-10-13T05:00:00-05:00')`);
-    const r = await registrar(entrada({ habitacion_numero: '208', huesped: { nombre: 'Huésped Prueba 61', nacionalidad: 'Colombia', es_menor: false },
+    const r = await registrar(entrada({ habitacion_numero: '208', huesped: { nombre: 'Huésped Prueba 61', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false },
       registro_tardio: true, entrada_en: '2026-10-13T04:30:00-05:00' }));
     assert.equal(r.statusCode, 201, r.body);
     assert.equal(r.json().cargos.find((c: { tipo: string }) => c.tipo === 'ALOJAMIENTO').valor, 45000);
   });
 
   it('una entrada normal no es tardía y también dice quién la registró', async () => {
-    const r = await registrar(entrada({ habitacion_numero: '209', huesped: { nombre: 'Huésped Prueba 62', nacionalidad: 'Colombia', es_menor: false },
+    const r = await registrar(entrada({ habitacion_numero: '209', huesped: { nombre: 'Huésped Prueba 62', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false },
       pago: { forma: 'EFECTIVO', valor_recibido: 50000 } }));
     assert.equal(r.statusCode, 201, r.body);
     assert.deepEqual([r.json().registro_tardio, r.json().registrada_por, r.json().entrada_en], [false, 'recepcion2', '2026-10-13T06:10:00-05:00']);
   });
 
   it('registro tardío sin hora, hora sin registro tardío, más de 48 horas atrás o en el futuro: 400', async () => {
-    const h = { habitacion_numero: '210', huesped: { nombre: 'Huésped Prueba 63', nacionalidad: 'Colombia', es_menor: false } };
+    const h = { habitacion_numero: '210', huesped: { nombre: 'Huésped Prueba 63', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false } };
     const casos = [
       { registro_tardio: true },
       { entrada_en: '2026-10-13T03:10:00-05:00' },
@@ -76,7 +82,7 @@ describe('ADR-010 — Registro tardío', () => {
   });
 
   it('justo 48 horas atrás todavía se acepta', async () => {
-    const r = await registrar(entrada({ habitacion_numero: '210', huesped: { nombre: 'Huésped Prueba 64', nacionalidad: 'Colombia', es_menor: false },
+    const r = await registrar(entrada({ habitacion_numero: '210', huesped: { nombre: 'Huésped Prueba 64', tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false },
       registro_tardio: true, entrada_en: '2026-10-11T06:10:00-05:00' }));
     assert.equal(r.statusCode, 201, r.body);
   });

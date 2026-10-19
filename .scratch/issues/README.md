@@ -82,7 +82,7 @@ Salen de la investigación HG-PRIV-002 y de la conversación con la dueña (HG-A
 
 | Ticket | Título | Bloqueado por | Estado |
 |---|---|---|---|
-| [TICKET-36](36-documento-obligatorio.md) | El documento del titular es obligatorio (registro de huéspedes) | — | ready-for-agent |
+| [TICKET-36](36-documento-obligatorio.md) | El documento del titular es obligatorio (registro de huéspedes) | — | **done** |
 | [TICKET-37](37-recordatorio-migracion.md) | Recordatorio para reportar a los extranjeros a Migración Colombia | — | ready-for-agent |
 | [TICKET-38](38-conservacion-segun-la-ley.md) | Guardar los datos de los huéspedes el tiempo que exija la ley | plazo legal (contador o asesor) | needs-info |
 

@@ -14,7 +14,7 @@ let desistio: { estadia: string; huesped: string };
 const entrada = async (habitacion: string, huesped: Record<string, unknown>) => {
   const r = await e.app.inject({
     method: 'POST', url: '/api/v1/estadias', headers: { cookie: recepcion },
-    payload: { habitacion_numero: habitacion, modalidad: 'NOCHE', personas: 1, huesped: { nacionalidad: 'Colombia', es_menor: false, ...huesped },
+    payload: { habitacion_numero: habitacion, modalidad: 'NOCHE', personas: 1, huesped: { tipo_documento: 'CC', numero_documento: 'PRUEBA0099', nacionalidad: 'Colombia', es_menor: false, ...huesped },
       autorizacion: { otorgada: true, version_aviso: 'AV-2026-10' }, pago: { forma: 'EFECTIVO', valor_recibido: 60000 } },
   });
   assert.equal(r.statusCode, 201, r.body);
