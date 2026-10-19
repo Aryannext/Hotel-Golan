@@ -11,11 +11,12 @@ import { Historial } from './componentes/Historial.tsx';
 import { Equipo } from './componentes/Equipo.tsx';
 import { Ajustes, type Seccion } from './componentes/Ajustes.tsx';
 import { Campana, Pendientes, useAhora } from './componentes/Avisos.tsx';
-import { avisosExistencias, calcularAvisos, ordenarAvisos, type Aviso as AvisoPendiente, type Existencia } from './avisos.ts';
+import { avisosExistencias, avisosMigracion, calcularAvisos, ordenarAvisos, type Aviso as AvisoPendiente, type Existencia, type PendienteMigracion } from './avisos.ts';
 import type { Reglas } from './ajustes.ts';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { SolicitudesFactura } from './componentes/SolicitudesFactura.tsx';
 import { QuienesHoy } from './componentes/QuienesHoy.tsx';
+import { ReportarMigracion } from './componentes/ReportarMigracion.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
 import { PanelEstado } from './componentes/PanelEstado.tsx';
 import { Ico } from './componentes/Ico.tsx';
@@ -36,6 +37,8 @@ export function App() {
   const [ficha, setFicha] = useState<Habitacion | null>(null);
   const [revisando, setRevisando] = useState<Habitacion | null>(null);
   const [viendoHoy, setViendoHoy] = useState(false);
+  const [migracion, setMigracion] = useState<PendienteMigracion[]>([]);
+  const [reportando, setReportando] = useState<AvisoPendiente | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const [recarga, setRecarga] = useState(0);
   const [vista, setVista] = useState<Vista>('mapa');
@@ -62,6 +65,8 @@ export function App() {
         else setError(e instanceof Error ? e.message : 'No se pudo cargar el mapa.');
       });
     api.reglas().then(setReglas).catch(() => undefined);
+    // Reportes a Migración (TICKET-37): los ven recepción y la administración.
+    api.migracionPendientes().then((r) => setMigracion(r.items)).catch(() => undefined);
     // Existencias (TICKET-21): solo la administración las ve y recibe sus avisos.
     if (sesion.usuario.rol === 'ADMINISTRACION') api.existencias().then((r) => setExistencias(r.items)).catch(() => undefined);
     if (sesion.usuario.rol === 'ADMINISTRACION') api.pagosPorConfirmar().then((r) => setPorConfirmar(r.items)).catch(() => undefined);
@@ -95,12 +100,13 @@ export function App() {
     ...(esAdmin ? [['historial', 'Historial', 'calendario'], ['equipo', 'Equipo', 'huespedes'], ['ajustes', 'Ajustes', 'configuracion']] as Array<[Vista, string, string]> : []),
   ];
   // Avisos (TICKET-16): se recalculan con cada evento en vivo (recarga) y cada 30 s (hora actual).
-  const avisos = ordenarAvisos([...calcularAvisos(habitaciones, reglas, ahora), ...(esAdmin ? avisosExistencias(existencias) : [])]);
+  const avisos = ordenarAvisos([...calcularAvisos(habitaciones, reglas, ahora), ...avisosMigracion(migracion), ...(esAdmin ? avisosExistencias(existencias) : [])]);
   function elegirAviso(a: AvisoPendiente) {
     const h = habitaciones.find((x) => x.numero === a.habitacion);
     setCotizando(null);
     if (a.tipo === 'POR_VERIFICAR' && esAdmin) { setVista('confirmar'); return; }
     if (a.tipo === 'EXISTENCIAS') { setAjustesInicial('existencias'); setVista('ajustes'); return; }
+    if (a.tipo === 'MIGRACION') { setReportando(a); return; }
     setVista('mapa');
     if (h && (a.tipo === 'POR_REVISAR' || a.tipo === 'LIMPIEZA')) setRevisando(h);
     else if (h) setFicha(h);
@@ -163,6 +169,12 @@ export function App() {
                 alSalir={(texto) => { setFicha(null); setRecarga((n) => n + 1); setAviso({ tono: 'exito', texto }); }} />}
               {revisando && <PanelEstado habitacion={revisando} alCerrar={() => setRevisando(null)}
                 alCambiar={(texto) => { setRevisando(null); setRecarga((n) => n + 1); setAviso({ tono: texto.includes('Recuerde') ? 'info' : 'exito', texto }); }} />}
+              {reportando?.estadiaId && reportando.reporte && <ReportarMigracion estadiaId={reportando.estadiaId} tipo={reportando.reporte}
+                alCerrar={() => setReportando(null)} alReportar={() => {
+                  setReportando(null);
+                  setRecarga((n) => n + 1);
+                  setAviso({ tono: 'exito', texto: `Quedó anotado el reporte a Migración de la habitación ${reportando.habitacion}.` });
+                }} />}
             </>}
         </main>
       </div>

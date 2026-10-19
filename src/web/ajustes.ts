@@ -5,7 +5,7 @@ export interface Tarifa { id: string; tipo_habitacion: 'AIRE' | 'VENTILADOR'; mo
 export type TarifaInput = Pick<Tarifa, 'tipo_habitacion' | 'modalidad' | 'personas' | 'valor'>;
 export interface Reglas {
   valor_hora: number; hora_noche_completa: number; descuento_noche: number;
-  pago_turno_dia: number; pago_turno_noche: number; retencion_datos_dias: number; minutos_cambio_sin_cargo: number;
+  pago_turno_dia: number; pago_turno_noche: number; retencion_datos_dias: number; minutos_cambio_sin_cargo: number; horas_reporte_migracion: number;
 }
 export type ClaveRegla = keyof Reglas;
 
@@ -47,6 +47,7 @@ export const REGLAS: Array<{ clave: ClaveRegla; texto: string; ayuda: string; mi
   { clave: 'pago_turno_dia', texto: 'Pago del turno de día', ayuda: 'Aplica desde el próximo turno que se abra.', min: 0, max: 10000000, pesos: true },
   { clave: 'pago_turno_noche', texto: 'Pago del turno de noche', ayuda: 'Aplica desde el próximo turno que se abra.', min: 0, max: 10000000, pesos: true },
   { clave: 'retencion_datos_dias', texto: 'Días que se guardan los datos del huésped', ayuda: 'Después de la salida; luego se borran el nombre, el documento y el teléfono.', min: 1, max: 3650, pesos: false },
+  { clave: 'horas_reporte_migracion', texto: 'Horas para reportar a Migración antes de marcarlo atrasado', ayuda: 'Los huéspedes extranjeros se reportan a Migración Colombia al llegar y al salir. Pasadas estas horas, el aviso sale como atrasado.', min: 1, max: 720, pesos: false },
   { clave: 'minutos_cambio_sin_cargo', texto: 'Minutos para cambiar de habitación solo con la diferencia', ayuda: 'Si cambia de opinión dentro de estos minutos desde que entró, solo se ajusta la diferencia; después, se cobra la nueva completa.', min: 0, max: 120, pesos: false },
 ];
 

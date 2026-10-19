@@ -5,10 +5,14 @@ import type { Habitacion } from './api.ts';
 import { pesos } from './logica.ts';
 import { textoHora, type Reglas } from './ajustes.ts';
 
-export type TipoAviso = 'VENCIDA' | 'POR_VERIFICAR' | 'POR_REVISAR' | 'LIMPIEZA' | 'EXISTENCIAS';
-export interface Aviso { clave: string; tipo: TipoAviso; tono: 'alerta' | 'aviso' | 'info'; habitacion: string; titulo: string; detalle: string }
+export type TipoAviso = 'VENCIDA' | 'MIGRACION' | 'POR_VERIFICAR' | 'POR_REVISAR' | 'LIMPIEZA' | 'EXISTENCIAS';
+export interface Aviso { clave: string; tipo: TipoAviso; tono: 'alerta' | 'aviso' | 'info'; habitacion: string; titulo: string; detalle: string; estadiaId?: string; reporte?: TipoReporte }
 
-const ORDEN: Record<TipoAviso, number> = { VENCIDA: 0, POR_VERIFICAR: 1, POR_REVISAR: 2, LIMPIEZA: 3, EXISTENCIAS: 4 };
+const ORDEN: Record<TipoAviso, number> = { VENCIDA: 0, MIGRACION: 1, POR_VERIFICAR: 2, POR_REVISAR: 3, LIMPIEZA: 4, EXISTENCIAS: 5 };
+
+/** Un reporte a Migración pendiente (GET /migracion/pendientes, TICKET-37). Sin datos del huésped. */
+export type TipoReporte = 'LLEGADA' | 'SALIDA';
+export interface PendienteMigracion { estadia_id: string; habitacion_numero: string; tipo: TipoReporte; desde: string; atrasado: boolean }
 
 /** Existencias de un producto de nevera o vitrina (GET /existencias, TICKET-21). */
 export interface Existencia { producto_id: string; nombre: string; grupo: string; surtido: number; vendido: number; existencias: number }
@@ -82,4 +86,17 @@ export function avisosExistencias(existencias: Existencia[]): Aviso[] {
       : { clave: `existencias-${x.producto_id}`, tipo: 'EXISTENCIAS' as const, tono: 'alerta' as const, habitacion: '',
         titulo: `${x.nombre}: ${cuantas}`, detalle: 'Se vendió más de lo que se anotó como llegado. Revise la vitrina o la nevera.' };
   });
+}
+
+/**
+ * FR-33 (TICKET-37): los huéspedes extranjeros se reportan a Migración Colombia al llegar y al salir (RN-24).
+ * El sistema no se conecta al SIRE: recuerda el reporte hasta que recepción marque «Ya lo reporté».
+ */
+export function avisosMigracion(pendientes: PendienteMigracion[]): Aviso[] {
+  return pendientes.map((p) => ({
+    clave: `migracion-${p.estadia_id}-${p.tipo}`, tipo: 'MIGRACION' as const, tono: p.atrasado ? 'alerta' as const : 'aviso' as const,
+    habitacion: p.habitacion_numero, estadiaId: p.estadia_id, reporte: p.tipo,
+    titulo: `Hab. ${p.habitacion_numero}: reportar a Migración la ${p.tipo === 'LLEGADA' ? 'llegada' : 'salida'}${p.atrasado ? ' (atrasado)' : ''}`,
+    detalle: 'Es un huésped extranjero. Repórtelo en la página de Migración Colombia (SIRE) y marque «Ya lo reporté».',
+  }));
 }

@@ -7,7 +7,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Por qué
 Quien aloje a un extranjero debe reportar su llegada y su salida a Migración Colombia por el SIRE (Decreto 1067 de 2015, art. 2.2.1.11.5.1; Resolución 2357 de 2020, arts. 3 y 4). No hacerlo es una infracción con multa (art. 15) [V]. Hoy nadie lo hace: «no nadie avisa» (HG-ACT-001 V6-02). La ley prevalece (indicación del usuario, 18-10-2026).
@@ -17,7 +17,7 @@ Quien aloje a un extranjero debe reportar su llegada y su salida a Migración Co
 - Al registrar la entrada de un extranjero, queda pendiente un reporte de **llegada**. Al darle salida, queda pendiente uno de **salida**.
 - «Ya lo reporté» guarda quién lo marcó y cuándo, y queda en la auditoría sin el nombre ni el documento. Solo se marca una vez; un segundo intento → 409.
 - El aviso no muestra el nombre del huésped, solo la habitación, igual que los demás avisos (TICKET-16).
-- Si se anula la entrada o el huésped desiste, el reporte pendiente se cancela [P].
+- Si el huésped desiste antes de reportar su llegada, no queda nada pendiente. Si ya se había reportado la llegada, queda pendiente la salida [P]. (Las estadías no se anulan: se desiste.)
 - **Plazo:** el plazo exacto del reporte no se pudo leer (Resolución 2357 de 2020, art. 6) [V]. Mientras tanto, el aviso aparece apenas queda pendiente y se marca «atrasado» a las 24 horas, configurable en Ajustes (`horas_reporte_migracion`, 24 [P/V]).
 - Solo datos sintéticos en pruebas.
 
@@ -26,12 +26,13 @@ Quien aloje a un extranjero debe reportar su llegada y su salida a Migración Co
 - El asesor confirma el plazo y los datos que pide el reporte.
 
 ## Criterios de aceptación
-- [ ] La entrada de un titular «Venezuela» deja un reporte de llegada pendiente. La de un titular «colombiana», no.
-- [ ] La campana y «Pendientes» muestran «Reportar a Migración: llegada de la 205». Después de 24 horas dice «atrasado».
-- [ ] Marcar «Ya lo reporté» lo quita de la lista y deja la constancia en la auditoría («Reportó a Migración la llegada de la 205»).
-- [ ] Al darle salida, aparece el reporte de salida.
-- [ ] Al anular la entrada, el reporte pendiente desaparece.
-- [ ] Sin sesión: 401. Marcar dos veces → 409.
+- [x] La entrada de un titular «Venezuela» deja un reporte de llegada pendiente. La de un titular «colombiana», no.
+- [x] La campana y «Pendientes» muestran «Hab. 205: reportar a Migración la llegada». Después de 24 horas dice «(atrasado)».
+- [x] Marcar «Ya lo reporté» lo quita de la lista y deja la constancia en la auditoría («Reportó a Migración la llegada de la 205»).
+- [x] Al darle salida, aparece el reporte de salida.
+- [x] Si desiste antes de reportar, el reporte pendiente desaparece.
+- [x] Sin sesión: 401. Marcar dos veces → 409.
+- [x] Agregado al construir [P]: el panel muestra los datos para llenar el SIRE (`GET /migracion/datos/{id}`), y cada consulta queda en la auditoría («Consultó los datos para Migración de la 205»), como la lista para la policía.
 
 ## Módulos a tocar
 migración nueva (tabla de reportes a Migración, regla `horas_reporte_migracion`), estadías (entrada, salida, anulación y desistimiento), avisos de la PWA, Ajustes, auditoría, CONTRATO_API (aditivo), TESTS_ACEPTACION.

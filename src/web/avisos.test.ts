@@ -1,7 +1,7 @@
 // TICKET-16 · avisos en pantalla (FR-23, RN-04): salidas vencidas, transferencias por verificar y habitaciones por atender.
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { avisosExistencias, calcularAvisos, haceCuanto, ordenarAvisos } from './avisos.ts';
+import { avisosExistencias, avisosMigracion, calcularAvisos, haceCuanto, ordenarAvisos } from './avisos.ts';
 import type { Habitacion } from './api.ts';
 
 const hab = (numero: string, estado: string, estadia: Partial<NonNullable<Habitacion['estadia_activa']>> | null = null, nota: string | null = null): Habitacion => ({
@@ -82,5 +82,22 @@ describe('TICKET-21 · aviso de existencias (RN-21)', () => {
   it('los avisos de existencias van después de los de habitaciones', () => {
     const todos = ordenarAvisos([...avisosExistencias([ex('Gatorade', 6, 6)]), ...calcularAvisos([hab('207', 'POR_REVISAR')], reglas, ahora)]);
     assert.deepEqual(todos.map((a) => a.tipo), ['POR_REVISAR', 'EXISTENCIAS']);
+  });
+});
+
+describe('FR-33 (TICKET-37) — avisos de reportes a Migración', () => {
+  const p = { estadia_id: 'e206', habitacion_numero: '206', desde: '2026-10-13T06:20:00-05:00' };
+  it('pide reportar la llegada o la salida, solo con la habitación; si está atrasado, es una alerta', () => {
+    assert.deepEqual(avisosMigracion([{ ...p, tipo: 'LLEGADA', atrasado: false }]), [{
+      clave: 'migracion-e206-LLEGADA', tipo: 'MIGRACION', tono: 'aviso', habitacion: '206', estadiaId: 'e206', reporte: 'LLEGADA',
+      titulo: 'Hab. 206: reportar a Migración la llegada', detalle: 'Es un huésped extranjero. Repórtelo en la página de Migración Colombia (SIRE) y marque «Ya lo reporté».',
+    }]);
+    const [atrasado] = avisosMigracion([{ ...p, tipo: 'SALIDA', atrasado: true }]);
+    assert.deepEqual([atrasado.tono, atrasado.titulo], ['alerta', 'Hab. 206: reportar a Migración la salida (atrasado)']);
+  });
+  it('van después de las salidas vencidas y antes de las transferencias', () => {
+    const [m] = avisosMigracion([{ ...p, tipo: 'LLEGADA', atrasado: false }]);
+    const venc = calcularAvisos([hab('205', 'OCUPADA', { salida_prevista_en: '2026-10-13T12:00:00-05:00', por_verificar: 1000 })], reglas, ahora);
+    assert.deepEqual(ordenarAvisos([...venc, m]).map((a) => a.tipo), ['VENCIDA', 'MIGRACION', 'POR_VERIFICAR']);
   });
 });

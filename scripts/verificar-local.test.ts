@@ -24,11 +24,11 @@ before(async () => {
 after(async () => bd.cerrar());
 
 describe('Semilla sintética', () => {
-  it('carga las 12 habitaciones, 8 tarifas, 7 reglas y 6 usuarios', async () => {
+  it('carga las 12 habitaciones, 8 tarifas, 8 reglas y 6 usuarios', async () => {
     const c = await uno<{ h: number; t: number; r: number; u: number }>(`SELECT
       (SELECT count(*)::int FROM habitaciones) h, (SELECT count(*)::int FROM tarifas) t,
       (SELECT count(*)::int FROM reglas) r, (SELECT count(*)::int FROM usuarios) u`);
-    assert.deepEqual(c, { h: 12, t: 8, r: 7, u: 6 }); // la 7.ª, minutos_cambio_sin_cargo, la crea la migración 0007
+    assert.deepEqual(c, { h: 12, t: 8, r: 8, u: 6 }); // minutos_cambio_sin_cargo y horas_reporte_migracion las crean las migraciones 0007 y 0009
   });
 
   it('guarda el PIN como hash Argon2id, nunca en claro', async () => {
