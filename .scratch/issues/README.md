@@ -50,7 +50,7 @@ Salen de HG-AUD-001 v0.1. Aprobados por el usuario el 17-10-2026. Los marcados `
 |---|---|---|---|
 | [TICKET-26](26-cambio-de-habitacion.md) | Cambio de habitación (y aviso de ropa en lavandería al dar salida) | — | **done** |
 | [TICKET-27](27-cobrar-un-dano.md) | Cobrar un daño (solo la administración) | — | **done** |
-| [TICKET-28](28-aviso-de-privacidad.md) | Aviso de privacidad visible en la entrada | — | needs-info (falta el texto aprobado) |
+| [TICKET-28](28-aviso-de-privacidad.md) | Aviso de privacidad visible en la entrada | — (para usarlo con huéspedes reales: asesor y 36 a 38) | ready-for-agent (texto corto aprobado el 18-10-2026) |
 | [TICKET-29](29-guia-y-practica.md) | Guía corta de uso y sesión de práctica | 19, 28 | ready-for-agent |
 
 **Orden propuesto:** 19 (cuando el usuario avise) · 26, 27 y 28 apenas responda la administradora · 29 al final.
@@ -75,3 +75,15 @@ Salen de HG-ACT-001 §11 (V5-01 a V5-21) y de PRD v0.6. Aprobados por el usuario
 - el 28 cuando haya texto aprobado;
 - el 19 cuando el usuario avise;
 - el 29 al final.
+
+## Obligaciones legales del registro de huéspedes (18-10-2026)
+
+Salen de la investigación HG-PRIV-002 y de la conversación con la dueña (HG-ACT-001 §12, V6-01 a V6-12). Regla del usuario: **la ley prevalece sobre lo que pida el hotel**. Aprobados por el usuario el 18-10-2026.
+
+| Ticket | Título | Bloqueado por | Estado |
+|---|---|---|---|
+| [TICKET-36](36-documento-obligatorio.md) | El documento del titular es obligatorio (registro de huéspedes) | — | ready-for-agent |
+| [TICKET-37](37-recordatorio-migracion.md) | Recordatorio para reportar a los extranjeros a Migración Colombia | — | ready-for-agent |
+| [TICKET-38](38-conservacion-segun-la-ley.md) | Guardar los datos de los huéspedes el tiempo que exija la ley | plazo legal (contador o asesor) | needs-info |
+
+**Orden propuesto:** 36 → 37 → 28 → 38 (cuando se sepa el plazo) → 19 (cuando el usuario avise) → 29 al final.
