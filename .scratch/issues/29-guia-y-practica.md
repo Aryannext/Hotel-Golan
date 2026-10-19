@@ -7,7 +7,7 @@
 
 **Blocked by:** TICKET-19 (Desplegar en el VPS). TICKET-28 (Aviso de privacidad), para que la guía muestre el texto aprobado.
 
-**Status:** ready-for-agent
+**Status:** in-progress (guía y plan de la práctica escritos el 18-10-2026; la práctica espera el TICKET-19)
 
 ## Contenido de la guía (casos del día, en lenguaje sencillo)
 - **Recepción:**
@@ -39,7 +39,8 @@
 - La guía no promete funciones que no existan.
 
 ## Criterios de aceptación
-- [ ] La guía está en `docs/` y cada caso tiene sus pasos y al menos una captura.
+- [x] La guía está en `docs/guia/01_Guia_Uso_Hotel_Golan.md` (HG-GUIA-001 v0.1, fuera del repositorio público). Tiene 29 casos y 42 capturas del sistema de prueba con datos inventados. Falta la revisión del usuario.
+- [x] El plan de la práctica está en `docs/guia/02_Plan_Sesion_Practica.md` (HG-GUIA-002 v0.1), con 15 ejercicios de recepción, 7 de administración y la tabla de dudas.
 - [ ] Se hizo la sesión de práctica, con fecha y asistentes en el acta [V].
 - [ ] Las dudas de la práctica quedan anotadas como pendientes o como ajustes.
 

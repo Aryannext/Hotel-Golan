@@ -51,7 +51,7 @@ Salen de HG-AUD-001 v0.1. Aprobados por el usuario el 17-10-2026. Los marcados `
 | [TICKET-26](26-cambio-de-habitacion.md) | Cambio de habitación (y aviso de ropa en lavandería al dar salida) | — | **done** |
 | [TICKET-27](27-cobrar-un-dano.md) | Cobrar un daño (solo la administración) | — | **done** |
 | [TICKET-28](28-aviso-de-privacidad.md) | Aviso de privacidad visible en la entrada | — (para usarlo con huéspedes reales: asesor y 36 a 38) | **done** (pantalla; falta la revisión del asesor para usarlo con datos reales) |
-| [TICKET-29](29-guia-y-practica.md) | Guía corta de uso y sesión de práctica | 19, 28 | ready-for-agent |
+| [TICKET-29](29-guia-y-practica.md) | Guía corta de uso y sesión de práctica | 19 (para la práctica) | in-progress (guía escrita; práctica después del 19) |
 
 **Orden propuesto:** 19 (cuando el usuario avise) · 26, 27 y 28 apenas responda la administradora · 29 al final.
 
