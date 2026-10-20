@@ -13,7 +13,7 @@ import { entradaIso, errorTardio } from '../tardio.ts';
 import { fechaReporte } from '../reportes.ts';
 import type { Reglas, Tarifa } from '../ajustes.ts';
 import { leerDescuento } from '../textosConfig.ts';
-import { claseAsistente, cuantos, textoCambio } from '../presentacion.ts';
+import { claseAsistente, cuantos, nombreTipoDocumento, textoCambio } from '../presentacion.ts';
 
 const PASOS = ['Datos del huésped', 'Habitación y servicio', 'Confirmar'];
 const FORMAS: Array<[FormaPago, string]> = [['EFECTIVO', 'Efectivo'], ['NEQUI', 'Nequi'], ['BANCOLOMBIA', 'Bancolombia'], ['AL_SALIR', 'Paga al salir']];
@@ -188,7 +188,7 @@ function PasoConfirmar({ habitacion, h, servicio, cot, forma, alForma, recibido,
     <section class="tarjeta tarjeta--crema"><div class="tarjeta__cab"><h2>Resumen</h2></div>
       <dl class="kv">
         <dt>Huésped</dt><dd>{h.nombre.trim()}</dd>
-        {h.tipoDocumento && <><dt>Documento</dt><dd>{h.tipoDocumento} {enmascarar(h.numeroDocumento)}</dd></>}
+        {h.tipoDocumento && <><dt>Documento</dt><dd>{nombreTipoDocumento(h.tipoDocumento)} {enmascarar(h.numeroDocumento)}</dd></>}
         <dt>Habitación</dt><dd>{habitacion.numero} · {habitacion.tipo === 'AIRE' ? 'Aire' : 'Ventilador'}</dd>
         <dt>Servicio</dt><dd>{tiempo} · {cuantos(servicio.personas, 'persona', 'personas')}</dd>
         {servicio.tardio && <><dt>Entró</dt><dd>{fechaReporte(entrada)} a las {horaBogota(entrada)} (registro tardío)</dd></>}

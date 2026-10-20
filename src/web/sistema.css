@@ -81,7 +81,7 @@
   .historial__importes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .historial__filtro { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .historial__filtro .btn { grid-column: 1 / -1; }
-  .pestanas { flex-wrap: nowrap; overflow-x: auto; }
+  .pestanas { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; }
   .pestana { flex: none; }
 }
 

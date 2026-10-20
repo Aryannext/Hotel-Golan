@@ -1,6 +1,6 @@
 // Textos e íconos de pantalla según el estado. Sin JSX, se prueba con node --test; deja los componentes sin ternarios anidados.
 import type { Habitacion } from './api.ts';
-import { diaRelativo, horaBogota, pesos } from './logica.ts';
+import { TIPOS_DOCUMENTO, diaRelativo, horaBogota, pesos } from './logica.ts';
 
 /** «1 noche», «3 noches». */
 export const cuantos = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
@@ -88,5 +88,8 @@ export function textoDesistimiento(numero: string, r: { valor: number; medio: st
 }
 
 /** FR-31 (V5-02): el documento completo, para que la policía lo valide; o «Sin documento» (es opcional, RN-16). */
+/** «PASAPORTE» → «Pasaporte», «CC» → «Cédula»; un código desconocido se muestra tal cual. */
+export const nombreTipoDocumento = (tipo: string) => TIPOS_DOCUMENTO.find(([v]) => v === tipo)?.[1] ?? tipo;
+
 export const textoDocumento = (t: { tipo_documento: string | null; numero_documento: string | null }) =>
-  t.numero_documento ? `${t.tipo_documento ?? ''} ${t.numero_documento}`.trim() : 'Sin documento';
+  t.numero_documento ? `${t.tipo_documento ? nombreTipoDocumento(t.tipo_documento) : ''} ${t.numero_documento}`.trim() : 'Sin documento';
