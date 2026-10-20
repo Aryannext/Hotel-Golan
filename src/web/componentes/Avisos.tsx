@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Aviso } from '../avisos.ts';
 import { Ico } from './Ico.tsx';
-import { etiquetaCampana } from '../presentacion.ts';
+import { etiquetaCampana, textoPendientes } from '../presentacion.ts';
 
 const ICONOS: Record<Aviso['tipo'], string> = { VENCIDA: 'reloj', MIGRACION: 'enviar', POR_VERIFICAR: 'transferencia', POR_REVISAR: 'lupa', LIMPIEZA: 'escoba', EXISTENCIAS: 'vitrina' };
 
@@ -26,12 +26,22 @@ export function ListaAvisos({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (
   </li>)}</ul>;
 }
 
+/**
+ * «Pendientes» del inicio: una sola línea que se abre al tocarla, para que las habitaciones se vean de una vez.
+ * Si hay algo urgente (en rojo), la línea también va en rojo.
+ */
 export function Pendientes({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (a: Aviso) => void }) {
+  const [abierto, setAbierto] = useState(false);
   if (avisos.length === 0) return null;
-  return <section class="tarjeta pendientes" aria-labelledby="pendientes-titulo">
-    <div class="tarjeta__cab"><h2 id="pendientes-titulo"><Ico id="campana" clase="ico--s" />Pendientes</h2>
-      <span class="pill pill--aviso">{avisos.length}</span></div>
-    <ListaAvisos avisos={avisos} alElegir={alElegir} />
+  const urgente = avisos.some((a) => a.tono === 'alerta');
+  return <section class="pendientes">
+    <button type="button" class={`pendientes__resumen${urgente ? ' pendientes__resumen--urgente' : ''}`} aria-expanded={abierto}
+      aria-controls="pendientes-lista" onClick={() => setAbierto(!abierto)}>
+      <Ico id={urgente ? 'alerta' : 'campana'} clase="ico--s" />
+      <span class="pendientes__texto"><b>{textoPendientes(avisos.length)}</b><span>{abierto ? 'Toque para ocultar' : 'Toque para ver'}</span></span>
+      <Ico id="flecha" clase={`ico--xs pendientes__flecha${abierto ? ' pendientes__flecha--abierta' : ''}`} />
+    </button>
+    {abierto && <div id="pendientes-lista"><ListaAvisos avisos={avisos} alElegir={alElegir} /></div>}
   </section>;
 }
 

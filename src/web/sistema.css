@@ -1,12 +1,5 @@
 /* Ajustes del sistema sobre el estilo del prototipo (estilos.css se mantiene como copia fiel). */
 
-/* No partir palabras a la mitad («Mantenimie-nto»): se corta solo entre palabras. */
-.stat > span:last-child { overflow-wrap: break-word; }
-
-/* Celular: el ícono del indicador se oculta para que el texto quepa completo. */
-@media (max-width: 420px) {
-  .stat__ico { display: none; }
-}
 
 /* Barra superior: en celular solo se ven las iniciales; el nombre completo, desde 600 px. */
 .barra-sup__usuario { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1.3 var(--f-ui); }
@@ -135,8 +128,45 @@
 /* Aviso de privacidad en la entrada (TICKET-28). */
 .aviso-privacidad { border: 1px solid var(--borde); border-radius: var(--r-md, 12px); background: var(--crema-2); padding: 12px 14px; margin: 12px 0; }
 .aviso-privacidad__titulo { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font: 700 13.5px/1.3 var(--f-ui); }
-.aviso-privacidad blockquote { margin: 0 0 6px; padding: 0 0 0 10px; border-left: 3px solid var(--bronce); }
+.aviso-privacidad blockquote { margin: 0 0 6px; padding: 10px 12px; background: var(--blanco); border-radius: var(--r-md); }
 .aviso-privacidad blockquote p { margin: 0 0 6px; font: 500 14px/1.5 var(--f-ui); }
 .politica h3 { margin: 14px 0 4px; font: 700 14.5px/1.3 var(--f-ui); }
 .politica h3:first-child { margin-top: 0; }
 .politica p { margin: 0 0 6px; font: 500 13.5px/1.5 var(--f-ui); color: var(--texto-2); overflow-wrap: anywhere; }
+
+/* Inicio de recepción más simple (19-10-2026): lo del día a un toque, los avisos en una línea. */
+.rapidas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 12px; }
+.rapida { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 104px; padding: 14px 8px 12px;
+  background: var(--blanco); border: 1px solid var(--borde); border-radius: var(--r-lg); box-shadow: var(--sombra);
+  font: inherit; color: var(--texto); text-align: center; cursor: pointer; transition: transform .15s ease-out, border-color .15s ease-out; }
+.rapida:hover { border-color: var(--bronce); transform: translateY(-1px); }
+.rapida:active { transform: translateY(0); }
+.rapida:focus-visible { outline: 3px solid var(--bronce); outline-offset: 2px; }
+.rapida__ico { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 2px; border-radius: 50%; background: var(--crema-2); color: var(--bronce); }
+.rapida__ico .ico { width: 24px; height: 24px; }
+.rapida__titulo { font: 700 15px/1.2 var(--f-ui); }
+.rapida__detalle { font: 500 12px/1.3 var(--f-ui); color: var(--texto-2); }
+@media (max-width: 520px) { .rapidas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.pendientes__resumen { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border: 1px solid #F1DEAE; border-radius: var(--r-md, 12px);
+  background: var(--ambar-bg); color: var(--ambar); font: inherit; text-align: left; cursor: pointer; }
+.pendientes__resumen--urgente { background: var(--rojo-bg); border-color: var(--rojo); color: var(--rojo); }
+.pendientes__resumen:focus-visible { outline: 3px solid var(--bronce); outline-offset: 2px; }
+.pendientes__texto { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.pendientes__texto b { font: 700 15px/1.3 var(--f-ui); }
+.pendientes__texto span { font: 500 12.5px/1.3 var(--f-ui); opacity: .85; }
+.pendientes__flecha { transition: transform .2s ease-out; }
+.pendientes__flecha--abierta { transform: rotate(90deg); }
+#pendientes-lista { margin-top: 8px; }
+
+/* Encabezado del mapa: una línea de leyenda con los colores de las habitaciones (reemplaza los cuatro contadores grandes). */
+.mapa__cab { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 12px; }
+.mapa__cab h2 { margin: 0; font: 700 18px/1.25 var(--f-ui); }
+.mapa__cab h2 span { display: block; margin-top: 2px; font: 500 13px/1.4 var(--f-ui); color: var(--texto-2); }
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; }
+.leyenda__item { display: inline-flex; align-items: center; gap: 6px; font: 600 13px/1.3 var(--f-ui); color: var(--texto); font-variant-numeric: tabular-nums; }
+.leyenda__item::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--gris-ico); }
+.leyenda__item--libre::before { background: var(--verde-ico); }
+.leyenda__item--ocupada::before { background: var(--rojo-ico); }
+.leyenda__item--limpieza::before { background: var(--ambar-ico); }
+.leyenda__item--fuera::before { background: var(--gris-ico); }

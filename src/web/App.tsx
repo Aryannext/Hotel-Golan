@@ -15,7 +15,7 @@ import { avisosExistencias, avisosMigracion, calcularAvisos, ordenarAvisos, type
 import type { Reglas } from './ajustes.ts';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { SolicitudesFactura } from './componentes/SolicitudesFactura.tsx';
-import { QuienesHoy } from './componentes/QuienesHoy.tsx';
+import { AccionesRapidas } from './componentes/AccionesRapidas.tsx';
 import { ReportarMigracion } from './componentes/ReportarMigracion.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
 import { PanelEstado } from './componentes/PanelEstado.tsx';
@@ -36,7 +36,6 @@ export function App() {
   const [cotizando, setCotizando] = useState<Habitacion | null>(null);
   const [ficha, setFicha] = useState<Habitacion | null>(null);
   const [revisando, setRevisando] = useState<Habitacion | null>(null);
-  const [viendoHoy, setViendoHoy] = useState(false);
   const [migracion, setMigracion] = useState<PendienteMigracion[]>([]);
   const [reportando, setReportando] = useState<AvisoPendiente | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
@@ -130,9 +129,9 @@ export function App() {
       setAviso({ tono: 'exito', texto: `Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.` });
     }} />;
     return <>
+      {/* Inicio más simple: lo del día a un toque, los avisos en una línea y enseguida las habitaciones. */}
+      <AccionesRapidas alAvisar={(texto, tono = 'exito') => setAviso({ tono, texto })} alCambiar={() => setRecarga((n) => n + 1)} />
       <Pendientes avisos={avisos} alElegir={elegirAviso} />
-      <div class="acciones-mapa"><button type="button" class="btn btn--secundario" onClick={() => setViendoHoy(true)}><Ico id="huespedes" clase="ico--s" />Quiénes se quedan hoy</button></div>
-      {viendoHoy && <QuienesHoy alCerrar={() => setViendoHoy(false)} />}
       <Mapa habitaciones={habitaciones} alElegir={(hab) => { setAviso(null); setCotizando(hab); }} alAbrir={setFicha} alRevisar={setRevisando} />
     </>;
   }
