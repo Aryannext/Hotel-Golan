@@ -1,0 +1,56 @@
+/* Fuente única de la identidad visual (BOCETO 01). Antes estos valores vivían
+   dos veces: en el :root de estilos.css con la paleta del prototipo y otra vez
+   redefinidos en sistema.css. Esa duplicación fue la causa de que algunos tonos
+   dorados sobrevivieran al cambio de paleta, así que ahora cada color se declara
+   aquí una sola vez. Cambiar la identidad del sistema es cambiar este archivo. */
+:root {
+  /* Fondos cálidos */
+  --crema: #FDF8F6;
+  --crema-2: #F9E7E0;
+  --arena: #F3D9C6;
+  --pared: #EBD8CF;
+  --borde: #EEDED6;
+  --blanco: #FFFFFF;
+
+  /* Textos: marrón/gris del boceto */
+  --puerta: #483F3F;
+  --madera-800: #483F3F;
+  --madera-600: #5C5151;
+  --arena-700: #6E6262;
+  --cuero: #6E6262;
+  --texto: var(--puerta);
+  --texto-2: var(--arena-700);
+
+  /* Barra lateral en crema */
+  --lateral-a: #FAF4EF;
+  --lateral-b: #F5ECE5;
+
+  /* Rojo de marca para fondos con texto blanco. Es #D32626 y no el #DC2828
+     plano porque sobre él el texto blanco llega a 5.15 de contraste (el mínimo
+     accesible es 4.5) sin verse menos rojo. */
+  --marca-a: #D32626;
+  --marca-b: #B91C1C;
+
+  /* Acento principal */
+  --bronce: #DC2828;
+  --bronce-osc: #B91C1C;
+  --oro: #DC2828;
+
+  /* Colores de apoyo */
+  --verde-bg: #DCFCE7; --verde: #15803D; --verde-ico: #22C55E;
+  --rojo-bg: #FDE7E7;  --rojo: #C81E1E;  --rojo-ico: #EF4444;
+  --ambar-bg: #FEF3C7; --ambar: #B45309; --ambar-ico: #F59E0B;
+  --azul-bg: #DBEAFE;  --azul: #1D4ED8;
+  --gris-bg: #E9E7E7;  --gris: #4B5563;  --gris-ico: #6B7280;
+
+  --sombra: 0 1px 2px rgba(37, 28, 20, .05), 0 4px 14px rgba(37, 28, 20, .05);
+  --sombra-alta: 0 24px 60px rgba(37, 28, 20, .22);
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+
+  /* Foto del panel de acceso (BOCETO 02). Vive en src/web/public/. */
+  --acceso-foto: url('/acceso.webp');
+
+  --f-marca: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-ui: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ancho-lateral: 248px;
+}

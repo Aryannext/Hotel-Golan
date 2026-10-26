@@ -2,7 +2,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  accionCuarto, claseAsistente, cuantos, detalleCuarto, etiquetaCampana, icoMovimiento, icoTono, notaCobro, notaFranja, pillEstadoPago,
+  accionCuarto, botonCuarto, claseAsistente, cuantos, detalleCuarto, etiquetaCampana, icoMovimiento, icoTono, notaCobro, notaFranja, pillEstadoPago,
   pistaCuarto, textoCambio, textoDesistimiento, textoDevolucion, textoDocumento, tituloFicha,
 } from './presentacion.ts';
 import type { Habitacion } from './api.ts';
@@ -86,6 +86,12 @@ describe('cuarto del mapa', () => {
     assert.equal(pistaCuarto('CUENTA'), ', tocar para ver la cuenta');
     assert.equal(pistaCuarto('ESTADO'), ', tocar para cambiar su estado');
     assert.equal(pistaCuarto(null), '');
+  });
+  it('texto del botón de la tarjeta; sin acción no hay botón', () => {
+    assert.equal(botonCuarto('ENTRADA'), 'Nueva entrada');
+    assert.equal(botonCuarto('CUENTA'), 'Ver la cuenta');
+    assert.equal(botonCuarto('ESTADO'), 'Cambiar estado');
+    assert.equal(botonCuarto(null), null);
   });
 });
 

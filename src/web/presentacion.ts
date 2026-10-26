@@ -63,6 +63,12 @@ const PISTA: Record<AccionCuarto, string> = {
 };
 export const pistaCuarto = (a: AccionCuarto | null) => (a ? PISTA[a] : '');
 
+/** Texto del botón de la tarjeta (BOCETO 04: la acción se ve, no se adivina). */
+const BOTON: Record<AccionCuarto, string> = {
+  ENTRADA: 'Nueva entrada', CUENTA: 'Ver la cuenta', ESTADO: 'Cambiar estado',
+};
+export const botonCuarto = (a: AccionCuarto | null) => (a ? BOTON[a] : null);
+
 const TITULO_FICHA: Record<string, string> = {
   devolucion: 'Devolución por desistimiento', extender: 'Extender estadía', cargo: 'Agregar cargos', pago: 'Registrar pago', salida: 'Dar salida',
   lavanderia: 'Recibir lavandería', factura: 'Solicitud de factura', cambio: 'Cambiar de habitación', dano: 'Cobrar un daño',

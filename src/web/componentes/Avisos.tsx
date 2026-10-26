@@ -1,4 +1,5 @@
-// Avisos en pantalla (TICKET-16, FR-23): la campana de la barra superior y «Pendientes» al inicio de Habitaciones.
+// Avisos en pantalla (TICKET-16, FR-23): la campana de la barra superior.
+// La lista repetida al inicio de Habitaciones se quitó: mostraba lo mismo que la campana.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Aviso } from '../avisos.ts';
 import { Ico } from './Ico.tsx';
@@ -24,15 +25,6 @@ export function ListaAvisos({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (
       <Ico id="flecha" clase="ico--xs" />
     </button>
   </li>)}</ul>;
-}
-
-export function Pendientes({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (a: Aviso) => void }) {
-  if (avisos.length === 0) return null;
-  return <section class="tarjeta pendientes" aria-labelledby="pendientes-titulo">
-    <div class="tarjeta__cab"><h2 id="pendientes-titulo"><Ico id="campana" clase="ico--s" />Pendientes</h2>
-      <span class="pill pill--aviso">{avisos.length}</span></div>
-    <ListaAvisos avisos={avisos} alElegir={alElegir} />
-  </section>;
 }
 
 export function Campana({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (a: Aviso) => void }) {

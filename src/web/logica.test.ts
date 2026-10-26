@@ -1,7 +1,7 @@
 // TICKET-01 · lógica de presentación de la PWA (sin JSX, se prueba con node --test).
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA, debeDejar, avisoTemprano, resumenExtension, devolucionPosible, puedeAnular } from './logica.ts';
+import { claseEstado, textoEstado, pesos, horaBogota, diaRelativo, contarEstados, filtrarPorGrupo, GRUPOS_ESTADO, iniciales, maxPersonas, ajustarPersonas, textoSalida, leerPesos, diferenciaConteo, nombreTurno, erroresHuesped, aHuespedInput, cambioEfectivo, enmascarar, HUESPED_VACIO, nuevaClave, avisoEvento, textoMedio, agruparCatalogo, resumenSeleccion, estadoSaldo, valorPago, accionesEstado, lineasDelTurno, TIPOS_SALIDA, debeDejar, avisoTemprano, resumenExtension, devolucionPosible, puedeAnular } from './logica.ts';
 
 describe('Presentación del mapa de habitaciones', () => {
   it('traduce los estados de la API a las clases y textos del prototipo', () => {
@@ -37,6 +37,23 @@ describe('Presentación del mapa de habitaciones', () => {
   it('cuenta las habitaciones por estado para los indicadores del inicio', () => {
     const c = contarEstados([{ estado: 'DISPONIBLE' }, { estado: 'OCUPADA' }, { estado: 'OCUPADA' }, { estado: 'LIMPIEZA' }, { estado: 'POR_REVISAR' }]);
     assert.deepEqual(c, { disponibles: 1, ocupadas: 2, limpiezaORevision: 2, mantenimiento: 0 });
+  });
+
+  it('filtra el mapa por el mismo grupo que cuenta cada indicador', () => {
+    const habs = [{ estado: 'DISPONIBLE', numero: '201' }, { estado: 'OCUPADA', numero: '205' },
+      { estado: 'LIMPIEZA', numero: '204' }, { estado: 'POR_REVISAR', numero: '207' }, { estado: 'MANTENIMIENTO', numero: '301' }];
+    assert.deepEqual(filtrarPorGrupo(habs, 'todas').length, 5);
+    assert.deepEqual(filtrarPorGrupo(habs, 'disponibles').map((h) => h.numero), ['201']);
+    assert.deepEqual(filtrarPorGrupo(habs, 'ocupadas').map((h) => h.numero), ['205']);
+    // Limpieza y «por revisar» son un solo grupo, como en el contador.
+    assert.deepEqual(filtrarPorGrupo(habs, 'limpiezaORevision').map((h) => h.numero), ['204', '207']);
+    assert.deepEqual(filtrarPorGrupo(habs, 'mantenimiento').map((h) => h.numero), ['301']);
+  });
+
+  it('el contador y el filtro no se pueden desincronizar: cada grupo cuenta lo que filtra', () => {
+    const habs = [{ estado: 'DISPONIBLE' }, { estado: 'OCUPADA' }, { estado: 'OCUPADA' }, { estado: 'LIMPIEZA' }, { estado: 'POR_REVISAR' }];
+    const c = contarEstados(habs);
+    for (const g of GRUPOS_ESTADO) assert.equal(c[g], filtrarPorGrupo(habs, g).length, g);
   });
 
   it('saca dos iniciales para el avatar, ignorando números y paréntesis', () => {
