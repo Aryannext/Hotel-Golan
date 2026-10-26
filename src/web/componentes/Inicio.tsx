@@ -2,7 +2,7 @@
 // Implementación fiel al diseño con métricas en tiempo real, widgets analíticos
 // para administración y acciones operativas inmediatas.
 import { useEffect, useState } from 'preact/hooks';
-import { api, type Habitacion, type Pago } from '../api.ts';
+import { api, type Habitacion, type Pago, type ResumenDia, type TitularHoy } from '../api.ts';
 import { claseEstado, filtrarPorGrupo, hoyBogota, textoEstado, type FiltroMapa, type GrupoEstado } from '../logica.ts';
 import {
   ocupacion,
@@ -10,8 +10,9 @@ import {
   calcularFlujoDia,
   calcularDesgloseMedios,
   obtenerActividadReciente,
+  serieIngresos,
+  trazoIngresos,
   type DineroDelDia,
-  type EventoReciente,
 } from '../inicio.ts';
 import { Ico } from './Ico.tsx';
 import { GraficoOcupacion } from './GraficoOcupacion.tsx';
@@ -40,27 +41,40 @@ export function Inicio({
   alIrA: (vista: 'mapa' | 'confirmar' | 'caja') => void;
 }) {
   const [dinero, setDinero] = useState<DineroDelDia | null>(null);
+  const [dias, setDias] = useState<ResumenDia[]>([]);
   const [pagosRecientes, setPagosRecientes] = useState<Pago[]>([]);
+  const [estadiasHoy, setEstadiasHoy] = useState<TitularHoy[]>([]);
   const [filtro, setFiltro] = useState<FiltroMapa>('todas');
 
   const hoy = hoyBogota();
   const o = ocupacion(habitaciones);
-  const flujo = calcularFlujoDia(habitaciones, hoy);
+  // Las entradas del día salen de las estadías activas, que traen la hora real de
+  // entrada; el mapa de habitaciones no la tiene.
+  const flujo = calcularFlujoDia(estadiasHoy, hoy);
+
+  // Quiénes están hoy: lo consultan recepción y la administración.
+  useEffect(() => {
+    api.huespedesHoy()
+      .then((r) => setEstadiasHoy(r.items))
+      .catch(() => setEstadiasHoy([]));
+  }, [recarga]);
 
   // Carga de reporte diario y pagos para administración
   useEffect(() => {
     if (!esAdmin) {
       setDinero(null);
+      setDias([]);
       setPagosRecientes([]);
       return;
     }
 
-    const ayer = new Date(`${hoy}T12:00:00Z`);
-    ayer.setUTCDate(ayer.getUTCDate() - 1);
+    // Una semana, para que el gráfico de ingresos tenga días de verdad que mostrar.
+    const desde = new Date(`${hoy}T12:00:00Z`);
+    desde.setUTCDate(desde.getUTCDate() - 6);
 
-    api.reporteDias(ayer.toISOString().slice(0, 10), hoy)
-      .then((r) => setDinero(dineroDelDia(r.items, hoy)))
-      .catch(() => setDinero(null));
+    api.reporteDias(desde.toISOString().slice(0, 10), hoy)
+      .then((r) => { setDias(r.items); setDinero(dineroDelDia(r.items, hoy)); })
+      .catch(() => { setDias([]); setDinero(null); });
 
     // Consultar turnos recientes para obtener pagos reales del día
     api.turnos(0, 1)
@@ -77,20 +91,15 @@ export function Inicio({
 
   // Cálculos puros para los widgets analíticos
   const medios = calcularDesgloseMedios(dinero, pagosRecientes);
+  // Sin movimientos la lista va vacía: la tarjeta ya dice «Sin movimientos
+  // registrados en este turno», que es la verdad.
   const actividad = obtenerActividadReciente(pagosRecientes);
+  const trazo = trazoIngresos(serieIngresos(dias, hoy));
 
-  // Si aún no hay eventos registrados en este turno, se ofrecen los datos guía del boceto
-  const actividadFinal: EventoReciente[] = actividad.length > 0
-    ? actividad
-    : [
-        { id: 'guia-1', hora: '10:12', concepto: 'Entrada - Hab. 207', valor: 35000 },
-        { id: 'guia-2', hora: '09:48', concepto: 'Salida - Hab. 205', valor: 70000 },
-        { id: 'guia-3', hora: '08:30', concepto: 'Transferencia confirmada - Hab. 202', valor: 70000 },
-        { id: 'guia-4', hora: '07:15', concepto: 'Entrada - Hab. 201', valor: 60000 },
-      ];
-
-  const ingresosFinal = dinero ? dinero.ingresos : (medios.total || 420000);
-  const variacionFinal = dinero ? dinero.variacion : 12;
+  // Sin informe del día todavía, el día va en $0: no hay con qué comparar y el
+  // porcentaje de variación se omite en vez de suponerlo.
+  const ingresosFinal = dinero ? dinero.ingresos : 0;
+  const variacionFinal = dinero ? dinero.variacion : null;
 
   return (
     <div class="inicio-dashboard">
@@ -129,15 +138,15 @@ export function Inicio({
             <span class="stat__ico"><Ico id="diagonal" clase="ico--l" /></span>
             <span>
               <strong>{flujo.entradasHoy}</strong>
-              <span>Entradas hoy</span>
+              <span>Entradas de hoy</span>
             </span>
           </div>
 
           <div class="stat stat--kpi stat--salida">
             <span class="stat__ico"><Ico id="adelante" clase="ico--l" /></span>
             <span>
-              <strong>{flujo.salidasHoy}</strong>
-              <span>Salidas hoy</span>
+              <strong>{flujo.salidasPrevistasHoy}</strong>
+              <span>Salidas previstas hoy</span>
             </span>
           </div>
         </div>
@@ -243,14 +252,17 @@ export function Inicio({
           <TarjetaIngresos
             ingresos={ingresosFinal}
             variacion={variacionFinal}
+            trazo={trazo}
           />
           <TarjetaPagos
-            efectivo={medios.efectivo || 310000}
-            nequi={medios.nequi || 70000}
-            bancolombia={medios.bancolombia || 40000}
+            efectivo={medios.efectivo}
+            nequi={medios.nequi}
+            bancolombia={medios.bancolombia}
+            transferencias={medios.transferencias}
+            detallado={medios.detallado}
           />
           <TarjetaActividad
-            eventos={actividadFinal}
+            eventos={actividad}
             alVerTodas={() => alIrA('caja')}
           />
         </div>

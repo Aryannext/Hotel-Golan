@@ -8,6 +8,8 @@ import {
   calcularDesgloseMedios,
   obtenerActividadReciente,
   calcularSegmentosDona,
+  serieIngresos,
+  trazoIngresos,
 } from './inicio.ts';
 import type { ResumenDia } from './api.ts';
 
@@ -75,14 +77,21 @@ describe('Inicio: texto de la comparación', () => {
 });
 
 describe('Inicio: flujo del día y desglose de pagos', () => {
-  it('calcula entradas y salidas del día', () => {
+  it('cuenta entradas y salidas previstas de hoy sobre las estadías activas', () => {
     const f = calcularFlujoDia([
-      { estado: 'OCUPADA', estadia_activa: { salida_prevista_en: '2026-10-16T12:00:00-05:00' } },
-      { estado: 'OCUPADA', estadia_activa: null },
-      { estado: 'DISPONIBLE', estadia_activa: null },
+      { entrada_en: '2026-10-16T08:10:00-05:00', salida_prevista_en: '2026-10-16T12:00:00-05:00' },
+      { entrada_en: '2026-10-16T14:30:00-05:00', salida_prevista_en: '2026-10-18T12:00:00-05:00' },
+      { entrada_en: '2026-10-14T20:00:00-05:00', salida_prevista_en: '2026-10-16T12:00:00-05:00' },
+      { entrada_en: '2026-10-15T09:00:00-05:00', salida_prevista_en: '2026-10-17T12:00:00-05:00' },
     ], '2026-10-16');
     assert.equal(f.entradasHoy, 2);
-    assert.equal(f.salidasHoy, 1);
+    assert.equal(f.salidasPrevistasHoy, 2);
+  });
+
+  it('sin estadías activas no inventa movimiento: va en cero', () => {
+    const f = calcularFlujoDia([], '2026-10-16');
+    assert.equal(f.entradasHoy, 0);
+    assert.equal(f.salidasPrevistasHoy, 0);
   });
 
   it('desglosa los medios de pago detallados', () => {
@@ -95,7 +104,49 @@ describe('Inicio: flujo del día y desglose de pagos', () => {
     assert.equal(d.efectivo, 310000);
     assert.equal(d.nequi, 70000);
     assert.equal(d.bancolombia, 40000);
+    assert.equal(d.transferencias, 110000);
     assert.equal(d.total, 420000);
+    assert.equal(d.detallado, true);
+  });
+
+  it('sin pagos del turno deja las transferencias juntas en vez de repartirlas', () => {
+    const dinero = {
+      ingresos: 420000, efectivo: 310000, transferenciasVerificadas: 110000,
+      transferenciasPendientes: 0, salidas: 0, variacion: null,
+    };
+    const d = calcularDesgloseMedios(dinero, []);
+    assert.equal(d.efectivo, 310000);
+    assert.equal(d.transferencias, 110000);
+    assert.equal(d.total, 420000);
+    // Lo importante: no se adivina cuánto fue de cada una.
+    assert.equal(d.nequi, 0);
+    assert.equal(d.bancolombia, 0);
+    assert.equal(d.detallado, false);
+  });
+
+  it('sin informe del día todo queda en cero', () => {
+    const d = calcularDesgloseMedios(null, []);
+    assert.deepEqual(d, { efectivo: 0, nequi: 0, bancolombia: 0, transferencias: 0, total: 0, detallado: false });
+  });
+
+  it('la serie de ingresos va en orden, sin pasarse del día ni del tope', () => {
+    const s = serieIngresos([dia('2026-10-16', 50000), dia('2026-10-14', 30000, 10000), dia('2026-10-15', 20000), dia('2026-10-17', 99000)], '2026-10-16', 2);
+    assert.deepEqual(s, [{ dia: '2026-10-15', valor: 20000 }, { dia: '2026-10-16', valor: 50000 }]);
+  });
+
+  it('el trazo necesita dos días: con uno solo no se dibuja nada', () => {
+    assert.equal(trazoIngresos([]), null);
+    assert.equal(trazoIngresos([{ dia: '2026-10-16', valor: 50000 }]), null);
+  });
+
+  it('el trazo va de borde a borde y el día mayor queda más arriba', () => {
+    const d = trazoIngresos([{ dia: '2026-10-15', valor: 0 }, { dia: '2026-10-16', valor: 80000 }], 280, 65);
+    assert.ok(d);
+    const [[, x1, y1], [, x2, y2]] = d.split(/(?=[ML] )/).map((p) => p.trim().split(' ').map((t, i) => (i === 0 ? t : Number(t))) as [string, number, number]);
+    assert.equal(x1, 0);
+    assert.equal(x2, 280);
+    // En SVG la y crece hacia abajo: más plata, y más pequeña.
+    assert.ok(y2 < y1, `el día de 80.000 debería quedar más arriba (${y2}) que el de 0 (${y1})`);
   });
 
   it('calcula segmentos de dona sin dividir por cero', () => {

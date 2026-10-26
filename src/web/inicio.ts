@@ -1,6 +1,8 @@
 // Resumen de la pantalla de Inicio (BOCETO 03). Sin JSX, se prueba con node --test.
-// Solo usa datos que la API ya entrega: no inventa entradas del día, salidas del día
-// ni separa Nequi de Bancolombia, porque hoy ninguna ruta devuelve eso.
+// Cada cifra sale de una ruta de la API: las entradas y salidas del día, de las
+// estadías activas; el dinero, del informe de días. Lo que la API no distingue
+// —Nequi frente a Bancolombia sin los pagos del turno— se deja sin separar en vez
+// de repartirlo: una cifra estimada se lee en pantalla igual que una real.
 import type { ResumenDia } from './api.ts';
 import { contarEstados } from './logica.ts';
 
@@ -56,37 +58,49 @@ export function textoVariacion(v: number | null): string | null {
 
 export interface FlujoDia {
   entradasHoy: number;
-  salidasHoy: number;
+  salidasPrevistasHoy: number;
 }
 
-/** Calcula conteo de entradas y salidas estimadas o registradas para el día (BOCETO 03). */
-export function calcularFlujoDia(
-  habitaciones: Array<{ estado: string; estadia_activa?: { salida_prevista_en: string } | null }>,
-  hoy?: string
-): FlujoDia {
-  let salidasHoy = 0;
-  for (const h of habitaciones) {
-    if (h.estadia_activa?.salida_prevista_en) {
-      if (!hoy || h.estadia_activa.salida_prevista_en.startsWith(hoy)) {
-        salidasHoy++;
-      }
-    }
+/** Lo que se necesita de cada estadía activa; lo entrega GET /huespedes/hoy. */
+export interface EstadiaDelDia { entrada_en: string; salida_prevista_en: string }
+
+/**
+ * Entradas y salidas del día contadas sobre las estadías activas, que traen la hora
+ * real de entrada y la salida prevista en hora de Bogotá («2026-10-26T14:30:00-05:00»).
+ *
+ * «Entradas de hoy» cuenta las que empezaron hoy y siguen abiertas: si alguien entró
+ * y salió el mismo día (modalidad de tres horas) no aparece, porque ninguna ruta de
+ * la API devuelve hoy las estadías ya cerradas. Se prefiere quedarse corto antes que
+ * estimar: en pantalla, un número estimado se lee igual que uno real.
+ */
+export function calcularFlujoDia(estadias: EstadiaDelDia[], hoy: string): FlujoDia {
+  let entradasHoy = 0;
+  let salidasPrevistasHoy = 0;
+  for (const e of estadias) {
+    if (e.entrada_en.startsWith(hoy)) entradasHoy++;
+    if (e.salida_prevista_en.startsWith(hoy)) salidasPrevistasHoy++;
   }
-  const ocupadas = habitaciones.filter((h) => h.estado === 'OCUPADA').length;
-  return {
-    entradasHoy: ocupadas,
-    salidasHoy: salidasHoy > 0 ? salidasHoy : Math.max(0, Math.floor(ocupadas * 0.6)),
-  };
+  return { entradasHoy, salidasPrevistasHoy };
 }
 
 export interface DesgloseMedios {
   efectivo: number;
   nequi: number;
   bancolombia: number;
+  /** Transferencias sin separar; es lo único que se sabe cuando no hay pagos detallados. */
+  transferencias: number;
   total: number;
+  /** true solo si Nequi y Bancolombia salen de pagos reales, no de un reparto. */
+  detallado: boolean;
 }
 
-/** Desglosa los pagos del día entre Efectivo, Nequi y Bancolombia (BOCETO 03). */
+/**
+ * Desglosa los pagos del día (BOCETO 03). Con los pagos del turno a la vista se
+ * separa cada medio sumándolos uno por uno. Sin ellos solo queda el informe del
+ * día, que trae el efectivo y las transferencias juntas: ahí `detallado` va en
+ * false y Nequi y Bancolombia quedan en cero, porque repartir ese total entre los
+ * dos sería inventarlo.
+ */
 export function calcularDesgloseMedios(
   dinero: DineroDelDia | null,
   pagos: Array<{ medio: string; valor: number; estado: string }> = []
@@ -101,22 +115,52 @@ export function calcularDesgloseMedios(
       else if (p.medio === 'NEQUI') nequi += p.valor;
       else if (p.medio === 'BANCOLOMBIA') bancolombia += p.valor;
     }
-    return { efectivo, nequi, bancolombia, total: efectivo + nequi + bancolombia };
-  }
-
-  if (dinero) {
-    const transferencias = dinero.transferenciasVerificadas;
-    const nequi = Math.round(transferencias * 0.63);
-    const bancolombia = transferencias - nequi;
     return {
-      efectivo: dinero.efectivo,
-      nequi,
-      bancolombia,
-      total: dinero.ingresos,
+      efectivo, nequi, bancolombia,
+      transferencias: nequi + bancolombia,
+      total: efectivo + nequi + bancolombia,
+      detallado: true,
     };
   }
 
-  return { efectivo: 0, nequi: 0, bancolombia: 0, total: 0 };
+  if (dinero) {
+    return {
+      efectivo: dinero.efectivo,
+      nequi: 0,
+      bancolombia: 0,
+      transferencias: dinero.transferenciasVerificadas,
+      total: dinero.ingresos,
+      detallado: false,
+    };
+  }
+
+  return { efectivo: 0, nequi: 0, bancolombia: 0, transferencias: 0, total: 0, detallado: false };
+}
+
+export interface PuntoIngreso { dia: string; valor: number }
+
+/** Lo cobrado por día, en orden, para el gráfico de ingresos. */
+export function serieIngresos(dias: ResumenDia[], hasta: string, cuantos = 7): PuntoIngreso[] {
+  return dias
+    .filter((d) => d.dia <= hasta)
+    .sort((a, b) => a.dia.localeCompare(b.dia))
+    .slice(-cuantos)
+    .map((d) => ({ dia: d.dia, valor: cobrado(d) }));
+}
+
+/**
+ * Trazo SVG de la serie de ingresos sobre un lienzo de `ancho`×`alto`. Devuelve null
+ * con menos de dos días: una línea necesita dos puntos, y antes se dibujaba una onda
+ * fija que subía siempre, hubiera o no ingresos.
+ */
+export function trazoIngresos(serie: PuntoIngreso[], ancho = 280, alto = 65): string | null {
+  if (serie.length < 2) return null;
+  const maximo = Math.max(...serie.map((p) => p.valor));
+  const paso = ancho / (serie.length - 1);
+  const y = (valor: number) => (maximo === 0 ? alto - 4 : alto - 4 - (valor / maximo) * (alto - 10));
+  return serie
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${Math.round(i * paso)} ${Math.round(y(p.valor))}`)
+    .join(' ');
 }
 
 export interface EventoReciente {
