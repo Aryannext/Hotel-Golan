@@ -72,7 +72,7 @@ Saber si el sistema cumple los requisitos funcionales de la primera y la segunda
 | Línea base automatizada (suite, ESLint, tipos y compilación) | 2026-10-26 13:37 | 2026-10-26 13:38 | Claude Code |
 | Humo, seguridad y rendimiento sobre el entorno | 2026-10-26 13:45 | 2026-10-26 14:10 | Claude Code |
 | Usabilidad y exploratoria a 360 px | 2026-10-26 13:40 | 2026-10-26 14:05 | Claude Code |
-| Aceptación con el personal y la dueña | después del TICKET-19 | por definir | Cristian con Derly y recepción |
+| Aceptación con el personal y la dueña | después del TICKET-19 | por definir | Cristian con la dueña y recepción |
 | Incidencias, defectos, informe y plan de mejora | 2026-10-26 | 2026-10-26 | Cristian / Claude Code |
 
 ## 9. Riesgos de las pruebas
