@@ -10,6 +10,10 @@ updates:
       time: '08:00'
       timezone: America/Bogota
     open-pull-requests-limit: 5
+    # typescript-eslint 8 exige typescript < 6.1.0; se quita cuando lo soporte.
+    ignore:
+      - dependency-name: typescript
+        versions: ['>=6.1.0']
     groups:
       desarrollo:
         dependency-type: development
