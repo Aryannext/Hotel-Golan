@@ -1,10 +1,13 @@
 // Pruebas de humo, seguridad y rendimiento contra el entorno en marcha (CF35, casos CP-037 a CP-041).
 // No registra entradas ni cobros: solo inicia sesión y consulta. Usa los usuarios y el PIN de la semilla sintética.
-// Uso: node pruebas/humo-entorno.ts [url]   (por defecto http://localhost:3001)
+// Uso: node pruebas/humo-entorno.ts [puerto]   (por defecto 3001). Solo apunta a localhost: en el VPS también
+// se corre allí mismo, porque el servicio escucha en localhost detrás de tailscale serve (TICKET-19).
 import { writeFileSync } from 'node:fs';
 import { PIN_PRUEBA } from '../src/api/pruebas/entorno.ts';
 
-const BASE = process.argv[2] ?? 'http://localhost:3001';
+const puerto = Number(process.argv[2] ?? 3001);
+if (!Number.isInteger(puerto) || puerto < 1 || puerto > 65535) throw new Error(`Puerto inválido: ${process.argv[2]}`);
+const BASE = `http://localhost:${puerto}`;
 const API = `${BASE}/api/v1`;
 const resultados: Array<{ caso: string; verificacion: string; esperado: string; obtenido: string; estado: 'Exitoso' | 'Fallido' }> = [];
 const registrar = (caso: string, verificacion: string, esperado: string, obtenido: string, ok: boolean) =>
@@ -46,10 +49,11 @@ registrar('CP-040', 'Acceso por rol', 'sin sesión 401; recepción en /usuarios 
 // CP-041 · rendimiento (NFR: p95 < 300 ms en APIs de consulta). 200 solicitudes secuenciales por API.
 async function medir(nombre: string, hacer: () => Promise<Response>, n = 200) {
   const tiempos: number[] = [];
+  // Secuencial a propósito: se mide la latencia de cada solicitud, no el rendimiento en paralelo.
   for (let i = 0; i < n; i++) {
     const t0 = performance.now();
-    const r = await hacer();
-    await r.arrayBuffer();
+    const r = await hacer(); // NOSONAR
+    await r.arrayBuffer(); // NOSONAR
     if (!r.ok) throw new Error(`${nombre}: ${r.status}`);
     tiempos.push(performance.now() - t0);
   }
