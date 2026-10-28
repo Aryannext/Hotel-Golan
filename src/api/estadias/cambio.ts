@@ -7,6 +7,7 @@
 // La habitación que deja pasa a «Por revisar» (FR-02). La cotización usa la misma regla sin guardar nada.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { HABITACIONES } from '../comun/hotel.ts';
 import { CABECERA_IDEMPOTENCIA, conIdempotencia, type ConClave } from '../comun/idempotencia.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
@@ -15,7 +16,8 @@ import { ErrorApi } from '../comun/errores.ts';
 import { publicarEventos, type Evento } from '../comun/eventos.ts';
 import { turnoAbiertoId } from '../caja/turnos.ts';
 import { calcularSalida, calcularTarifa, type ModalidadCotizable, type TipoHabitacion } from '../reglas/reglas.ts';
-import { regla, tarifasVigentes } from './cotizaciones.ts';
+import { tarifasVigentes } from './cotizaciones.ts';
+import { regla } from '../configuracion/reglas.ts';
 import { conceptoAlojamiento, leerEstadia } from './estadias.ts';
 
 type Tipo = 'SIN_USO' | 'NOCHE_NUEVA';
@@ -32,7 +34,7 @@ const ESQUEMA = {
   params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
   body: {
     type: 'object', additionalProperties: false, required: ['habitacion_numero'],
-    properties: { habitacion_numero: { type: 'string', pattern: '^(20[1-9]|21[01]|301)$' } },
+    properties: { habitacion_numero: { type: 'string', enum: HABITACIONES } },
   },
 };
 

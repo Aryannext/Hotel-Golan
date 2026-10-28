@@ -7,7 +7,8 @@ import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
 import { calcularExtension, type ModalidadExtension, type TipoHabitacion } from '../reglas/reglas.ts';
-import { regla, tarifasVigentes } from './cotizaciones.ts';
+import { tarifasVigentes } from './cotizaciones.ts';
+import { regla } from '../configuracion/reglas.ts';
 import { estadiaActiva } from './cargos.ts';
 import { leerEstadia } from './estadias.ts';
 

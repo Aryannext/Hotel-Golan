@@ -8,7 +8,7 @@ import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
-import { turnoAbiertoId } from '../caja/turnos.ts';
+import { turnoAbiertoId } from '../caja/abierto.ts';
 import { estadiaActiva } from '../estadias/cargos.ts';
 import { leerEstadia } from '../estadias/estadias.ts';
 import { publicarEventos } from '../comun/eventos.ts';

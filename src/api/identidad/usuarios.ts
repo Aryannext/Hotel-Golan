@@ -3,12 +3,12 @@
 import { hash } from '@node-rs/argon2';
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { UNICO_VIOLADO } from '../comun/hotel.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { ErrorApi } from '../comun/errores.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { requiere, type Rol } from './sesiones.ts';
 
-const UNICO_VIOLADO = '23505';
 const PIN = { type: 'string', pattern: '^[0-9]{6}$' };
 const ROL = { type: 'string', enum: ['RECEPCION', 'ADMINISTRACION'] };
 

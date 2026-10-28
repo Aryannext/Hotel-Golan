@@ -6,6 +6,13 @@ import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { ErrorApi } from '../comun/errores.ts';
 
+/** Valor de una regla del hotel (tabla `reglas`). La usan estadías, caja, migración y privacidad (HG-HAL-001 HAL-41). */
+export async function regla(bd: Bd, clave: string): Promise<number> {
+  const [r] = await bd.consultar<{ valor: number }>('SELECT valor FROM reglas WHERE clave = $1', [clave]);
+  if (!r) throw new Error(`Falta la regla ${clave}`);
+  return r.valor;
+}
+
 const LIMITES = {
   valor_hora: { minimum: 0, maximum: 1000000 },
   hora_noche_completa: { minimum: 12, maximum: 23 },

@@ -7,7 +7,7 @@
 import type { Bd } from '../../../scripts/lib/bd.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
-import { regla } from '../estadias/cotizaciones.ts';
+import { regla } from '../configuracion/reglas.ts';
 
 export async function anonimizarVencidos(bd: Bd, ahora: Date): Promise<{ anonimizados: number }> {
   return bd.transaccion(async (tx) => {
@@ -60,6 +60,20 @@ export async function purgarSolicitudesVencidas(bd: Bd, ahora: Date): Promise<{ 
   return { purgadas: filas.length };
 }
 
+/**
+ * Lo técnico que solo crece y no lleva dinero (HG-HAL-001 HAL-46; ADR-011): sesiones vencidas o cerradas hace más de
+ * 30 días y eventos de la bandeja de salida ya publicados hace más de 30 días. Los sin publicar se quedan.
+ */
+export async function purgarTecnico(bd: Bd, ahora: Date): Promise<{ sesiones: number; eventos: number }> {
+  const sesiones = await bd.consultar<{ id: string }>(
+    `DELETE FROM sesiones WHERE coalesce(revocada_en, expira_en) < $1::timestamptz - make_interval(days => $2::int) RETURNING id`,
+    [ahora, DIAS_SOLICITUDES]);
+  const eventos = await bd.consultar<{ id: string }>(
+    `DELETE FROM eventos_salida WHERE publicado_en < $1::timestamptz - make_interval(days => $2::int) RETURNING id`,
+    [ahora, DIAS_SOLICITUDES]);
+  return { sesiones: sesiones.length, eventos: eventos.length };
+}
+
 /** Corre la anonimización al arrancar y luego cada `cadaMs` (por defecto, cada hora). Devuelve cómo detenerla. */
 export function programarAnonimizacion(bd: Bd, ahora: () => Date, o: {
   cadaMs?: number; alTerminar?: (r: { anonimizados: number }) => void; alFallar?: (error: unknown) => void;
@@ -72,6 +86,7 @@ export function programarAnonimizacion(bd: Bd, ahora: () => Date, o: {
       const momento = ahora();
       const r = await anonimizarVencidos(bd, momento);
       await purgarSolicitudesVencidas(bd, momento);
+      await purgarTecnico(bd, momento);
       o.alTerminar?.(r);
     }
     catch (error) { o.alFallar?.(error); }

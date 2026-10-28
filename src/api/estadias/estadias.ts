@@ -2,6 +2,7 @@
 // Todo el registro ocurre en una transacción: huésped, autorización, estadía, cargos, pago, habitación, auditoría y eventos.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { HABITACIONES, UNICO_VIOLADO } from '../comun/hotel.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota, horaTexto } from '../comun/tiempo.ts';
@@ -9,11 +10,10 @@ import { ErrorApi } from '../comun/errores.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
 import { diferenciaAjustada, turnoAbiertoId, turnoDeEntrada } from '../caja/turnos.ts';
 import { cotizar, type ModalidadCotizable, type TipoHabitacion } from '../reglas/reglas.ts';
-import { descuentoPedido, regla, tarifasVigentes } from './cotizaciones.ts';
+import { descuentoPedido, tarifasVigentes } from './cotizaciones.ts';
+import { regla } from '../configuracion/reglas.ts';
 import { publicarEventos, type Evento } from '../comun/eventos.ts';
 
-const HABITACIONES = ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '301'];
-const UNICO_VIOLADO = '23505';
 
 /** Solo los 3 últimos caracteres del documento (ADR-006). */
 export const enmascarar = (doc: string | null) => (doc ? '••••' + doc.slice(-3) : null);

@@ -8,7 +8,7 @@ import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
-import { regla } from '../estadias/cotizaciones.ts';
+import { regla } from '../configuracion/reglas.ts';
 
 export type TipoReporte = 'LLEGADA' | 'SALIDA';
 export interface Pendiente { estadia_id: string; habitacion_numero: string; tipo: TipoReporte; desde: string; atrasado: boolean }
