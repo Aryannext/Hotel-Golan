@@ -3,21 +3,23 @@
 // inicial. Desde ahí, la administración crea a recepción y recepción recibe el turno. Datos de prueba sintéticos.
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { conectarPglite, type Bd } from '../../scripts/lib/bd.ts';
+import type { Bd } from '../../scripts/lib/bd.ts';
 import { aplicarMigraciones } from '../../scripts/lib/migraciones.ts';
 import { iniciarHotel } from '../../scripts/lib/inicio.ts';
 import { construirApp, type App } from './app.ts';
+import { baseDePrueba } from './pruebas/entorno.ts';
 
 let bd: Bd;
+let borrar: () => Promise<void>;
 let app: App;
 const ahora = new Date('2026-11-01T18:00:00-05:00');
 const PIN_ADMIN = '246813';
 before(async () => {
-  bd = await conectarPglite();
+  ({ bd, borrar } = await baseDePrueba());
   await aplicarMigraciones(bd);
   app = await construirApp({ bd, ahora: () => ahora });
 });
-after(async () => { await app.close(); await bd.cerrar(); });
+after(async () => { await app.close(); await borrar(); });
 
 const entrar = async (usuario: string, pin: string) => {
   const r = await app.inject({ method: 'POST', url: '/api/v1/sesiones', payload: { usuario, pin } });
@@ -61,10 +63,10 @@ describe('HAL-02 — arrancar sin la semilla', () => {
   });
 
   it('pide un PIN de 6 dígitos y una base en pesos enteros', async () => {
-    const vacia = await conectarPglite();
+    const { bd: vacia, borrar: borrarVacia } = await baseDePrueba();
     await aplicarMigraciones(vacia);
     await assert.rejects(iniciarHotel(vacia, { nombre: 'A B', usuario: 'ab', pin: '12', baseInicial: 0, turno: 'DIA', ahora }), /6 dígitos/);
     await assert.rejects(iniciarHotel(vacia, { nombre: 'A B', usuario: 'ab', pin: '123456', baseInicial: -1, turno: 'DIA', ahora }), /base/);
-    await vacia.cerrar();
+    await borrarVacia();
   });
 });

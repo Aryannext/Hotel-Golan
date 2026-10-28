@@ -3,24 +3,25 @@
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
-import { conectarPglite, type Bd } from '../../scripts/lib/bd.ts';
+import type { Bd } from '../../scripts/lib/bd.ts';
 import { aplicarMigraciones } from '../../scripts/lib/migraciones.ts';
 import { sembrar } from '../../scripts/lib/semilla.ts';
 import { construirApp, type App } from './app.ts';
-import { PIN_PRUEBA } from './pruebas/entorno.ts';
+import { PIN_PRUEBA, baseDePrueba } from './pruebas/entorno.ts';
 
 let bd: Bd;
+let borrar: () => Promise<void>;
 let app: App;
 let base: string;
 before(async () => {
-  bd = await conectarPglite();
+  ({ bd, borrar } = await baseDePrueba());
   await aplicarMigraciones(bd);
   await sembrar(bd, PIN_PRUEBA);
   app = await construirApp({ bd, latidoMs: 150 });
   await app.listen({ port: 0, host: '127.0.0.1' });
   base = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}/api/v1`;
 });
-after(async () => { await app.close(); await bd.cerrar(); });
+after(async () => { await app.close(); await borrar(); });
 
 async function entrar(usuario: string) {
   const r = await fetch(`${base}/sesiones`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ usuario, pin: PIN_PRUEBA }) });
