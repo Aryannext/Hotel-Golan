@@ -124,7 +124,7 @@ export const api = {
   salidasDelTurno: (turnoId: string) => pedir<{ items: SalidaTurno[] }>('GET', `/movimientos_caja?turno_id=${turnoId}`),
   registrarSalida: (cuerpo: { tipo: TipoSalida; detalle: string; valor: number; habitacion_numero?: string }, clave: string) =>
     pedir<SalidaTurno>('POST', '/movimientos_caja', cuerpo, { 'idempotency-key': clave }),
-  entregarTurno: (cuerpo: { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string }) =>
+  entregarTurno: (cuerpo: { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string; motivo_cierre?: string }) =>
     pedir<Turno>('POST', '/turnos/actual/entrega', cuerpo),
   // TICKET-34 · quiénes se quedan hoy (queda en la auditoría).
   huespedesHoy: () => pedir<{ items: TitularHoy[] }>('GET', '/huespedes/hoy'),
@@ -133,10 +133,11 @@ export const api = {
   migracionDatos: (estadiaId: string) => pedir<DatosMigracion>('GET', `/migracion/datos/${estadiaId}`),
   reportarMigracion: (estadia_id: string, tipo: TipoReporte) => pedir<{ id: string }>('POST', '/migracion/reportes', { estadia_id, tipo }),
   // TICKET-27 · daños: solo la administración pone el valor.
-  cobrarDano: (id: string, descripcion: string, valor: number) => pedir<Estadia>('POST', `/estadias/${id}/danos`, { descripcion, valor }),
+  cobrarDano: (id: string, descripcion: string, valor: number, clave: string) => pedir<Estadia>('POST', `/estadias/${id}/danos`, { descripcion, valor }, { 'idempotency-key': clave }),
   // TICKET-26 · cambio de habitación.
   cotizarCambio: (id: string, habitacion_numero: string) => pedir<CotizacionCambio>('POST', `/estadias/${id}/cambio-habitacion/cotizacion`, { habitacion_numero }),
-  cambiarHabitacion: (id: string, habitacion_numero: string) => pedir<Estadia>('POST', `/estadias/${id}/cambio-habitacion`, { habitacion_numero }),
+  cambiarHabitacion: (id: string, habitacion_numero: string, clave: string) =>
+    pedir<Estadia>('POST', `/estadias/${id}/cambio-habitacion`, { habitacion_numero }, { 'idempotency-key': clave }),
   cotizarExtension: (id: string, cuerpo: { modalidad: string; horas?: number }) =>
     pedir<CotizacionExtension>('POST', `/estadias/${id}/extensiones/cotizacion`, cuerpo),
   extender: (id: string, cuerpo: { modalidad: string; horas?: number }, clave: string) =>
@@ -158,18 +159,19 @@ export const api = {
   datosHotel: () => pedir<DatosHotel>('GET', '/hotel'),
   guardarDatosHotel: (d: Record<keyof DatosHotel, string>) => pedir<DatosHotel>('PUT', '/hotel', d),
   // TICKET-23 · lavandería.
-  pedirLavanderia: (estadiaId: string, items: Array<{ producto_id: string; cantidad: number }>) =>
-    pedir<PedidoLavanderia>('POST', `/estadias/${estadiaId}/lavanderia`, { items }),
+  pedirLavanderia: (estadiaId: string, items: Array<{ producto_id: string; cantidad: number }>, clave: string) =>
+    pedir<PedidoLavanderia>('POST', `/estadias/${estadiaId}/lavanderia`, { items }, { 'idempotency-key': clave }),
   lavanderiaPorEntregar: () => pedir<{ items: PedidoLavanderia[] }>('GET', '/lavanderia?estado=RECIBIDO'),
   // TICKET-24 · externos: solo el nombre; pagan de una vez o al reclamar.
-  lavanderiaExterna: (cliente_nombre: string, items: Array<{ producto_id: string; cantidad: number }>, cobro?: { medio: MedioPago }) =>
-    pedir<PedidoLavanderia>('POST', '/lavanderia', { cliente_nombre, items, ...(cobro ? { cobro } : {}) }),
+  lavanderiaExterna: (cliente_nombre: string, items: Array<{ producto_id: string; cantidad: number }>, cobro: { medio: MedioPago } | undefined, clave: string) =>
+    pedir<PedidoLavanderia>('POST', '/lavanderia', { cliente_nombre, items, ...(cobro ? { cobro } : {}) }, { 'idempotency-key': clave }),
   deudasLavanderia: () => pedir<{ items: PedidoLavanderia[] }>('GET', '/lavanderia/deudas'),
-  cobrarLavanderia: (id: string, medio: MedioPago) => pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/cobro`, { medio }),
-  entregarLavanderia: (id: string, cuerpo: { cobro?: { medio: MedioPago }; sin_pago_autorizado?: boolean }) =>
-    pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/entrega`, cuerpo),
+  cobrarLavanderia: (id: string, medio: MedioPago, clave: string) => pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/cobro`, { medio }, { 'idempotency-key': clave }),
+  entregarLavanderia: (id: string, cuerpo: { cobro?: { medio: MedioPago }; sin_pago_autorizado?: boolean }, clave: string) =>
+    pedir<PedidoLavanderia>('POST', `/lavanderia/${id}/entrega`, cuerpo, { 'idempotency-key': clave }),
   // TICKET-25 · solicitudes de factura: recepción las anota; la administración las avanza.
-  solicitarFactura: (estadiaId: string, datos: SolicitudInput) => pedir<SolicitudFactura>('POST', `/estadias/${estadiaId}/solicitudes-factura`, datos),
+  solicitarFactura: (estadiaId: string, datos: SolicitudInput, clave: string) =>
+    pedir<SolicitudFactura>('POST', `/estadias/${estadiaId}/solicitudes-factura`, datos, { 'idempotency-key': clave }),
   solicitudesFacturaDeEstadia: (estadiaId: string) => pedir<{ items: SolicitudFactura[] }>('GET', `/estadias/${estadiaId}/solicitudes-factura`),
   solicitudesFacturaAbiertas: () => pedir<{ items: SolicitudFactura[] }>('GET', '/solicitudes-factura?estado=PENDIENTE&estado=ENVIADA_AL_CONTADOR'),
   avanzarSolicitudFactura: (id: string, estado: EstadoFactura) => pedir<SolicitudFactura>('PATCH', `/solicitudes-factura/${id}`, { estado }),
@@ -178,7 +180,8 @@ export const api = {
     pedir<{ id: string; total: number; pago: Pago }>('POST', '/ventas', { items, medio }, { 'idempotency-key': clave }),
   // TICKET-21 · surtido y existencias (solo la administración).
   existencias: () => pedir<{ items: Existencia[] }>('GET', '/existencias'),
-  registrarSurtido: (producto_id: string, cantidad: number) => pedir<{ id: string; cantidad: number }>('POST', '/surtidos', { producto_id, cantidad }),
+  registrarSurtido: (producto_id: string, cantidad: number, clave: string) =>
+    pedir<{ id: string; cantidad: number }>('POST', '/surtidos', { producto_id, cantidad }, { 'idempotency-key': clave }),
   productosTodos: () => pedir<{ items: Producto[] }>('GET', '/productos?incluir_inactivos=true'),
   crearProducto: (p: Omit<Producto, 'id' | 'seccion'> & { seccion?: number }) => pedir<Producto>('POST', '/productos', p),
   guardarProducto: (id: string, p: Omit<Producto, 'id' | 'seccion'> & { seccion?: number }) => pedir<Producto>('PUT', `/productos/${id}`, p),

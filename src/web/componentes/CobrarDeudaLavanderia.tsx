@@ -1,7 +1,7 @@
 // Cobrar una deuda de lavandería de un externo (TICKET-24): cuando vuelve y paga lo que quedó debiendo.
 import { useState } from 'preact/hooks';
 import { api, type MedioPago } from '../api.ts';
-import { pesos } from '../logica.ts';
+import { nuevaClave, pesos } from '../logica.ts';
 import type { PedidoLavanderia } from '../lavanderia.ts';
 import { Ico } from './Ico.tsx';
 import { OpcionesMedio, Panel, useEnvio } from './Panel.tsx';
@@ -9,10 +9,12 @@ import { OpcionesMedio, Panel, useEnvio } from './Panel.tsx';
 export function CobrarDeudaLavanderia({ pedido, alCerrar, alCobrar }: { pedido: PedidoLavanderia; alCerrar: () => void; alCobrar: (texto: string) => void }) {
   const [medio, setMedio] = useState<MedioPago>('EFECTIVO');
   const { enviando, error, enviar } = useEnvio();
+  // Una clave por envío: un doble toque o un reintento sin señal no lo duplican (Idempotency-Key).
+  const [clave] = useState(nuevaClave);
   const valor = pedido.por_cobrar ?? 0;
 
   const cobrar = () => enviar(async () => {
-    await api.cobrarLavanderia(pedido.id, medio);
+    await api.cobrarLavanderia(pedido.id, medio, clave);
     alCobrar(`Se cobraron ${pesos(valor)} de la lavandería de ${pedido.cliente_nombre ?? ''}.`);
   });
 

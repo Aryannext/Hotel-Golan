@@ -16,12 +16,15 @@ interface FilaTurno {
   id: string; tipo: TipoTurno; estado: 'POR_RECIBIR' | 'ABIERTO' | 'CERRADO'; responsable: string | null; recibido_de: string | null;
   inicio_en: Date; fin_en: Date | null; base_entregada: number; base_recibida: number | null; pago_turno: number | null;
   pago_tomado: boolean | null; efectivo_esperado: number | null; efectivo_contado: number | null; motivo_diferencia: string | null;
+  cerrado_por: string | null; motivo_cierre: string | null;
 }
 
 const SELECT_TURNO = `
   SELECT t.id, t.tipo, t.estado, r.usuario AS responsable, d.usuario AS recibido_de, t.inicio_en, t.fin_en,
-         t.base_entregada, t.base_recibida, t.pago_turno, t.pago_tomado, t.efectivo_esperado, t.efectivo_contado, t.motivo_diferencia
-    FROM turnos t LEFT JOIN usuarios r ON r.id = t.responsable_id LEFT JOIN usuarios d ON d.id = t.recibido_de_id`;
+         t.base_entregada, t.base_recibida, t.pago_turno, t.pago_tomado, t.efectivo_esperado, t.efectivo_contado, t.motivo_diferencia,
+         c.usuario AS cerrado_por, t.motivo_cierre
+    FROM turnos t LEFT JOIN usuarios r ON r.id = t.responsable_id LEFT JOIN usuarios d ON d.id = t.recibido_de_id
+         LEFT JOIN usuarios c ON c.id = t.cerrado_por_id`;
 
 async function turnoActivo(bd: Bd): Promise<FilaTurno | undefined> {
   const [t] = await bd.consultar<FilaTurno>(`${SELECT_TURNO} WHERE t.estado IN ('POR_RECIBIR', 'ABIERTO')`);
@@ -30,7 +33,9 @@ async function turnoActivo(bd: Bd): Promise<FilaTurno | undefined> {
 
 /** Para cobrar o mover dinero hace falta un turno ABIERTO (RN-09). Lo usan cobros y movimientos de caja. */
 export async function turnoAbiertoId(bd: Bd): Promise<string> {
-  const [t] = await bd.consultar<{ id: string }>(`SELECT id FROM turnos WHERE estado = 'ABIERTO'`);
+  // FOR SHARE (HAL-16): dentro de la transacción de un cobro, la entrega del turno (FOR UPDATE) espera a que termine y
+  // lo cuenta; si la entrega iba primero, el cobro espera, ya no ve el turno abierto y responde SIN_TURNO_ABIERTO.
+  const [t] = await bd.consultar<{ id: string }>(`SELECT id FROM turnos WHERE estado = 'ABIERTO' FOR SHARE`);
   if (!t) throw new ErrorApi(409, 'SIN_TURNO_ABIERTO', 'Todavía no hay un turno abierto. Primero hay que recibir el turno.');
   return t.id;
 }
@@ -88,14 +93,14 @@ async function respuestaTurno(bd: Bd, t: FilaTurno) {
     caja,
     cierre: t.estado === 'CERRADO' ? {
       pago_tomado: t.pago_tomado, efectivo_esperado: t.efectivo_esperado, efectivo_contado: t.efectivo_contado,
-      diferencia: (t.efectivo_contado ?? 0) - (t.efectivo_esperado ?? 0), motivo_diferencia: t.motivo_diferencia, entregado_por: t.responsable,
+      diferencia: (t.efectivo_contado ?? 0) - (t.efectivo_esperado ?? 0), motivo_diferencia: t.motivo_diferencia, entregado_por: t.cerrado_por ?? t.responsable, motivo_cierre: t.motivo_cierre,
       ...ajusteCierre(t, caja),
     } : null,
   };
 }
 
 interface CuerpoRecepcion { base_contada: number; motivo_diferencia?: string }
-interface CuerpoEntrega { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string }
+interface CuerpoEntrega { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string; motivo_cierre?: string }
 
 const pagoDelTurno = async (bd: Bd, t: FilaTurno) => t.pago_turno ?? regla(bd, t.tipo === 'DIA' ? 'pago_turno_dia' : 'pago_turno_noche');
 
@@ -134,8 +139,10 @@ export function rutasTurnos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
 
   // Entregar el turno (FR-13; RN-11): conteo obligatorio y motivo si no cuadra. Cierra el turno, deja el siguiente
   // «por recibir» con lo contado y cierra la sesión de quien entrega. El sistema no descuenta nada de nómina.
+  // Si quien lo tenía se fue sin entregarlo, la administración cuenta y lo cierra con `motivo_cierre` (HAL-18 [P/V]);
+  // su sesión sigue abierta.
   app.post<{ Body: CuerpoEntrega }>('/turnos/actual/entrega', {
-    preHandler: requiere(bd, ahora, ['RECEPCION']),
+    preHandler: requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']),
     schema: {
       body: {
         type: 'object', additionalProperties: false, required: ['pago_tomado', 'efectivo_contado'],
@@ -143,6 +150,7 @@ export function rutasTurnos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
           pago_tomado: { type: 'boolean' },
           efectivo_contado: { type: 'integer', minimum: 0, maximum: 100000000 },
           motivo_diferencia: { type: 'string', minLength: 5, maxLength: 300 },
+          motivo_cierre: { type: 'string', minLength: 5, maxLength: 300 },
         },
       },
     },
@@ -151,11 +159,17 @@ export function rutasTurnos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     const { pago_tomado: pagoTomado, efectivo_contado: contado } = req.body;
     const motivo = req.body.motivo_diferencia?.trim() || null;
     const momento = ahora();
-    const id = await bd.transaccion(async (tx) => {
+    const cierre = await bd.transaccion(async (tx) => {
       const [t] = await tx.consultar<FilaTurno & { responsable_id: string }>(
         `${SELECT_TURNO.replace('SELECT t.id,', 'SELECT t.id, t.responsable_id,')} WHERE t.estado = 'ABIERTO' FOR UPDATE OF t`);
       if (!t) throw new ErrorApi(409, 'SIN_TURNO_ABIERTO', 'No hay un turno abierto para entregar.');
-      if (t.responsable_id !== u.id) throw new ErrorApi(403, 'SIN_PERMISO', 'Solo quien tiene el turno lo puede entregar.');
+      const porAdministracion = t.responsable_id !== u.id;
+      if (porAdministracion && u.rol !== 'ADMINISTRACION') throw new ErrorApi(403, 'SIN_PERMISO', 'Solo quien tiene el turno lo puede entregar.');
+      const motivoCierre = req.body.motivo_cierre?.trim() || null;
+      // FR-13: la administración no entrega turnos; solo cierra uno trabado, y siempre con el motivo.
+      if (porAdministracion && !motivoCierre) {
+        throw new ErrorApi(403, 'SIN_PERMISO', 'La administración no entrega turnos. Si quien lo tenía se fue sin entregarlo, ciérrelo escribiendo el motivo.');
+      }
 
       const pago = await pagoDelTurno(tx, t);
       const esperado = (await resumenCaja(tx, t)).debe_haber - (pagoTomado ? pago : 0);
@@ -165,8 +179,9 @@ export function rutasTurnos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
       }
       await tx.consultar(
         `UPDATE turnos SET estado = 'CERRADO', fin_en = $2, pago_turno = $3, pago_tomado = $4, efectivo_esperado = $5,
-                efectivo_contado = $6, motivo_diferencia = $7 WHERE id = $1`,
-        [t.id, momento, pago, pagoTomado, esperado, contado, diferencia === 0 ? null : motivo]);
+                efectivo_contado = $6, motivo_diferencia = $7, cerrado_por_id = $8, motivo_cierre = $9 WHERE id = $1`,
+        [t.id, momento, pago, pagoTomado, esperado, contado, diferencia === 0 ? null : motivo,
+          porAdministracion ? u.id : null, porAdministracion ? motivoCierre : null]);
       // El siguiente turno (día ↔ noche) queda esperando a quien lo reciba, con lo que se contó.
       const siguiente = t.tipo === 'NOCHE' ? 'DIA' : 'NOCHE';
       const [nuevo] = await tx.consultar<{ id: string }>(
@@ -176,17 +191,21 @@ export function rutasTurnos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
 
       await auditar(tx, {
         usuarioId: u.id, accion: 'ENTREGAR_TURNO', entidad: 'turnos', entidadId: t.id, ocurrido: momento,
-        detalle: { esperado: String(esperado), contado: String(contado), diferencia: String(diferencia), pago_tomado: pagoTomado ? 'si' : 'no' },
+        detalle: {
+          esperado: String(esperado), contado: String(contado), diferencia: String(diferencia), pago_tomado: pagoTomado ? 'si' : 'no',
+          ...(porAdministracion ? { cierre_por_administracion: motivoCierre! } : {}),
+        },
       });
       const eventos: Array<[string, Record<string, unknown>]> = [['turno.entregado', { turno_id: t.id, siguiente_id: nuevo.id, entregado_por: u.usuario }]];
       if (diferencia !== 0) {
         eventos.push(['turno.diferencia', { turno_id: t.id, momento: 'ENTREGA', esperado, contado, diferencia, entregado_por: u.usuario }]);
       }
       await publicarEventos(tx, eventos, momento);
-      await cerrarSesion(tx, momento, u);
-      return t.id;
+      if (!porAdministracion) await cerrarSesion(tx, momento, u);
+      return { id: t.id, porAdministracion };
     });
-    rep.clearCookie(COOKIE, { path: '/' });
+    if (!cierre.porAdministracion) rep.clearCookie(COOKIE, { path: '/' });
+    const id = cierre.id;
     const [t] = await bd.consultar<FilaTurno>(`${SELECT_TURNO} WHERE t.id = $1`, [id]);
     return respuestaTurno(bd, t);
   });

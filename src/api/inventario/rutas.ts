@@ -3,6 +3,7 @@
 // Con 0 o menos se avisa en la PWA, pero la venta no se bloquea [P].
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { CABECERA_IDEMPOTENCIA, conIdempotencia, type ConClave } from '../comun/idempotencia.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
@@ -21,9 +22,10 @@ const VENDIDO = `SELECT producto_id, sum(cantidad)::int AS total FROM (
 export function rutasInventario(app: FastifyInstance, bd: Bd, ahora: () => Date) {
   const soloAdministracion = requiere(bd, ahora, ['ADMINISTRACION']);
 
-  app.post<{ Body: { producto_id: string; cantidad: number } }>('/surtidos', {
+  app.post<{ Body: { producto_id: string; cantidad: number }; Headers: ConClave }>('/surtidos', {
     preHandler: soloAdministracion,
     schema: {
+      headers: CABECERA_IDEMPOTENCIA,
       body: {
         type: 'object', additionalProperties: false, required: ['producto_id', 'cantidad'],
         properties: { producto_id: { type: 'string', format: 'uuid' }, cantidad: { type: 'integer', minimum: 1, maximum: 10000 } },
@@ -31,7 +33,7 @@ export function rutasInventario(app: FastifyInstance, bd: Bd, ahora: () => Date)
     },
   }, async (req, rep) => {
     const momento = ahora();
-    const fila = await bd.transaccion(async (tx) => {
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], req.usuario!.id, 'registrarSurtido', async (tx) => {
       const [p] = await tx.consultar<{ grupo: string; nombre: string }>('SELECT grupo, nombre FROM productos WHERE id = $1', [req.body.producto_id]);
       if (!p) throw new ErrorApi(404, 'NO_ENCONTRADO', 'El producto no existe.');
       if (!GRUPOS_CON_EXISTENCIAS.includes(p.grupo)) {
@@ -43,9 +45,9 @@ export function rutasInventario(app: FastifyInstance, bd: Bd, ahora: () => Date)
       await auditar(tx, {
         usuarioId: req.usuario!.id, accion: 'CREAR', entidad: 'surtidos', entidadId: s.id, detalle: { cantidad: String(req.body.cantidad) }, ocurrido: momento,
       });
-      return { ...s, registrado_en: aBogota(new Date(s.registrado_en)) };
+      return { estado: 201, cuerpo: { ...s, registrado_en: aBogota(new Date(s.registrado_en)) } };
     });
-    return rep.code(201).send(fila);
+    return rep.code(r.estado).send(r.cuerpo);
   });
 
   app.get('/existencias', { preHandler: soloAdministracion }, async () => ({

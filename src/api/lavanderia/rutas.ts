@@ -4,6 +4,7 @@
 // En los dos casos, sin pago solo se entrega con la autorización registrada de quien entrega, y la deuda sigue.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { CABECERA_IDEMPOTENCIA, conIdempotencia, type ConClave } from '../comun/idempotencia.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
@@ -107,12 +108,12 @@ async function faltaDe(tx: Bd, p: { id: string; estadia_id: string | null; total
 export function rutasLavanderia(app: FastifyInstance, bd: Bd, ahora: () => Date) {
   const turno = requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']);
 
-  app.post<{ Params: { id: string }; Body: { items: Items } }>('/estadias/:id/lavanderia', {
+  app.post<{ Params: { id: string }; Body: { items: Items }; Headers: ConClave }>('/estadias/:id/lavanderia', {
     preHandler: turno,
-    schema: { params: ID, body: { type: 'object', additionalProperties: false, required: ['items'], properties: { items: ITEMS } } },
+    schema: { params: ID, headers: CABECERA_IDEMPOTENCIA, body: { type: 'object', additionalProperties: false, required: ['items'], properties: { items: ITEMS } } },
   }, async (req, rep) => {
     const u = req.usuario!;
-    const pedidoId = await bd.transaccion(async (tx) => {
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'pedirLavanderia', async (tx) => {
       const momento = ahora();
       const est = await estadiaActiva(tx, req.params.id);
       const p = await crearPedido(tx, { estadiaId: req.params.id, cliente: null, items: req.body.items, usuarioId: u.id, momento });
@@ -123,16 +124,17 @@ export function rutasLavanderia(app: FastifyInstance, bd: Bd, ahora: () => Date)
            FROM unnest($5::int[], $6::uuid[], $7::text[], $8::int[], $9::int[], $10::int[]) AS i(orden, producto_id, concepto, cantidad, valor_unitario, valor)
           ORDER BY i.orden`, [req.params.id, u.id, momento, p.id, ...p.columnas]);
       await publicarEventos(tx, [['habitacion.actualizada', { numero: est.habitacion_numero, entidad_id: req.params.id }]], momento);
-      return p.id;
+      const [pedido] = await leerPedidos(tx, { id: p.id });
+      return { estado: 201, cuerpo: pedido };
     });
-    const [pedido] = await leerPedidos(bd, { id: pedidoId });
-    return rep.code(201).send(pedido);
+    return rep.code(r.estado).send(r.cuerpo);
   });
 
   // Externo: solo su nombre (T4-4). Puede pagar de una vez (`cobro`) o al reclamar.
-  app.post<{ Body: { cliente_nombre: string; items: Items; cobro?: { medio: Medio } } }>('/lavanderia', {
+  app.post<{ Body: { cliente_nombre: string; items: Items; cobro?: { medio: Medio } }; Headers: ConClave }>('/lavanderia', {
     preHandler: turno,
     schema: {
+      headers: CABECERA_IDEMPOTENCIA,
       body: {
         type: 'object', additionalProperties: false, required: ['cliente_nombre', 'items'],
         properties: { cliente_nombre: { type: 'string', minLength: 2, maxLength: 120, pattern: String.raw`\S.*\S` }, items: ITEMS, cobro: COBRO },
@@ -140,17 +142,17 @@ export function rutasLavanderia(app: FastifyInstance, bd: Bd, ahora: () => Date)
     },
   }, async (req, rep) => {
     const u = req.usuario!;
-    const pedidoId = await bd.transaccion(async (tx) => {
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'lavanderiaExterna', async (tx) => {
       const momento = ahora();
       const p = await crearPedido(tx, { estadiaId: null, cliente: req.body.cliente_nombre.trim(), items: req.body.items, usuarioId: u.id, momento });
       if (req.body.cobro) {
         const ev = await cobrar(tx, { estadiaId: null, pedidoId: p.id, habitacion: null, valor: p.total, medio: req.body.cobro.medio, usuarioId: u.id, momento });
         if (ev) await publicarEventos(tx, [ev], momento);
       }
-      return p.id;
+      const [pedido] = await leerPedidos(tx, { id: p.id });
+      return { estado: 201, cuerpo: pedido };
     });
-    const [pedido] = await leerPedidos(bd, { id: pedidoId });
-    return rep.code(201).send(pedido);
+    return rep.code(r.estado).send(r.cuerpo);
   });
 
   app.get<{ Querystring: { estado?: string } }>('/lavanderia', {
@@ -161,11 +163,11 @@ export function rutasLavanderia(app: FastifyInstance, bd: Bd, ahora: () => Date)
   // Deudas de externos: entregado sin pagar todo (con la autorización de quien entregó).
   app.get('/lavanderia/deudas', { preHandler: turno }, async () => ({ items: await leerPedidos(bd, { deudas: true }) }));
 
-  app.post<{ Params: { id: string }; Body: { medio: Medio } }>('/lavanderia/:id/cobro', {
-    preHandler: turno, schema: { params: ID, body: COBRO },
-  }, async (req) => {
+  app.post<{ Params: { id: string }; Body: { medio: Medio }; Headers: ConClave }>('/lavanderia/:id/cobro', {
+    preHandler: turno, schema: { params: ID, headers: CABECERA_IDEMPOTENCIA, body: COBRO },
+  }, async (req, rep) => {
     const u = req.usuario!;
-    await bd.transaccion(async (tx) => {
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'cobrarLavanderia', async (tx) => {
       const momento = ahora();
       const [p] = await tx.consultar<{ id: string; estadia_id: string | null; total: number }>(
         'SELECT id, estadia_id, total FROM pedidos_lavanderia WHERE id = $1 FOR UPDATE', [req.params.id]);
@@ -175,17 +177,18 @@ export function rutasLavanderia(app: FastifyInstance, bd: Bd, ahora: () => Date)
       if (falta <= 0) throw new ErrorApi(409, 'CONFLICTO', 'Ese pedido ya está pagado.');
       const ev = await cobrar(tx, { estadiaId: null, pedidoId: p.id, habitacion: null, valor: falta, medio: req.body.medio, usuarioId: u.id, momento });
       if (ev) await publicarEventos(tx, [ev], momento);
+      const [pedido] = await leerPedidos(tx, { id: req.params.id });
+      return { estado: 200, cuerpo: pedido };
     });
-    const [pedido] = await leerPedidos(bd, { id: req.params.id });
-    return pedido;
+    return rep.code(r.estado).send(r.cuerpo);
   });
 
-  app.post<{ Params: { id: string }; Body: { cobro?: { medio: Medio }; sin_pago_autorizado?: boolean } }>('/lavanderia/:id/entrega', {
+  app.post<{ Params: { id: string }; Body: { cobro?: { medio: Medio }; sin_pago_autorizado?: boolean }; Headers: ConClave }>('/lavanderia/:id/entrega', {
     preHandler: turno,
-    schema: { params: ID, body: { type: 'object', additionalProperties: false, properties: { cobro: COBRO, sin_pago_autorizado: { type: 'boolean' } } } },
-  }, async (req) => {
+    schema: { params: ID, headers: CABECERA_IDEMPOTENCIA, body: { type: 'object', additionalProperties: false, properties: { cobro: COBRO, sin_pago_autorizado: { type: 'boolean' } } } },
+  }, async (req, rep) => {
     const u = req.usuario!;
-    await bd.transaccion(async (tx) => {
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'entregarLavanderia', async (tx) => {
       const momento = ahora();
       const [p] = await tx.consultar<{ id: string; estado: string; estadia_id: string | null; total: number }>(
         'SELECT id, estado, estadia_id, total FROM pedidos_lavanderia WHERE id = $1 FOR UPDATE', [req.params.id]);
@@ -210,8 +213,9 @@ export function rutasLavanderia(app: FastifyInstance, bd: Bd, ahora: () => Date)
       if (cobra) detalle.cobro = req.body.cobro!.medio;
       await auditar(tx, { usuarioId: u.id, accion: 'ACTUALIZAR', entidad: 'pedidos_lavanderia', entidadId: req.params.id, detalle, ocurrido: momento });
       await publicarEventos(tx, eventos, momento);
+      const [pedido] = await leerPedidos(tx, { id: req.params.id });
+      return { estado: 200, cuerpo: pedido };
     });
-    const [pedido] = await leerPedidos(bd, { id: req.params.id });
-    return pedido;
+    return rep.code(r.estado).send(r.cuerpo);
   });
 }

@@ -89,6 +89,12 @@ export const HUESPED_VACIO: FormHuesped = {
   nombre: '', tipoDocumento: '', numeroDocumento: '', nacionalidad: 'Colombia', telefono: '', esMenor: false, acompanante: false, autorizo: false,
 };
 
+/** DEF-002: «Volver» o «Cancelar» preguntan antes de borrar lo escrito, y solo si hay algo escrito. */
+export const PREGUNTA_SALIR_ENTRADA = '¿Salir sin registrar la entrada? Si sale, se borra lo que escribió.';
+export function entradaEmpezada(h: FormHuesped, paso: number): boolean {
+  return paso > 1 || [h.nombre, h.numeroDocumento, h.telefono].some((x) => x.trim() !== '');
+}
+
 const soloDocumento = (s: string) => s.replace(/[.\s]/g, '');
 const digitos = (s: string) => s.replace(/\D/g, '');
 

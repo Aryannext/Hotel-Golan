@@ -1,6 +1,6 @@
 // Avisos en pantalla (TICKET-16, FR-23): la campana de la barra superior y «Pendientes» al inicio de Habitaciones.
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { Aviso } from '../avisos.ts';
+import { textoSinRevisar, textoVacioAvisos, type Aviso, type Fuente } from '../avisos.ts';
 import { Ico } from './Ico.tsx';
 import { etiquetaCampana, textoPendientes } from '../presentacion.ts';
 
@@ -30,11 +30,14 @@ export function ListaAvisos({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (
  * «Pendientes» del inicio: una sola línea que se abre al tocarla, para que las habitaciones se vean de una vez.
  * Si hay algo urgente (en rojo), la línea también va en rojo.
  */
-export function Pendientes({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (a: Aviso) => void }) {
+export function Pendientes({ avisos, sinRevisar, alElegir }: { avisos: Aviso[]; sinRevisar: Fuente[]; alElegir: (a: Aviso) => void }) {
   const [abierto, setAbierto] = useState(false);
-  if (avisos.length === 0) return null;
+  const falta = textoSinRevisar(sinRevisar);
+  if (avisos.length === 0 && !falta) return null;
   const urgente = avisos.some((a) => a.tono === 'alerta');
   return <section class="pendientes">
+    {falta && <div class="nota nota--alerta" role="status"><Ico id="alerta" clase="ico--s" /><p>{falta}</p></div>}
+    {avisos.length > 0 && <>
     <button type="button" class={`pendientes__resumen${urgente ? ' pendientes__resumen--urgente' : ''}`} aria-expanded={abierto}
       aria-controls="pendientes-lista" onClick={() => setAbierto(!abierto)}>
       <Ico id={urgente ? 'alerta' : 'campana'} clase="ico--s" />
@@ -42,10 +45,11 @@ export function Pendientes({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (a
       <Ico id="flecha" clase={`ico--xs pendientes__flecha${abierto ? ' pendientes__flecha--abierta' : ''}`} />
     </button>
     {abierto && <div id="pendientes-lista"><ListaAvisos avisos={avisos} alElegir={alElegir} /></div>}
+    </>}
   </section>;
 }
 
-export function Campana({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (a: Aviso) => void }) {
+export function Campana({ avisos, sinRevisar, alElegir }: { avisos: Aviso[]; sinRevisar: Fuente[]; alElegir: (a: Aviso) => void }) {
   const [abierta, setAbierta] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
   const urgentes = avisos.filter((a) => a.tono !== 'info').length;
@@ -59,16 +63,18 @@ export function Campana({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (a: A
     return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', escape); };
   }, [abierta]);
 
-  const etiqueta = etiquetaCampana(avisos.length);
+  const falta = textoSinRevisar(sinRevisar);
+  const etiqueta = falta ? `${etiquetaCampana(avisos.length)}. ${falta}` : etiquetaCampana(avisos.length);
   return <div class="campana" ref={caja}>
     <button type="button" class="redondo campana__boton" aria-label={etiqueta} aria-expanded={abierta} aria-haspopup="true" onClick={() => setAbierta(!abierta)}>
       <Ico id="campana" clase="ico--s" />
-      {avisos.length > 0 && <span class={`campana__cuenta${urgentes > 0 ? ' campana__cuenta--urgente' : ''}`} aria-hidden="true">{avisos.length}</span>}
+      {(avisos.length > 0 || falta) && <span class={`campana__cuenta${urgentes > 0 || falta ? ' campana__cuenta--urgente' : ''}`} aria-hidden="true">{avisos.length || '!'}</span>}
     </button>
     {abierta && <div class="campana__panel">
       <p class="campana__titulo">Avisos</p>
+      {falta && avisos.length > 0 && <p class="campana__falta">{falta}</p>}
       {avisos.length === 0
-        ? <p class="vacio">Todo al día: no hay salidas vencidas, transferencias ni habitaciones pendientes.</p>
+        ? <p class="vacio">{textoVacioAvisos(sinRevisar)}</p>
         : <ListaAvisos avisos={avisos} alElegir={(a) => { setAbierta(false); alElegir(a); }} />}
     </div>}
   </div>;

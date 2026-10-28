@@ -1,14 +1,17 @@
 // Carga datos sintéticos en una base de DESARROLLO.
 // Uso: npm run db:sembrar              (falla si ya hay datos)
 //      npm run db:reiniciar            (borra todo el esquema, migra y siembra de nuevo)
+// Solo con HOTEL_ENTORNO=desarrollo en el .env (HG-HAL-001 HAL-05): en el VPS la base también es 127.0.0.1.
 import { conectarPostgres } from './lib/bd.ts';
 import { aplicarMigraciones } from './lib/migraciones.ts';
 import { sembrar } from './lib/semilla.ts';
+import { permisoDatosDePrueba } from './lib/proteccion.ts';
 
 const reiniciar = process.argv.includes('--reiniciar');
 const url = process.env.DATABASE_URL ?? '';
-if (!/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
-  console.error('Por seguridad, la semilla solo corre contra una base local (127.0.0.1 o localhost).');
+const permiso = permisoDatosDePrueba(process.env);
+if (!permiso.ok) {
+  console.error(permiso.motivo);
   process.exit(1);
 }
 

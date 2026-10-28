@@ -2,7 +2,7 @@
 // plata (misma regla del servidor: cotización) y hacer el cambio. Al terminar, la ficha se cierra con el resultado.
 import { useEffect, useState } from 'preact/hooks';
 import { api, type Habitacion } from '../api.ts';
-import { hoyBogota, pesos } from '../logica.ts';
+import { hoyBogota, nuevaClave, pesos } from '../logica.ts';
 import { disponiblesPara, resumenCambio, type CotizacionCambio } from '../cambio.ts';
 import { Ico } from './Ico.tsx';
 import { useEnvio } from './Panel.tsx';
@@ -12,6 +12,8 @@ export function VistaCambio({ estadiaId, actual, alCambiar }: { estadiaId: strin
   const [destino, setDestino] = useState('');
   const [cot, setCot] = useState<CotizacionCambio | null>(null);
   const { enviando, error, setError, enviar } = useEnvio();
+  // Una clave por envío: un doble toque o un reintento sin señal no lo duplican (Idempotency-Key).
+  const [clave] = useState(nuevaClave);
 
   useEffect(() => { api.habitaciones().then((r) => setOpciones(disponiblesPara(r.items, actual))).catch((e: Error) => setError(e.message)); }, [actual]);
   useEffect(() => {
@@ -25,7 +27,7 @@ export function VistaCambio({ estadiaId, actual, alCambiar }: { estadiaId: strin
 
   const r = cot && resumenCambio(cot, hoyBogota());
   const cambiar = () => cot && enviar(async () => {
-    await api.cambiarHabitacion(estadiaId, destino);
+    await api.cambiarHabitacion(estadiaId, destino, clave);
     const plata = r && r.valor ? ` ${r.titulo}: ${pesos(r.valor)}.` : '';
     alCambiar(`La estadía pasó de la ${actual} a la ${destino}. La ${actual} queda por revisar.${plata}`);
   });

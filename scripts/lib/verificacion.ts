@@ -13,6 +13,37 @@ export interface PagoVerificado {
   repetida: boolean;
 }
 
+/**
+ * La regla de la verificación, dentro de una transacción ya abierta y sin la clave: la API la envuelve con
+ * `conIdempotencia` (HG-HAL-001 HAL-19); el simulador, con `verificarPago`.
+ */
+export async function aplicarVerificacion(
+  tx: Bd,
+  entrada: { pagoId: string; resultado: ResultadoVerificacion; usuarioId: string; momento: Date },
+): Promise<Omit<PagoVerificado, 'repetida'>> {
+  const momento = entrada.momento;
+  const [pago] = await tx.consultar<{ id: string; estado: string; valor: number; habitacion: string | null; anulado_en: string | null }>(
+    `SELECT p.id, p.estado, p.valor, e.habitacion_numero AS habitacion, p.anulado_en
+       FROM pagos p LEFT JOIN estadias e ON e.id = p.estadia_id
+      WHERE p.id = $1 FOR UPDATE OF p`, [entrada.pagoId]);
+  if (!pago) throw new Error('NO_ENCONTRADO: el pago no existe');
+  if (pago.estado !== 'POR_VERIFICAR' || pago.anulado_en) throw new Error(`CONFLICTO: el pago está ${pago.estado}`);
+
+  const estado = entrada.resultado === 'LLEGO' ? 'VERIFICADO' : 'RECHAZADO';
+  await tx.consultar(
+    'UPDATE pagos SET estado = $2, verificado_por = $3, verificado_en = $4 WHERE id = $1',
+    [pago.id, estado, entrada.usuarioId, momento]);
+  await tx.consultar(
+    `INSERT INTO auditoria (usuario_id, accion, entidad, entidad_id, detalle, ocurrido_en) VALUES ($1, 'VERIFICAR', 'pagos', $2, $3, $4)`,
+    [entrada.usuarioId, pago.id, JSON.stringify({ resultado: entrada.resultado }), momento]);
+  await tx.consultar(
+    'INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)',
+    [estado === 'VERIFICADO' ? 'pago.verificado' : 'pago.rechazado',
+      JSON.stringify({ entidad_id: pago.id, habitacion_numero: pago.habitacion, valor: pago.valor }), momento]);
+
+  return { id: pago.id, estado, valor: pago.valor };
+}
+
 export async function verificarPago(
   bd: Bd,
   entrada: { pagoId: string; resultado: ResultadoVerificacion; usuarioId: string; clave: string; momento?: Date },
@@ -22,27 +53,7 @@ export async function verificarPago(
     const [previa] = await tx.consultar<{ respuesta: Omit<PagoVerificado, 'repetida'> }>(
       'SELECT respuesta FROM solicitudes_idempotentes WHERE clave = $1', [entrada.clave]);
     if (previa) return { ...previa.respuesta, repetida: true };
-
-    const [pago] = await tx.consultar<{ id: string; estado: string; valor: number; habitacion: string | null; anulado_en: string | null }>(
-      `SELECT p.id, p.estado, p.valor, e.habitacion_numero AS habitacion, p.anulado_en
-         FROM pagos p LEFT JOIN estadias e ON e.id = p.estadia_id
-        WHERE p.id = $1 FOR UPDATE OF p`, [entrada.pagoId]);
-    if (!pago) throw new Error('NO_ENCONTRADO: el pago no existe');
-    if (pago.estado !== 'POR_VERIFICAR' || pago.anulado_en) throw new Error(`CONFLICTO: el pago está ${pago.estado}`);
-
-    const estado = entrada.resultado === 'LLEGO' ? 'VERIFICADO' : 'RECHAZADO';
-    await tx.consultar(
-      'UPDATE pagos SET estado = $2, verificado_por = $3, verificado_en = $4 WHERE id = $1',
-      [pago.id, estado, entrada.usuarioId, momento]);
-    await tx.consultar(
-      `INSERT INTO auditoria (usuario_id, accion, entidad, entidad_id, detalle, ocurrido_en) VALUES ($1, 'VERIFICAR', 'pagos', $2, $3, $4)`,
-      [entrada.usuarioId, pago.id, JSON.stringify({ resultado: entrada.resultado }), momento]);
-    await tx.consultar(
-      'INSERT INTO eventos_salida (tipo, payload, ocurrido_en) VALUES ($1, $2, $3)',
-      [estado === 'VERIFICADO' ? 'pago.verificado' : 'pago.rechazado',
-        JSON.stringify({ entidad_id: pago.id, habitacion_numero: pago.habitacion, valor: pago.valor }), momento]);
-
-    const respuesta = { id: pago.id, estado, valor: pago.valor } as const;
+    const respuesta = await aplicarVerificacion(tx, { ...entrada, momento });
     await tx.consultar(
       `INSERT INTO solicitudes_idempotentes (clave, usuario_id, operacion, estado_http, respuesta) VALUES ($1, $2, 'verificarPago', 200, $3)`,
       [entrada.clave, entrada.usuarioId, JSON.stringify(respuesta)]);

@@ -3,12 +3,14 @@
 // Cada vista (cuenta, cargos, pago, salida, extender, desistimiento) es un componente aparte; la ficha solo decide cuál mostrar.
 import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
-import { api, ErrorApi, type Estadia, type Habitacion } from '../api.ts';
+import { api, type Estadia, type Habitacion } from '../api.ts';
+import { enviarYReleer } from '../envio.ts';
 import {
   cambioEfectivo, resumenExtension, devolucionPosible, type CotizacionExtension, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
   valorPago, type Producto,
 } from '../logica.ts';
 import { Ico } from './Ico.tsx';
+import { useModal } from './Panel.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { SelectorProductos } from './SelectorProductos.tsx';
 import { VistaFactura } from './SolicitudesFactura.tsx';
@@ -28,7 +30,6 @@ type MedioDev = 'EFECTIVO' | 'TRANSFERENCIA';
 
 const MODALIDADES_EXT: Array<[ModExt, string]> = [['NOCHE', 'Otra noche'], ['TRES_HORAS', '3 horas'], ['POR_HORAS', 'Por horas']];
 const MEDIOS: Medio[] = ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'];
-const SIN_CONEXION = 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.';
 const cuando = (iso: string) => `${diaRelativo(iso, hoyBogota())} ${horaBogota(iso)}`;
 
 function Fila({ concepto, valor, total = false }: { concepto: ComponentChildren; valor: number; total?: boolean }) {
@@ -94,7 +95,7 @@ function VistaPago({ medio, alMedio, valor, alValor, saldo, escrito, pago }: {
     <div class="campo"><label htmlFor="valor-pago">{medio === 'EFECTIVO' ? 'Valor recibido' : 'Valor de la transferencia'}</label>
       <input id="valor-pago" inputmode="numeric" autocomplete="off" placeholder={String(saldo)} value={valor} onInput={(ev) => alValor((ev.target as HTMLInputElement).value)} /></div>
     {medio === 'EFECTIVO'
-      ? <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>
+      ? <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`} aria-live="polite" aria-atomic="true"><div>
         <b>{textoCambio(cambio.tipo, 'Abono: sigue debiendo')}</b>
         <p>Entran {pesos(pago.valor)} a la caja.</p></div><strong>{pesos(cambio.valor)}</strong></div>
       : <p class="ayuda">Quedará «por verificar» hasta que la administración confirme que llegó.</p>}
@@ -203,12 +204,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
       .catch((e: Error) => { if (vigente) setError(e.message); });
     return () => { vigente = false; };
   }, [sub, modExt, horas]);
-  useEffect(() => {
-    const cerrarConEscape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
-    document.addEventListener('keydown', cerrarConEscape);
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', cerrarConEscape); document.body.style.overflow = ''; };
-  }, []);
+  const { ref, tituloId } = useModal(alCerrar);
 
   function ir(s: Sub) {
     setSub(s);
@@ -220,19 +216,28 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
     if (s === 'devolucion') { setMotivoDev('SOLO_MIRO'); setMedioDev('EFECTIVO'); }
   }
 
-  /** Envía una operación; `alTerminar` decide qué sigue (por defecto, recargar la cuenta y volver a ella). */
+  /**
+   * Envía una operación; `alTerminar` decide qué sigue (por defecto, recargar la cuenta y volver a ella). Si la operación
+   * quedó pero la cuenta no se pudo releer, vuelve a la cuenta con el aviso de no repetirla (HAL-09).
+   */
   async function enviar(accion: () => Promise<unknown>, alTerminar?: (r: unknown) => void, alFallar?: () => Promise<void>) {
     setEnviando(true);
     setError('');
     try {
-      const r = await accion();
-      if (alTerminar) { alTerminar(r); return; }
-      alCambiar();
-      setEst(await api.estadia(id));
-      ir('cuenta');
-    } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : SIN_CONEXION);
-      await alFallar?.();
+      const r = await enviarYReleer(accion, async () => {
+        if (alTerminar) return;
+        alCambiar();
+        setEst(await api.estadia(id));
+      });
+      if (!r.hecho) {
+        setError(r.error);
+        await alFallar?.();
+      } else if (alTerminar) {
+        alTerminar(r.resultado);
+      } else {
+        ir('cuenta');
+        setError(r.aviso);
+      }
     } finally {
       setEnviando(false);
     }
@@ -258,7 +263,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
         <SelectorProductos catalogo={prendas} cantidades={cantidades} sel={sel} sumar={sumar} />
       </>,
         pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
-          alTocar={() => enviar(() => api.pedirLavanderia(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad }))))}>{texto}</BotonPie> };
+          alTocar={() => enviar(() => api.pedirLavanderia(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie> };
     }
     if (sub === 'cargo') {
       const texto = sel.items.length ? `Agregar ${cuantos(sel.items.length, 'producto', 'productos')} · ${pesos(sel.total)}` : 'Elija productos';
@@ -305,12 +310,12 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
   const enCuenta = sub === 'cuenta';
   return (
     <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
-      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-hidden="true" tabIndex={-1} onClick={alCerrar} />
+      <dialog open ref={ref} tabIndex={-1} class="panel" aria-modal="true" aria-labelledby={tituloId}>
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label={enCuenta ? 'Cerrar' : 'Volver'} onClick={() => (enCuenta ? alCerrar() : ir('cuenta'))}>
             <Ico id={enCuenta ? 'cerrar' : 'atras'} clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">{tituloFicha(sub, habitacion.numero)}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
+          <div class="titulos"><h2 id={tituloId}>{tituloFicha(sub, habitacion.numero)}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
         </div>
         <div class="panel__cuerpo">
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}

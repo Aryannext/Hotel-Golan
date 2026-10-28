@@ -11,7 +11,9 @@ import { Historial } from './componentes/Historial.tsx';
 import { Equipo } from './componentes/Equipo.tsx';
 import { Ajustes, type Seccion } from './componentes/Ajustes.tsx';
 import { Campana, Pendientes, useAhora } from './componentes/Avisos.tsx';
-import { avisosExistencias, avisosMigracion, calcularAvisos, ordenarAvisos, type Aviso as AvisoPendiente, type Existencia, type PendienteMigracion } from './avisos.ts';
+import {
+  avisosExistencias, avisosMigracion, calcularAvisos, marcarFuente, ordenarAvisos, type Aviso as AvisoPendiente, type Existencia, type Fuente, type PendienteMigracion,
+} from './avisos.ts';
 import type { Reglas } from './ajustes.ts';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { SolicitudesFactura } from './componentes/SolicitudesFactura.tsx';
@@ -23,6 +25,7 @@ import { Ico } from './componentes/Ico.tsx';
 import { avisoEvento, iniciales } from './logica.ts';
 import { useEnVivo } from './enVivo.ts';
 import { icoTono } from './presentacion.ts';
+import { mensajeDeError } from './envio.ts';
 
 type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial' | 'equipo' | 'ajustes';
 interface Aviso { tono: 'exito' | 'alerta' | 'info'; texto: string }
@@ -44,6 +47,9 @@ export function App() {
   const [reglas, setReglas] = useState<Reglas | null>(null);
   const [existencias, setExistencias] = useState<Existencia[]>([]);
   const [ajustesInicial, setAjustesInicial] = useState<Seccion>('tarifas');
+  // Lo que no respondió en la última recarga: mientras falte algo, no se dice «Todo al día» (HAL-07).
+  const [sinRevisar, setSinRevisar] = useState<Fuente[]>([]);
+  const marcar = (f: Fuente, ok: boolean) => setSinRevisar((xs) => marcarFuente(xs, f, ok));
   const ahora = useAhora();
   const esAdmin = sesion?.usuario.rol === 'ADMINISTRACION';
 
@@ -58,17 +64,20 @@ export function App() {
     document.body.classList.toggle('sin-sesion', !sesion);
     if (!sesion) return;
     api.habitaciones()
-      .then((r) => { setHabitaciones(r.items); setError(''); })
+      .then((r) => { setHabitaciones(r.items); setError(''); marcar('habitaciones', true); })
       .catch((e) => {
-        if (e instanceof ErrorApi && e.estado === 401) { setSesion(null); setMensaje('Su sesión venció. Inicie sesión de nuevo.'); }
-        else setError(e instanceof Error ? e.message : 'No se pudo cargar el mapa.');
+        if (e instanceof ErrorApi && e.estado === 401) { setSesion(null); setMensaje('Su sesión venció. Inicie sesión de nuevo.'); return; }
+        setError(mensajeDeError(e));
+        marcar('habitaciones', false);
       });
-    api.reglas().then(setReglas).catch(() => undefined);
+    api.reglas().then((r) => { setReglas(r); marcar('reglas', true); }).catch(() => marcar('reglas', false));
     // Reportes a Migración (TICKET-37): los ven recepción y la administración.
-    api.migracionPendientes().then((r) => setMigracion(r.items)).catch(() => undefined);
+    api.migracionPendientes().then((r) => { setMigracion(r.items); marcar('migracion', true); }).catch(() => marcar('migracion', false));
     // Existencias (TICKET-21): solo la administración las ve y recibe sus avisos.
-    if (sesion.usuario.rol === 'ADMINISTRACION') api.existencias().then((r) => setExistencias(r.items)).catch(() => undefined);
-    if (sesion.usuario.rol === 'ADMINISTRACION') api.pagosPorConfirmar().then((r) => setPorConfirmar(r.items)).catch(() => undefined);
+    if (sesion.usuario.rol === 'ADMINISTRACION') {
+      api.existencias().then((r) => { setExistencias(r.items); marcar('existencias', true); }).catch(() => marcar('existencias', false));
+      api.pagosPorConfirmar().then((r) => { setPorConfirmar(r.items); marcar('transferencias', true); }).catch(() => marcar('transferencias', false));
+    }
   }, [sesion, recarga]);
 
   // Cualquier evento (o la consulta de respaldo) vuelve a pedir el estado; los de transferencias además avisan.
@@ -102,7 +111,6 @@ export function App() {
   const avisos = ordenarAvisos([...calcularAvisos(habitaciones, reglas, ahora), ...avisosMigracion(migracion), ...(esAdmin ? avisosExistencias(existencias) : [])]);
   function elegirAviso(a: AvisoPendiente) {
     const h = habitaciones.find((x) => x.numero === a.habitacion);
-    setCotizando(null);
     if (a.tipo === 'POR_VERIFICAR' && esAdmin) { setVista('confirmar'); return; }
     if (a.tipo === 'EXISTENCIAS') { setAjustesInicial('existencias'); setVista('ajustes'); return; }
     if (a.tipo === 'MIGRACION') { setReportando(a); return; }
@@ -114,7 +122,7 @@ export function App() {
   // Lo que se ve debajo de las pestañas: una vista por pestaña; en Habitaciones, el asistente de entrada o el mapa.
   function vistaActual() {
     if (vista === 'confirmar') return <>
-      <PorConfirmar pagos={porConfirmar} alCambiar={() => setRecarga((n) => n + 1)} />
+      <PorConfirmar pagos={porConfirmar} sinRevisar={sinRevisar.includes('transferencias')} alCambiar={() => setRecarga((n) => n + 1)} />
       {esAdmin && <SolicitudesFactura recarga={recarga} />}
     </>;
     if (vista === 'historial' && esAdmin) return <Historial recarga={recarga} />;
@@ -122,16 +130,12 @@ export function App() {
     if (vista === 'ajustes' && esAdmin) return <Ajustes key={ajustesInicial} inicial={ajustesInicial} alCambiar={() => setRecarga((n) => n + 1)} />;
     if (vista === 'caja') return <Caja recarga={recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={(texto) => setAviso({ tono: 'exito', texto })}
       alEntregar={(texto) => { setSesion(null); setAviso(null); setMensaje(texto); }} />;
-    if (error) return <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>;
-    if (cotizando) return <Entrada habitacion={cotizando} reglas={reglas} alVolver={() => setCotizando(null)} alRegistrar={(est) => {
-      setCotizando(null);
-      setRecarga((n) => n + 1);
-      setAviso({ tono: 'exito', texto: `Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.` });
-    }} />;
+    // El asistente de entrada va aparte (abajo): sigue montado aunque se cambie de pestaña (DEF-002).
+    if (cotizando) return null;
     return <>
       {/* Inicio más simple: lo del día a un toque, los avisos en una línea y enseguida las habitaciones. */}
       <AccionesRapidas alAvisar={(texto, tono = 'exito') => setAviso({ tono, texto })} alCambiar={() => setRecarga((n) => n + 1)} />
-      <Pendientes avisos={avisos} alElegir={elegirAviso} />
+      <Pendientes avisos={avisos} sinRevisar={sinRevisar} alElegir={elegirAviso} />
       <Mapa habitaciones={habitaciones} alElegir={(hab) => { setAviso(null); setCotizando(hab); }} alAbrir={setFicha} alRevisar={setRevisando} />
     </>;
   }
@@ -142,7 +146,7 @@ export function App() {
         <header class="barra-sup">
           <svg class="barra-sup__marca" role="img" aria-label="Hotel Golán"><use href="#logo-golan" /></svg>
           <div class="barra-sup__der">
-            <Campana avisos={avisos} alElegir={elegirAviso} />
+            <Campana avisos={avisos} sinRevisar={sinRevisar} alElegir={elegirAviso} />
             <span class="barra-sup__usuario" title={u.nombre}>
               <span class="barra-sup__iniciales" aria-hidden="true">{iniciales(u.nombre)}</span>
               <span class="barra-sup__nombre">{u.nombre} · {esAdmin ? 'Administración' : 'Recepción'}</span>
@@ -155,15 +159,27 @@ export function App() {
             : <>
               <div class="pestanas" role="tablist" style="margin-bottom:16px">
                 {vistas.map(([v, t, ico]) => <button key={v} type="button" class="pestana" role="tab" aria-selected={vista === v}
-                  onClick={() => { setVista(v); setCotizando(null); if (v === 'ajustes') setAjustesInicial('tarifas'); }}><Ico id={ico} clase="ico--s" /> {t}
+                  onClick={() => { setVista(v); if (v === 'ajustes') setAjustesInicial('tarifas'); }}><Ico id={ico} clase="ico--s" /> {t}
                   {v === 'confirmar' && porConfirmar.length > 0 && <span class="pestana__cuenta" aria-label={`${porConfirmar.length} por confirmar`}>{porConfirmar.length}</span>}
                 </button>)}
               </div>
-              {aviso && !cotizando && <div class={`nota nota--${aviso.tono}`} aria-live="polite" style="margin-bottom:16px">
-                <Ico id={icoTono(aviso.tono)} clase="ico--s" /><p>{aviso.texto}</p>
-                <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
-              </div>}
+              {/* La región viva siempre está montada: si naciera junto con el texto, el lector podría no anunciarlo (A11Y-03). */}
+              <div aria-live="polite">
+                {aviso && !cotizando && <div class={`nota nota--${aviso.tono}`} style="margin-bottom:16px">
+                  <Ico id={icoTono(aviso.tono)} clase="ico--s" /><p>{aviso.texto}</p>
+                  <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
+                </div>}
+              </div>
+              {/* Si falla una recarga, el aviso va arriba y lo que se estaba haciendo no se desmonta (UI-01). */}
+              {error && vista === 'mapa' && <div class="nota" role="alert" style="margin-bottom:16px"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
               {vistaActual()}
+              {cotizando && <div hidden={vista !== 'mapa'}>
+                <Entrada key={cotizando.numero} habitacion={cotizando} reglas={reglas} alVolver={() => setCotizando(null)} alRegistrar={(est) => {
+                  setCotizando(null);
+                  setRecarga((n) => n + 1);
+                  setAviso({ tono: 'exito', texto: `Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.` });
+                }} />
+              </div>}
               {ficha && <Ficha habitacion={ficha} recarga={recarga} reglas={reglas} esAdmin={esAdmin} alCerrar={() => setFicha(null)} alCambiar={() => setRecarga((n) => n + 1)}
                 alSalir={(texto) => { setFicha(null); setRecarga((n) => n + 1); setAviso({ tono: 'exito', texto }); }} />}
               {revisando && <PanelEstado habitacion={revisando} alCerrar={() => setRevisando(null)}
