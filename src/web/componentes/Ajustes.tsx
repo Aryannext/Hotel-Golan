@@ -2,7 +2,7 @@
 // Todo aplica a lo nuevo: las entradas, cargos y turnos ya registrados conservan su valor.
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi } from '../api.ts';
-import { horaBogota, leerPesos, pesos, type Producto } from '../logica.ts';
+import { horaBogota, leerPesos, nuevaClave, pesos, type Producto } from '../logica.ts';
 import { fechaReporte } from '../reportes.ts';
 import {
   erroresProducto, etiquetaTarifa, GRUPOS_EDITABLES, leerCantidadSurtido, NOTA_FAMILIAR, REGLAS, reglasCambiadas, tarifasCambiadas, textoHora,
@@ -233,6 +233,8 @@ function Existencias({ alGuardar, alCambiar }: { alGuardar: (texto: string) => v
   const [cantidad, setCantidad] = useState('');
   const [verError, setVerError] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  // Una clave por surtido: un doble toque o un reintento sin señal no lo suman dos veces (Idempotency-Key).
+  const [clave, setClave] = useState(nuevaClave);
   useEffect(() => { api.existencias().then((r) => setItems(r.items)).catch((e) => setError(mensaje(e))); }, [recarga]);
 
   if (!items) return <><AvisoError texto={error} />{!error && <p><output>Cargando existencias…</output></p>}</>;
@@ -244,7 +246,8 @@ function Existencias({ alGuardar, alCambiar }: { alGuardar: (texto: string) => v
     setEnviando(true);
     setError('');
     try {
-      await api.registrarSurtido(producto, leida.cantidad);
+      await api.registrarSurtido(producto, leida.cantidad, clave);
+      setClave(nuevaClave());
       const nombre = items!.find((x) => x.producto_id === producto)?.nombre ?? 'el producto';
       alGuardar(`Listo: se anotaron ${leida.cantidad} de «${nombre}».`);
       setProducto(''); setCantidad(''); setVerError(false); setRecarga((n) => n + 1);

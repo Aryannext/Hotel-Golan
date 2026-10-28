@@ -1,7 +1,8 @@
 // «Salió plata» (TICKET-10, FR-12): compra para el hotel, retiro de la administración, recargo de aseo u otro.
 // Baja el «debe haber» y no cuenta como venta. Las devoluciones se registran desde la estadía (TICKET-09).
 import { useEffect, useState } from 'preact/hooks';
-import { api, ErrorApi } from '../api.ts';
+import { api } from '../api.ts';
+import { mensajeDeError } from '../envio.ts';
 import { leerPesos, nuevaClave, pesos, TIPOS_SALIDA, type TipoSalida } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 
@@ -43,7 +44,7 @@ export function SalidaDinero({ debeHaber, alCerrar, alRegistrar }: { debeHaber: 
       await api.registrarSalida({ tipo, detalle: detalle.trim(), valor: monto, ...(tipo === 'RECARGO_ASEO' ? { habitacion_numero: hab } : {}) }, clave);
       alRegistrar(`Salida registrada: ${pesos(monto)} (${t.texto.toLowerCase()}). En la caja deben quedar ${pesos(quedaria)}.`);
     } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.');
+      setError(mensajeDeError(e));
     } finally {
       setEnviando(false);
     }

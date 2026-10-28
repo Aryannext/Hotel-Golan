@@ -39,10 +39,17 @@
 .confirmar__botones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .confirmar__pregunta { grid-column: 1 / -1; margin: 0; font: 600 13.5px/1.4 var(--f-ui); color: var(--rojo); }
 
-/* Celular angosto: las pestañas caben en una línea (sin ícono). */
+/* Celular: las pestañas van en una rejilla y se ven todas, sin deslizar de lado (DEF-004): las seis de la
+   administración en dos filas de tres; las dos de recepción, en una fila. */
+@media (max-width: 600px) {
+  .pestanas { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; border-bottom: 0; }
+  .pestana { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px 6px;
+    border-radius: 10px; background: var(--blanco); box-shadow: inset 0 0 0 1px var(--borde); text-align: center; white-space: normal; }
+  .pestana[aria-selected="true"] { box-shadow: inset 0 0 0 2px var(--puerta); }
+  .pestana[aria-selected="true"]::after { display: none; }
+}
 @media (max-width: 420px) {
-  .pestanas { flex-wrap: nowrap; }
-  .pestana { padding: 10px 9px; font-size: 13px; white-space: nowrap; }
+  .pestana { font-size: 13px; }
   .pestana > .ico { display: none; }
 }
 
@@ -50,8 +57,11 @@
 .velo--visible { opacity: 1; }
 .panel__cab .titulos p { overflow-wrap: break-word; }
 
-/* Caja (TICKET-10): un solo botón «Salió plata» y opciones de salida apiladas en el celular. */
+/* Caja (TICKET-10): un solo botón «Salió plata» y opciones de salida apiladas en el celular. Los botones grandes
+   parten su texto en dos líneas y, en el celular angosto, van uno debajo del otro: nada se sale de la tarjeta (DEF-001). */
 .caja-grande__botones--uno { grid-template-columns: 1fr; }
+.caja-grande__botones .btn { min-width: 0; white-space: normal; text-align: center; }
+@media (max-width: 420px) { .caja-grande__botones { grid-template-columns: 1fr; } }
 .segmentado--columna { display: grid; grid-template-columns: 1fr 1fr; }
 @media (max-width: 420px) { .segmentado--columna { grid-template-columns: 1fr; } }
 
@@ -74,8 +84,6 @@
   .historial__importes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .historial__filtro { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .historial__filtro .btn { grid-column: 1 / -1; }
-  .pestanas { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; }
-  .pestana { flex: none; }
 }
 
 /* Equipo (TICKET-14): personas en tarjetas y campos de PIN que caben en el celular. */
@@ -105,6 +113,7 @@
 .campana__panel { position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; width: min(360px, calc(100vw - 32px)); max-height: 70vh; overflow-y: auto;
   padding: 12px; background: var(--blanco); border: 1px solid var(--borde); border-radius: var(--r-lg); box-shadow: var(--sombra); }
 .campana__titulo { margin: 0 0 8px; font: 700 14px/1.3 var(--f-ui); }
+.campana__falta { margin: 0 0 8px; color: var(--rojo); font: 600 13px/1.4 var(--f-ui); }
 .lista-avisos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .aviso-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--borde); border-radius: var(--r-md, 12px);
   background: var(--blanco); text-align: left; cursor: pointer; font: inherit; color: inherit; }

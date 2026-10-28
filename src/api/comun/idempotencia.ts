@@ -4,6 +4,10 @@ import { ErrorApi } from './errores.ts';
 
 export interface Respuesta<T> { estado: number; cuerpo: T }
 
+/** Esquema de `schema.headers` y tipo de `Headers` para las rutas que aceptan la clave. */
+export const CABECERA_IDEMPOTENCIA = { type: 'object', properties: { 'idempotency-key': { type: 'string', format: 'uuid' } } };
+export type ConClave = { 'idempotency-key'?: string };
+
 const UNICO_VIOLADO = '23505';
 
 async function previa<T>(bd: Bd, clave: string, usuarioId: string, operacion: string): Promise<Respuesta<T> | null> {

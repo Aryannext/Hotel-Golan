@@ -1,15 +1,16 @@
 // Asistente «Nueva entrada» (TICKET-04, FR-03, FR-05): 1) datos del titular y autorización, 2) habitación y servicio, 3) confirmar y cobrar.
 import { useEffect, useState } from 'preact/hooks';
 import { Fragment } from 'preact';
-import { api, ErrorApi, type Cotizacion, type Estadia, type FormaPago, type Habitacion } from '../api.ts';
+import { api, type Cotizacion, type Estadia, type FormaPago, type Habitacion } from '../api.ts';
 import {
-  AVISO_VERSION, HUESPED_VACIO, TIPOS_DOCUMENTO, aHuespedInput, cambioEfectivo, enmascarar, erroresHuesped, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, textoSalida,
+  AVISO_VERSION, HUESPED_VACIO, PREGUNTA_SALIR_ENTRADA, entradaEmpezada, TIPOS_DOCUMENTO, aHuespedInput, cambioEfectivo, enmascarar, erroresHuesped, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, textoSalida,
   type FormHuesped,
 } from '../logica.ts';
 import { PasoServicio, SERVICIO_INICIAL, type Servicio } from './PasoServicio.tsx';
 import { Ico } from './Ico.tsx';
 import { AvisoCorto, PoliticaCompleta } from './AvisoPrivacidad.tsx';
 import { entradaIso, errorTardio } from '../tardio.ts';
+import { mensajeDeError } from '../envio.ts';
 import { fechaReporte } from '../reportes.ts';
 import type { Reglas, Tarifa } from '../ajustes.ts';
 import { leerDescuento } from '../textosConfig.ts';
@@ -87,16 +88,19 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
         pago: forma === 'EFECTIVO' ? { forma, valor_recibido: valor } : { forma },
       }, clave));
     } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.');
+      setError(mensajeDeError(e));
     } finally {
       setEnviando(false);
     }
   }
 
+  // DEF-002: con algo escrito, «Volver» y «Cancelar» preguntan antes de borrarlo.
+  const salir = () => { if (!entradaEmpezada(h, paso) || confirm(PREGUNTA_SALIR_ENTRADA)) alVolver(); };
+
   return (
     <>
       <div class="titulo-vista"><div style="display:flex;align-items:center;gap:14px">
-        <button type="button" class="btn btn--secundario" onClick={alVolver}><Ico id="atras" clase="ico--s" />Volver</button>
+        <button type="button" class="btn btn--secundario" onClick={salir}><Ico id="atras" clase="ico--s" />Volver</button>
         <h1>Nueva entrada · {habitacion.numero}</h1>
       </div></div>
       <Asistente paso={paso} />
@@ -110,7 +114,7 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
       </div>
 
       <div class="pie-form">
-        <button type="button" class="btn btn--suave btn--l" onClick={() => (paso === 1 ? alVolver() : setPaso(paso - 1))}>{paso === 1 ? 'Cancelar' : 'Atrás'}</button>
+        <button type="button" class="btn btn--suave btn--l" onClick={() => (paso === 1 ? salir() : setPaso(paso - 1))}>{paso === 1 ? 'Cancelar' : 'Atrás'}</button>
         {paso < 3
           ? <button type="button" class="btn btn--primario btn--l" disabled={paso === 2 && !cot} onClick={siguiente}>Siguiente <Ico id="adelante" clase="ico--s" /></button>
           : <button type="button" class="btn btn--primario btn--l" disabled={enviando} onClick={registrar}><Ico id="check" clase="ico--s" />{enviando ? 'Registrando…' : 'Registrar entrada'}</button>}
