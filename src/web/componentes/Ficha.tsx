@@ -10,6 +10,7 @@ import {
   valorPago, type Producto,
 } from '../logica.ts';
 import { Ico } from './Ico.tsx';
+import { useModal } from './Panel.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { SelectorProductos } from './SelectorProductos.tsx';
 import { VistaFactura } from './SolicitudesFactura.tsx';
@@ -94,7 +95,7 @@ function VistaPago({ medio, alMedio, valor, alValor, saldo, escrito, pago }: {
     <div class="campo"><label htmlFor="valor-pago">{medio === 'EFECTIVO' ? 'Valor recibido' : 'Valor de la transferencia'}</label>
       <input id="valor-pago" inputmode="numeric" autocomplete="off" placeholder={String(saldo)} value={valor} onInput={(ev) => alValor((ev.target as HTMLInputElement).value)} /></div>
     {medio === 'EFECTIVO'
-      ? <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>
+      ? <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`} aria-live="polite" aria-atomic="true"><div>
         <b>{textoCambio(cambio.tipo, 'Abono: sigue debiendo')}</b>
         <p>Entran {pesos(pago.valor)} a la caja.</p></div><strong>{pesos(cambio.valor)}</strong></div>
       : <p class="ayuda">Quedará «por verificar» hasta que la administración confirme que llegó.</p>}
@@ -203,12 +204,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
       .catch((e: Error) => { if (vigente) setError(e.message); });
     return () => { vigente = false; };
   }, [sub, modExt, horas]);
-  useEffect(() => {
-    const cerrarConEscape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
-    document.addEventListener('keydown', cerrarConEscape);
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', cerrarConEscape); document.body.style.overflow = ''; };
-  }, []);
+  const { ref, tituloId } = useModal(alCerrar);
 
   function ir(s: Sub) {
     setSub(s);
@@ -314,12 +310,12 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
   const enCuenta = sub === 'cuenta';
   return (
     <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
-      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-hidden="true" tabIndex={-1} onClick={alCerrar} />
+      <dialog open ref={ref} tabIndex={-1} class="panel" aria-modal="true" aria-labelledby={tituloId}>
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label={enCuenta ? 'Cerrar' : 'Volver'} onClick={() => (enCuenta ? alCerrar() : ir('cuenta'))}>
             <Ico id={enCuenta ? 'cerrar' : 'atras'} clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">{tituloFicha(sub, habitacion.numero)}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
+          <div class="titulos"><h2 id={tituloId}>{tituloFicha(sub, habitacion.numero)}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
         </div>
         <div class="panel__cuerpo">
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}

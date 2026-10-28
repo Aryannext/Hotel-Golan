@@ -68,7 +68,11 @@ export function Entrada({ habitacion, reglas, alVolver, alRegistrar }: {
 
   function siguiente() {
     setError('');
-    if (paso === 1 && Object.keys(errores).length) { setVerErrores(true); return; }
+    if (paso === 1 && Object.keys(errores).length) {
+      setVerErrores(true);
+      setTimeout(() => document.querySelector<HTMLElement>('.pila [aria-invalid="true"]')?.focus(), 0);
+      return;
+    }
     if (paso === 2 && !cot) return;
     setPaso(paso + 1);
   }
@@ -137,8 +141,9 @@ export function CampoTexto({ id, etiqueta, req = false, valor, error, alEscribir
   id: string; etiqueta: string; req?: boolean; valor: string; error?: string; alEscribir: (v: string) => void; inputmode?: 'tel' | 'email'; placeholder?: string;
 }) {
   return <div class={`campo${error ? ' campo--error' : ''}`}><label htmlFor={id}>{etiqueta}{req && <> <span class="req">*</span></>}</label>
-    <input id={id} autocomplete="off" value={valor} onInput={(e) => alEscribir((e.target as HTMLInputElement).value)} {...extra} />
-    {error && <span class="campo__error">{error}</span>}</div>;
+    <input id={id} autocomplete="off" value={valor} onInput={(e) => alEscribir((e.target as HTMLInputElement).value)}
+      aria-required={req || undefined} aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined} {...extra} />
+    {error && <span class="campo__error" id={`${id}-error`}>{error}</span>}</div>;
 }
 
 function PasoHuesped({ h, alCambiar, err }: { h: FormHuesped; alCambiar: (h: FormHuesped) => void; err: (k: keyof FormHuesped) => string | undefined }) {
@@ -151,14 +156,15 @@ function PasoHuesped({ h, alCambiar, err }: { h: FormHuesped; alCambiar: (h: For
       <CampoTexto id="h-nombre" etiqueta="Nombre completo" req valor={h.nombre} error={err('nombre')} alEscribir={(v) => campo('nombre', v)} />
       <div class={`campo${err('numeroDocumento') ? ' campo--error' : ''}`}><label htmlFor="h-doc">Documento <span class="req">*</span></label>
         <div class="doble">
-          <select aria-label="Tipo de documento" value={h.tipoDocumento} onChange={(e) => campo('tipoDocumento', (e.target as HTMLSelectElement).value)}>
+          <select aria-label="Tipo de documento" aria-required="true" value={h.tipoDocumento} onChange={(e) => campo('tipoDocumento', (e.target as HTMLSelectElement).value)}>
             <option value="">Tipo…</option>
             {TIPOS_DOCUMENTO.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
           </select>
-          <input id="h-doc" autocomplete="off" disabled={!h.tipoDocumento} value={h.numeroDocumento}
+          <input id="h-doc" autocomplete="off" disabled={!h.tipoDocumento} value={h.numeroDocumento} aria-required="true"
+            aria-invalid={!!err('numeroDocumento')} aria-describedby={err('numeroDocumento') ? 'h-doc-error' : undefined}
             onInput={(e) => campo('numeroDocumento', (e.target as HTMLInputElement).value)} />
         </div>
-        {err('numeroDocumento') && <span class="campo__error">{err('numeroDocumento')}</span>}</div>
+        {err('numeroDocumento') && <span class="campo__error" id="h-doc-error">{err('numeroDocumento')}</span>}</div>
       <CampoTexto id="h-nac" etiqueta="Nacionalidad" req valor={h.nacionalidad} error={err('nacionalidad')} alEscribir={(v) => campo('nacionalidad', v)} />
       <CampoTexto id="h-tel" etiqueta="Celular (opcional)" inputmode="tel" placeholder="Ej. 300 123 4567" valor={h.telefono} error={err('telefono')}
         alEscribir={(v) => campo('telefono', v)} />
@@ -166,16 +172,18 @@ function PasoHuesped({ h, alCambiar, err }: { h: FormHuesped; alCambiar: (h: For
     <label class="casilla"><input type="checkbox" checked={h.esMenor} onChange={(e) => alCambiar({ ...h, esMenor: (e.target as HTMLInputElement).checked, acompanante: false })} />
       <span>Es menor de edad</span></label>
     {h.esMenor && <label class={`casilla casilla--aviso${err('acompanante') ? ' casilla--error' : ''}`}>
-      <input type="checkbox" checked={h.acompanante} onChange={(e) => campo('acompanante', (e.target as HTMLInputElement).checked)} />
+      <input type="checkbox" checked={h.acompanante} aria-invalid={!!err('acompanante')} aria-describedby={err('acompanante') ? 'h-acompanante-error' : undefined}
+        onChange={(e) => campo('acompanante', (e.target as HTMLInputElement).checked)} />
       <span>Verifiqué el registro civil y que viene con su padre, madre o tutor.</span></label>}
-    {err('acompanante') && <span class="campo__error">{err('acompanante')}</span>}
+    {err('acompanante') && <span class="campo__error" id="h-acompanante-error">{err('acompanante')}</span>}
     {/* TICKET-28: el aviso aprobado, para decírselo al huésped antes de marcar la casilla. */}
     <AvisoCorto alVerCompleto={() => setViendoPolitica(true)} />
     {viendoPolitica && <PoliticaCompleta alCerrar={() => setViendoPolitica(false)} />}
     <label class={`casilla casilla--fuerte${err('autorizo') ? ' casilla--error' : ''}`}>
-      <input type="checkbox" checked={h.autorizo} onChange={(e) => campo('autorizo', (e.target as HTMLInputElement).checked)} />
+      <input type="checkbox" checked={h.autorizo} aria-invalid={!!err('autorizo')} aria-describedby={err('autorizo') ? 'h-autorizo-error' : undefined}
+        onChange={(e) => campo('autorizo', (e.target as HTMLInputElement).checked)} />
       <span>Le dije el aviso ({AVISO_VERSION}) y <b>el huésped autorizó</b> el tratamiento de sus datos.</span></label>
-    {err('autorizo') && <span class="campo__error">{err('autorizo')}</span>}
+    {err('autorizo') && <span class="campo__error" id="h-autorizo-error">{err('autorizo')}</span>}
   </section>;
 }
 
@@ -212,7 +220,7 @@ function PasoConfirmar({ habitacion, h, servicio, cot, forma, alForma, recibido,
         <div class="campo"><label htmlFor="recibido">Valor recibido</label>
           <input id="recibido" inputmode="numeric" autocomplete="off" placeholder={String(total)} value={recibido}
             onInput={(e) => alRecibido((e.target as HTMLInputElement).value)} /></div>
-        <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}><div>
+        <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`} aria-live="polite" aria-atomic="true"><div>
           <b>{textoCambio(cambio.tipo, 'Queda debiendo')}</b>
           <p>{cambio.tipo === 'abono' ? `Se registra un abono de ${pesos(valorRecibido)}.` : `Entran ${pesos(total)} a la caja.`}</p>
         </div><strong>{pesos(cambio.valor)}</strong></div>
