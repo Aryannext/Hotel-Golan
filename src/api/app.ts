@@ -93,6 +93,16 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     listo();
   });
 
+  // Salud (HG-HAL-001 HAL-06): sin sesión, para el monitoreo y el reinicio automático del VPS. No expone datos.
+  app.get('/api/v1/salud', async (_req, rep) => {
+    try {
+      await o.bd.consultar('SELECT 1');
+      return { estado: 'ok' };
+    } catch {
+      return rep.code(503).send({ estado: 'sin_base' });
+    }
+  });
+
   // El registro de rutas es síncrono: plugin con callback, sin async.
   await app.register((api, _opciones, listo) => {
     rutasIdentidad(api, o.bd, ahora);

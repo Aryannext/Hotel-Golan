@@ -27,7 +27,8 @@ function envolverPg(cliente: ClientePg, pool: pg.Pool): Bd {
         await conexion.query('COMMIT');
         return resultado;
       } catch (error) {
-        await conexion.query('ROLLBACK');
+        // Si la conexión ya se cayó, el ROLLBACK también falla: se informa el error original, no ese.
+        await conexion.query('ROLLBACK').catch(() => undefined);
         throw error;
       } finally {
         conexion.release();
@@ -39,9 +40,11 @@ function envolverPg(cliente: ClientePg, pool: pg.Pool): Bd {
   };
 }
 
-export function conectarPostgres(url = process.env.DATABASE_URL): Bd {
+export function conectarPostgres(url = process.env.DATABASE_URL, alFallar: (error: Error) => void = () => undefined): Bd {
   if (!url) throw new Error('Falta DATABASE_URL. Copie .env.example como .env y complételo.');
-  const pool = new pg.Pool({ connectionString: url, max: 4 });
+  const pool = new pg.Pool({ connectionString: url, max: 4, connectionTimeoutMillis: 10_000, idleTimeoutMillis: 30_000 });
+  // HG-HAL-001 HAL-06: si PostgreSQL se reinicia, una conexión inactiva emite «error»; sin este manejador, Node se cae.
+  pool.on('error', alFallar);
   return envolverPg(pool, pool);
 }
 
