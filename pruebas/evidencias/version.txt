@@ -1,0 +1,2 @@
+dbd24b3 Merge pull request #38 from Aryannext/inicio-recepcion-simple
+v24.19.0
