@@ -109,7 +109,8 @@ const esquemaCuerpo = {
         tipo_documento: { type: 'string', enum: ['CC', 'CE', 'TI', 'RC', 'PASAPORTE', 'PPT'] },
         numero_documento: { type: 'string', pattern: '^[A-Za-z0-9-]{4,20}$' },
         nacionalidad: { type: 'string', minLength: 2, maxLength: 60 },
-        telefono: { type: 'string', pattern: String.raw`^\+57[0-9]{10}$` },
+        // BD-18 (decisión del usuario, 27-10-2026): también de otros países; formato internacional E.164.
+        telefono: { type: 'string', pattern: String.raw`^\+[1-9][0-9]{6,14}$` },
         es_menor: { type: 'boolean' },
         acompanante_verificado: { type: 'boolean' },
       },

@@ -98,6 +98,17 @@ export function entradaEmpezada(h: FormHuesped, paso: number): boolean {
 const soloDocumento = (s: string) => s.replace(/[.\s]/g, '');
 const digitos = (s: string) => s.replace(/\D/g, '');
 
+/**
+ * BD-18 (decisión del usuario, 27-10-2026): celular colombiano (10 números que empiezan por 3; se le agrega +57) o de
+ * otro país (+ y el código del país, de 7 a 15 dígitos). Devuelve el número en formato internacional, o null.
+ */
+export function telefonoNormalizado(texto: string): string | null {
+  const t = texto.trim();
+  const d = digitos(t);
+  if (t.startsWith('+')) return /^\+[\d\s().-]+$/.test(t) && /^[1-9]\d{6,14}$/.test(d) ? `+${d}` : null;
+  return /^3\d{9}$/.test(d) ? `+57${d}` : null;
+}
+
 export function erroresHuesped(h: FormHuesped): Partial<Record<keyof FormHuesped, string>> {
   const e: Partial<Record<keyof FormHuesped, string>> = {};
   if (h.nombre.trim().length < 3) e.nombre = 'Escriba el nombre del titular.';
@@ -105,7 +116,9 @@ export function erroresHuesped(h: FormHuesped): Partial<Record<keyof FormHuesped
   if (!h.tipoDocumento || !h.numeroDocumento.trim()) e.numeroDocumento = 'Escriba el documento: lo pide la ley para registrar al huésped.';
   else if (!/^[A-Za-z0-9-]{4,20}$/.test(soloDocumento(h.numeroDocumento))) e.numeroDocumento = 'Escriba el número del documento (mínimo 4 caracteres).';
   if (h.nacionalidad.trim().length < 2) e.nacionalidad = 'Escriba la nacionalidad.';
-  if (h.telefono.trim() && !/^3\d{9}$/.test(digitos(h.telefono))) e.telefono = 'El celular tiene 10 números y empieza por 3.';
+  if (h.telefono.trim() && !telefonoNormalizado(h.telefono)) {
+    e.telefono = 'Un celular colombiano tiene 10 números y empieza por 3. Uno de otro país empieza por + y el código del país (por ejemplo +58).';
+  }
   if (h.esMenor && !h.acompanante) e.acompanante = 'Un menor solo entra con su acompañante verificado.';
   if (!h.autorizo) e.autorizo = 'Sin la autorización del huésped no se puede registrar la entrada.';
   return e;
@@ -116,7 +129,7 @@ export function aHuespedInput(h: FormHuesped) {
     nombre: h.nombre.trim(), nacionalidad: h.nacionalidad.trim(), es_menor: h.esMenor,
     ...(h.esMenor ? { acompanante_verificado: h.acompanante } : {}),
     tipo_documento: h.tipoDocumento, numero_documento: soloDocumento(h.numeroDocumento),
-    ...(h.telefono.trim() ? { telefono: '+57' + digitos(h.telefono) } : {}),
+    ...(h.telefono.trim() ? { telefono: telefonoNormalizado(h.telefono) ?? '' } : {}),
   };
 }
 
