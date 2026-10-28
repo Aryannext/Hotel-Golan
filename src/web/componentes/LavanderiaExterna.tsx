@@ -1,7 +1,7 @@
 // Lavandería para externos (TICKET-24; FR-27, RN-22): se anota solo el nombre; paga de una vez o al reclamar (T4-4).
 import { useEffect, useState } from 'preact/hooks';
 import { api, type MedioPago } from '../api.ts';
-import { pesos, resumenSeleccion, textoMedio, type Producto } from '../logica.ts';
+import { nuevaClave, pesos, resumenSeleccion, textoMedio, type Producto } from '../logica.ts';
 import { SelectorProductos } from './SelectorProductos.tsx';
 import { Ico } from './Ico.tsx';
 import { Panel, useEnvio } from './Panel.tsx';
@@ -16,6 +16,8 @@ export function LavanderiaExterna({ alCerrar, alRegistrar }: { alCerrar: () => v
   const [cuando, setCuando] = useState<Cuando>('RECLAMAR');
   const [verError, setVerError] = useState(false);
   const { enviando, error, setError, enviar } = useEnvio();
+  // Una clave por envío: un doble toque o un reintento sin señal no lo duplican (Idempotency-Key).
+  const [clave] = useState(nuevaClave);
 
   useEffect(() => { api.productos().then((r) => setPrendas(r.items.filter((p) => p.grupo === 'LAVANDERIA'))).catch((e: Error) => setError(e.message)); }, []);
 
@@ -28,7 +30,7 @@ export function LavanderiaExterna({ alCerrar, alRegistrar }: { alCerrar: () => v
     if (!nombreValido || !sel.items.length) return;
     void enviar(async () => {
       const items = sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad }));
-      await api.lavanderiaExterna(nombre.trim(), items, cuando === 'RECLAMAR' ? undefined : { medio: cuando });
+      await api.lavanderiaExterna(nombre.trim(), items, cuando === 'RECLAMAR' ? undefined : { medio: cuando }, clave);
       const pago = cuando === 'RECLAMAR' ? 'Paga al reclamar.' : `Pagó ${pesos(sel.total)} por adelantado.`;
       alRegistrar(`Lavandería de ${nombre.trim()} recibida (${pesos(sel.total)}). ${pago}`);
     });

@@ -3,7 +3,8 @@
 // Cada vista (cuenta, cargos, pago, salida, extender, desistimiento) es un componente aparte; la ficha solo decide cuál mostrar.
 import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
-import { api, ErrorApi, type Estadia, type Habitacion } from '../api.ts';
+import { api, type Estadia, type Habitacion } from '../api.ts';
+import { enviarYReleer } from '../envio.ts';
 import {
   cambioEfectivo, resumenExtension, devolucionPosible, type CotizacionExtension, diaRelativo, estadoSaldo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
   valorPago, type Producto,
@@ -28,7 +29,6 @@ type MedioDev = 'EFECTIVO' | 'TRANSFERENCIA';
 
 const MODALIDADES_EXT: Array<[ModExt, string]> = [['NOCHE', 'Otra noche'], ['TRES_HORAS', '3 horas'], ['POR_HORAS', 'Por horas']];
 const MEDIOS: Medio[] = ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'];
-const SIN_CONEXION = 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.';
 const cuando = (iso: string) => `${diaRelativo(iso, hoyBogota())} ${horaBogota(iso)}`;
 
 function Fila({ concepto, valor, total = false }: { concepto: ComponentChildren; valor: number; total?: boolean }) {
@@ -220,19 +220,28 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
     if (s === 'devolucion') { setMotivoDev('SOLO_MIRO'); setMedioDev('EFECTIVO'); }
   }
 
-  /** Envía una operación; `alTerminar` decide qué sigue (por defecto, recargar la cuenta y volver a ella). */
+  /**
+   * Envía una operación; `alTerminar` decide qué sigue (por defecto, recargar la cuenta y volver a ella). Si la operación
+   * quedó pero la cuenta no se pudo releer, vuelve a la cuenta con el aviso de no repetirla (HAL-09).
+   */
   async function enviar(accion: () => Promise<unknown>, alTerminar?: (r: unknown) => void, alFallar?: () => Promise<void>) {
     setEnviando(true);
     setError('');
     try {
-      const r = await accion();
-      if (alTerminar) { alTerminar(r); return; }
-      alCambiar();
-      setEst(await api.estadia(id));
-      ir('cuenta');
-    } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : SIN_CONEXION);
-      await alFallar?.();
+      const r = await enviarYReleer(accion, async () => {
+        if (alTerminar) return;
+        alCambiar();
+        setEst(await api.estadia(id));
+      });
+      if (!r.hecho) {
+        setError(r.error);
+        await alFallar?.();
+      } else if (alTerminar) {
+        alTerminar(r.resultado);
+      } else {
+        ir('cuenta');
+        setError(r.aviso);
+      }
     } finally {
       setEnviando(false);
     }
@@ -258,7 +267,7 @@ export function Ficha({ habitacion, recarga, reglas, esAdmin = false, alCerrar, 
         <SelectorProductos catalogo={prendas} cantidades={cantidades} sel={sel} sumar={sumar} />
       </>,
         pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando}
-          alTocar={() => enviar(() => api.pedirLavanderia(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad }))))}>{texto}</BotonPie> };
+          alTocar={() => enviar(() => api.pedirLavanderia(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie> };
     }
     if (sub === 'cargo') {
       const texto = sel.items.length ? `Agregar ${cuantos(sel.items.length, 'producto', 'productos')} · ${pesos(sel.total)}` : 'Elija productos';

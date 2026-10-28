@@ -12,6 +12,7 @@ import { quienPidio, type PedidoLavanderia } from '../lavanderia.ts';
 import { EntregarTurno } from './EntregarTurno.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { Ico } from './Ico.tsx';
+import { mensajeDeError } from '../envio.ts';
 import { icoMovimiento } from '../presentacion.ts';
 
 /** `recarga` cambia con cada evento en vivo: la caja se vuelve a pedir sin recargar la página. */
@@ -42,11 +43,13 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
       setLineas(lineasDelTurno(p.items, m.items));
       setLavanderia(l.items);
       setDeudas(d.items);
-    }).catch((e) =>
-      setError(e instanceof ErrorApi && e.estado === 404 ? 'No hay un turno activo en este momento.' : e.message));
+    }).catch((e) => {
+      if (e instanceof ErrorApi && e.estado === 404) { setTurno(null); setError('No hay un turno activo en este momento.'); }
+      else setError(mensajeDeError(e));
+    });
   }, [recarga, propia]);
 
-  if (error) return <div class="nota" role="alert"><Ico id="info" clase="ico--s" /><p>{error}</p></div>;
+  if (error && !turno) return <div class="nota" role="alert"><Ico id="info" clase="ico--s" /><p>{error}</p></div>;
   if (!turno) return null;
   const c = turno.caja;
   const porRecibir = turno.estado === 'POR_RECIBIR';
@@ -56,6 +59,7 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
       <div class="titulo-vista"><div><h1>Caja</h1>
         <p>Turno {nombreTurno(turno.tipo)} · {porRecibir ? 'por recibir' : <>de <b>{turno.responsable}</b></>}</p>
       </div></div>
+      {error && <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
       <section class="tarjeta caja-grande">
         <p class="caja-grande__etq">{porRecibir ? 'Dejaron en la caja' : 'En la caja debe haber'}</p>
         <strong class="caja-grande__valor">{pesos(c.debe_haber)}</strong>

@@ -4,8 +4,9 @@ import { api, ErrorApi, type Pago } from '../api.ts';
 import { diaRelativo, horaBogota, hoyBogota, nuevaClave, pesos, textoMedio } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 import { origenPago } from '../ventas.ts';
+import { TRANSFERENCIAS_SIN_REVISAR } from '../avisos.ts';
 
-export function PorConfirmar({ pagos, alCambiar }: { pagos: Pago[]; alCambiar: () => void }) {
+export function PorConfirmar({ pagos, sinRevisar, alCambiar }: { pagos: Pago[]; sinRevisar: boolean; alCambiar: () => void }) {
   const [dudando, setDudando] = useState<string | null>(null);
   const [enviando, setEnviando] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -34,7 +35,9 @@ export function PorConfirmar({ pagos, alCambiar }: { pagos: Pago[]; alCambiar: (
       <div class="titulo-vista"><div><h1>Pagos por confirmar</h1>
         <p>Revise en Nequi o Bancolombia si llegó la plata y toque una opción.</p></div></div>
       {error && <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
-      {pagos.length === 0
+      {/* Sin respuesta del sistema, una lista vacía no quiere decir que no haya transferencias (HAL-07). */}
+      {sinRevisar && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{TRANSFERENCIAS_SIN_REVISAR}</p></div>}
+      {pagos.length === 0 && !sinRevisar
         ? <section class="tarjeta"><p class="vacio"><Ico id="check" clase="ico--s" /> Todo al día: no hay transferencias por confirmar.</p></section>
         : pagos.map((p) => (
           <section class="tarjeta confirmar" key={p.id}>

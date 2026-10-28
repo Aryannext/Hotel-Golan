@@ -3,7 +3,7 @@
 // El sistema no hace facturas: solo lleva el seguimiento.
 import { useEffect, useState } from 'preact/hooks';
 import { api } from '../api.ts';
-import { diaRelativo, horaBogota, hoyBogota } from '../logica.ts';
+import { diaRelativo, horaBogota, hoyBogota, nuevaClave } from '../logica.ts';
 import {
   aSolicitudInput, erroresFactura, estadoFactura, FACTURA_VACIA, siguientePaso, textoPrevista, type FormFactura, type SolicitudFactura,
 } from '../facturas.ts';
@@ -25,6 +25,8 @@ export function VistaFactura({ estadiaId }: { estadiaId: string }) {
   const [verErrores, setVerErrores] = useState(false);
   const [listo, setListo] = useState('');
   const { enviando, error, setError, enviar } = useEnvio();
+  // Una clave por solicitud: un doble toque o un reintento sin señal no la duplican (Idempotency-Key).
+  const [clave, setClave] = useState(nuevaClave);
 
   useEffect(() => { api.solicitudesFacturaDeEstadia(estadiaId).then((r) => setLista(r.items)).catch((e: Error) => setError(e.message)); }, [estadiaId]);
 
@@ -35,7 +37,8 @@ export function VistaFactura({ estadiaId }: { estadiaId: string }) {
     setVerErrores(true);
     if (Object.keys(erroresFactura(form)).length) return;
     void enviar(async () => {
-      const s = await api.solicitarFactura(estadiaId, aSolicitudInput(form));
+      const s = await api.solicitarFactura(estadiaId, aSolicitudInput(form), clave);
+      setClave(nuevaClave());
       setLista([...lista, s]);
       setForm(FACTURA_VACIA);
       setVerErrores(false);

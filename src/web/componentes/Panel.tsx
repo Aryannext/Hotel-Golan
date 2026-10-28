@@ -2,11 +2,10 @@
 // También los ganchos de los paneles: cerrar con Escape y enviar una acción mostrando el error en palabras.
 import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
-import { ErrorApi, type MedioPago } from '../api.ts';
+import type { MedioPago } from '../api.ts';
+import { enviarYReleer } from '../envio.ts';
 import { textoMedio } from '../logica.ts';
 import { Ico } from './Ico.tsx';
-
-const SIN_CONEXION = 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.';
 
 /** Escape cierra el panel y la página de atrás no se desplaza mientras está abierto. */
 export function useCerrarConEscape(alCerrar: () => void) {
@@ -18,20 +17,19 @@ export function useCerrarConEscape(alCerrar: () => void) {
   }, []);
 }
 
-/** Envía una acción una sola vez a la vez; si falla, deja el mensaje de la API (o el de sin conexión) en `error`. */
+/**
+ * Envía una acción una sola vez a la vez; si falla, deja el mensaje de la API (o el de sin conexión) en `error`.
+ * `releer` va aparte: si falla después de que la acción quedó, el aviso dice que no se repita (HAL-09).
+ */
 export function useEnvio() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
-  async function enviar(accion: () => Promise<void>) {
+  async function enviar(accion: () => Promise<void>, releer: () => Promise<void> = async () => undefined) {
     setEnviando(true);
     setError('');
-    try {
-      await accion();
-    } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : SIN_CONEXION);
-    } finally {
-      setEnviando(false);
-    }
+    const r = await enviarYReleer(accion, releer);
+    setError(r.hecho ? r.aviso : r.error);
+    setEnviando(false);
   }
   return { enviando, error, setError, enviar };
 }

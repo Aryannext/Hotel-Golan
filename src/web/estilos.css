@@ -381,7 +381,7 @@ dialog { margin: 0; padding: 0; border: 0; color: inherit; width: auto; height: 
 .caja-grande__valor { font: 700 46px/1.05 var(--f-ui); letter-spacing: -1.2px; font-variant-numeric: tabular-nums; }
 .caja-grande__extra { display: flex; flex-direction: column; gap: 6px; align-items: center; font-size: 13.5px; color: var(--madera-600); }
 .caja-grande__extra span { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.caja-grande__botones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 6px; }
+.caja-grande__botones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; margin-top: 6px; }
 .mov__valor.negativo { color: var(--rojo); }
 .mov--anulado { opacity: .5; }
 .pasos-relevo { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--madera-600); font-size: 13.5px; }

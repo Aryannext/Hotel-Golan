@@ -3,6 +3,7 @@
 // Los datos solo los ven recepción y la administración; la auditoría guarda el estado, nunca los datos.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { CABECERA_IDEMPOTENCIA, conIdempotencia, type ConClave } from '../comun/idempotencia.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
@@ -53,11 +54,11 @@ export function rutasFacturacion(app: FastifyInstance, bd: Bd, ahora: () => Date
   const turno = requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']);
   const administracion = requiere(bd, ahora, ['ADMINISTRACION']);
 
-  app.post<{ Params: { id: string }; Body: Datos }>('/estadias/:id/solicitudes-factura', {
-    preHandler: turno, schema: { params: ID, body: DATOS },
+  app.post<{ Params: { id: string }; Body: Datos; Headers: ConClave }>('/estadias/:id/solicitudes-factura', {
+    preHandler: turno, schema: { params: ID, headers: CABECERA_IDEMPOTENCIA, body: DATOS },
   }, async (req, rep) => {
     const u = req.usuario!;
-    const id = await bd.transaccion(async (tx) => {
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'solicitarFactura', async (tx) => {
       const momento = ahora();
       const [e] = await tx.consultar<{ id: string }>('SELECT id FROM estadias WHERE id = $1', [req.params.id]);
       if (!e) throw new ErrorApi(404, 'NO_ENCONTRADO', 'La estadía no existe.');
@@ -66,10 +67,10 @@ export function rutasFacturacion(app: FastifyInstance, bd: Bd, ahora: () => Date
          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
         [req.params.id, req.body.documento, req.body.correo ?? null, req.body.telefono ?? null, fechaPrevista(momento), u.id, momento]);
       await auditar(tx, { usuarioId: u.id, accion: 'CREAR', entidad: 'solicitudes_factura', entidadId: s.id, detalle: { estado: 'PENDIENTE' }, ocurrido: momento });
-      return s.id;
+      const [solicitud] = await leer(tx, { id: s.id });
+      return { estado: 201, cuerpo: solicitud };
     });
-    const [s] = await leer(bd, { id });
-    return rep.code(201).send(s);
+    return rep.code(r.estado).send(r.cuerpo);
   });
 
   app.get<{ Params: { id: string } }>('/estadias/:id/solicitudes-factura', {
