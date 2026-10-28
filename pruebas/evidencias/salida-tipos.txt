@@ -1,0 +1,4 @@
+
+> hotel-golan-sistema@0.1.0 tipos
+> tsc --noEmit && tsc --noEmit -p src/web
+
