@@ -105,7 +105,7 @@ describe('FR-16 / RN-15 — historial y reporte del día del hotel', () => {
     assert.deepEqual(r.json().items, [{
       dia: '2026-10-12', desde: '2026-10-12T06:30:00-05:00', hasta: '2026-10-13T06:30:00-05:00',
       turnos: [{ tipo: 'DIA', responsable: 'recepcion1' }, { tipo: 'NOCHE', responsable: 'recepcion2' }],
-      efectivo: 221000, transferencias_verificadas: 55000, transferencias_pendientes: 30000,
+      efectivo: 221000, transferencias_verificadas: 55000, transferencias_pendientes: 30000, transferencias_devueltas: 0,
       descuentos: 0, salidas: 0, diferencias: 0,
     }]);
   });
