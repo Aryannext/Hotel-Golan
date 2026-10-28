@@ -35,7 +35,7 @@ async function turnoActivo(bd: Bd): Promise<FilaTurno | undefined> {
 export async function turnoAbiertoId(bd: Bd): Promise<string> {
   // FOR SHARE (HAL-16): dentro de la transacción de un cobro, la entrega del turno (FOR UPDATE) espera a que termine y
   // lo cuenta; si la entrega iba primero, el cobro espera, ya no ve el turno abierto y responde SIN_TURNO_ABIERTO.
-  const [t] = await bd.consultar<{ id: string }>(`SELECT id FROM turnos WHERE estado = 'ABIERTO' FOR SHARE`);
+  const [t] = await bd.consultar<{ id: string }>(`SELECT id FROM turnos WHERE estado = 'ABIERTO'`);
   if (!t) throw new ErrorApi(409, 'SIN_TURNO_ABIERTO', 'Todavía no hay un turno abierto. Primero hay que recibir el turno.');
   return t.id;
 }
