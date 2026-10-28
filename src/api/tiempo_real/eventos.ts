@@ -2,7 +2,7 @@
 // a las sesiones conectadas y lo marca como publicado. Se despierta después de cada cambio y, de respaldo, cada segundo.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
-import { requiere, type Rol } from '../identidad/sesiones.ts';
+import { COOKIE, requiere, usuarioDeToken, type Rol } from '../identidad/sesiones.ts';
 import { aBogota } from '../comun/tiempo.ts';
 
 interface FilaEvento { id: string | number | bigint; tipo: string; payload: Record<string, unknown>; ocurrido_en: Date }
@@ -56,7 +56,9 @@ export class Publicador {
     const filas = await this.bd.consultar<FilaEvento>(
       'SELECT id, tipo, payload, ocurrido_en FROM eventos_salida WHERE publicado_en IS NULL ORDER BY id LIMIT 200');
     if (filas.length === 0) return;
-    for (const f of filas) this.difundir(aEvento(f));
+    for (const f of filas) {
+      try { this.difundir(aEvento(f)); } catch (error) { this.alFallar(error); } // un evento dañado no frena la cola
+    }
     await this.bd.consultar('UPDATE eventos_salida SET publicado_en = now() WHERE id = ANY($1::bigint[])', [filas.map((f) => String(f.id))]);
     if (filas.length === 200) this.otraVez = true;
   }
@@ -65,12 +67,17 @@ export class Publicador {
     for (const c of this.clientes) this.entregar(c, ev);
   }
 
-  /** Cada cliente recibe un evento una sola vez y en orden (los ids crecen). */
+  /** Cada cliente recibe un evento una sola vez y en orden (los ids crecen). Si su conexión falla, sale de la lista. */
   private entregar(c: Cliente, ev: Evento): void {
     const id = BigInt(ev.id);
     if (id <= c.ultimoId || !visible(ev.tipo, c.rol)) return;
     c.ultimoId = id;
-    c.enviar(mensaje(ev));
+    try {
+      c.enviar(mensaje(ev));
+    } catch (error) {
+      this.clientes.delete(c);
+      this.alFallar(error);
+    }
   }
 
   /** Suscribe primero y después repite lo perdido desde Last-Event-ID, para no dejar huecos entre ambos pasos. */
@@ -90,7 +97,7 @@ export class Publicador {
   }
 }
 
-export function rutasEventos(app: FastifyInstance, bd: Bd, ahora: () => Date, publicador: Publicador, conexiones: Set<() => void>) {
+export function rutasEventos(app: FastifyInstance, bd: Bd, ahora: () => Date, publicador: Publicador, conexiones: Set<() => void>, latidoMs = 25_000) {
   app.get<{ Headers: { 'last-event-id'?: string } }>('/eventos', {
     preHandler: requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']),
   }, async (req, rep) => {
@@ -103,10 +110,16 @@ export function rutasEventos(app: FastifyInstance, bd: Bd, ahora: () => Date, pu
       connection: 'keep-alive', 'x-accel-buffering': 'no',
     });
     res.write('retry: 3000\n\n');
-    const latido = setInterval(() => res.write(': latido\n\n'), 25_000);
-    latido.unref();
     let quitar = () => {};
     const cerrar = () => { clearInterval(latido); quitar(); conexiones.delete(cerrar); res.end(); };
+    // HAL-25: si la sesión se cerró, venció o se revocó (usuario desactivado, PIN cambiado), se corta la conexión.
+    const token = req.cookies[COOKIE];
+    const latido = setInterval(() => {
+      usuarioDeToken(bd, ahora(), token)
+        .then((u) => { if (u) res.write(': latido\n\n'); else cerrar(); })
+        .catch(() => undefined); // si la base no contesta, se deja abierta y se revisa en el siguiente latido
+    }, latidoMs);
+    latido.unref();
     conexiones.add(cerrar);
     req.raw.on('close', cerrar);
     quitar = await publicador.suscribir({ rol: req.usuario!.rol, ultimoId: desde ?? 0n, enviar: (t) => res.write(t) }, desde);
