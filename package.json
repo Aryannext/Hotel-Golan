@@ -40,6 +40,8 @@
     "@types/node": "^26.6.5",
     "@types/pg": "^8.11.10",
     "eslint": "10.13.0",
+    "eslint-plugin-jsx-a11y-x": "^0.2.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "typescript": "^5.8.0",
     "typescript-eslint": "8.71.2",
     "vite": "^8.3.4"
