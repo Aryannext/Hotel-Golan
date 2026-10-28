@@ -37,7 +37,7 @@ Saber si el sistema cumple los requisitos funcionales de la primera y la segunda
 |---|---|---|---|---|---|
 | Q1 | Unitarias y de componentes (reglas puras, lógica de la PWA) | Sí | Las reglas de dinero y de horas (RN-01 a RN-05) son la parte más delicada; ya existen y se ejecutan como línea base. | `node:test` (Node 24) | Automatizada |
 | Q1 | Calidad estática | Sí | Un error de tipos o de compilación impide el despliegue. | ESLint, `tsc`, Vite | Automatizada |
-| Q2 | Funcionales de la API e historias de usuario (positivas y negativas) | Sí | Es el grueso del sistema: cada FR tiene un caso con su prueba automatizada (PGlite con la semilla sintética). | `node:test` + `app.inject` | Automatizada |
+| Q2 | Funcionales de la API e historias de usuario (positivas y negativas) | Sí | Es el grueso del sistema: los FR tienen su prueba automatizada (PGlite con la semilla sintética). FR-24, FR-25 y FR-32 no tienen un caso CP propio: los cubren las pruebas de la suite (catálogo, existencias y productos vendidos). FR-29 está en espera. | `node:test` + `app.inject` | Automatizada |
 | Q2 | Humo sobre el sistema en marcha | Sí | Confirma que la versión servida con PostgreSQL real responde igual que en las pruebas. | `pruebas/humo-entorno.ts` | Automatizada |
 | Q3 | Usabilidad e inspección en el navegador a 360 px | Sí | La usuaria principal no sabe de tecnología y recepción usa el celular (requisito no funcional de usabilidad). | Panel de navegador + scripts de medición | Manual asistida |
 | Q3 | Exploratoria (nueva entrada y cuenta de la habitación) | Sí | Son los flujos de más uso; la exploración encuentra lo que no previó ningún requisito. | Navegador | Manual |
