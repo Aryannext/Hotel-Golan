@@ -2,13 +2,13 @@
 // saldo = cargos − (pagos en caja o verificados + pagos por verificar); los rechazados y anulados no cuentan.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { HABITACIONES } from '../comun/hotel.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { ErrorApi } from '../comun/errores.ts';
 
 const ESTADOS = ['DISPONIBLE', 'OCUPADA', 'POR_REVISAR', 'LIMPIEZA', 'MANTENIMIENTO'] as const;
-const NUMEROS = ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '301'] as const;
 
 interface Fila {
   numero: string; tipo: string; estado: string; nota: string | null;
@@ -77,7 +77,7 @@ export function rutasHabitaciones(app: FastifyInstance, bd: Bd, ahora: () => Dat
   app.put<{ Params: { numero: string }; Body: CuerpoEstado }>('/habitaciones/:numero/estado', {
     preHandler: requiere(bd, ahora, ['RECEPCION', 'ADMINISTRACION']),
     schema: {
-      params: { type: 'object', required: ['numero'], properties: { numero: { type: 'string', enum: [...NUMEROS] } } },
+      params: { type: 'object', required: ['numero'], properties: { numero: { type: 'string', enum: HABITACIONES } } },
       body: {
         type: 'object', additionalProperties: false, required: ['estado'],
         properties: {

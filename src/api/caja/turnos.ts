@@ -6,7 +6,7 @@ import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
 import { finProgramadoTurno } from '../reglas/reglas.ts';
-import { regla } from '../estadias/cotizaciones.ts';
+import { regla } from '../configuracion/reglas.ts';
 import { leerPagos } from '../cobros/pagos.ts';
 import { leerMovimientos } from './movimientos.ts';
 import { publicarEventos } from '../comun/eventos.ts';
@@ -31,14 +31,7 @@ async function turnoActivo(bd: Bd): Promise<FilaTurno | undefined> {
   return t;
 }
 
-/** Para cobrar o mover dinero hace falta un turno ABIERTO (RN-09). Lo usan cobros y movimientos de caja. */
-export async function turnoAbiertoId(bd: Bd): Promise<string> {
-  // FOR SHARE (HAL-16): dentro de la transacción de un cobro, la entrega del turno (FOR UPDATE) espera a que termine y
-  // lo cuenta; si la entrega iba primero, el cobro espera, ya no ve el turno abierto y responde SIN_TURNO_ABIERTO.
-  const [t] = await bd.consultar<{ id: string }>(`SELECT id FROM turnos WHERE estado = 'ABIERTO' FOR SHARE`);
-  if (!t) throw new ErrorApi(409, 'SIN_TURNO_ABIERTO', 'Todavía no hay un turno abierto. Primero hay que recibir el turno.');
-  return t.id;
-}
+export { turnoAbiertoId } from './abierto.ts';
 
 /**
  * ADR-010 (V5-16): la plata de un registro tardío es del turno en que entró el huésped. Devuelve el turno abierto o

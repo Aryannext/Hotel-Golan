@@ -8,7 +8,7 @@ import { auditarVarios } from '../comun/auditoria.ts';
 import { ErrorApi } from '../comun/errores.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
 import { publicarEventos, type Evento } from '../comun/eventos.ts';
-import { turnoAbiertoId } from '../caja/turnos.ts';
+import { turnoAbiertoId } from '../caja/abierto.ts';
 import { GRUPOS_CON_EXISTENCIAS } from '../inventario/rutas.ts';
 import { leerPagos } from './pagos.ts';
 

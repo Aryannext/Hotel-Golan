@@ -26,6 +26,10 @@ for (const evento of ['unhandledRejection', 'uncaughtException'] as const) {
   });
 }
 const puerto = Number(process.env.API_PUERTO ?? 3000);
+if (!Number.isInteger(puerto) || puerto < 1 || puerto > 65535) {
+  console.error(`API_PUERTO no es un puerto válido: «${process.env.API_PUERTO}». Revise el .env.`);
+  process.exit(1);
+}
 await app.listen({ host: '127.0.0.1', port: puerto });
 
 // FR-21: borra los datos de huéspedes vencidos al arrancar y luego cada hora (idempotente).

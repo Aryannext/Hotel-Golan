@@ -1,5 +1,6 @@
 // Idempotency-Key (ADR-008, ADR-011 Inbox): repetir la misma solicitud devuelve la respuesta guardada y no duplica nada.
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { UNICO_VIOLADO } from './hotel.ts';
 import { ErrorApi } from './errores.ts';
 
 export interface Respuesta<T> { estado: number; cuerpo: T }
@@ -8,7 +9,6 @@ export interface Respuesta<T> { estado: number; cuerpo: T }
 export const CABECERA_IDEMPOTENCIA = { type: 'object', properties: { 'idempotency-key': { type: 'string', format: 'uuid' } } };
 export type ConClave = { 'idempotency-key'?: string };
 
-const UNICO_VIOLADO = '23505';
 
 async function previa<T>(bd: Bd, clave: string, usuarioId: string, operacion: string): Promise<Respuesta<T> | null> {
   const [f] = await bd.consultar<{ usuario_id: string; operacion: string; estado_http: number; respuesta: T }>(
