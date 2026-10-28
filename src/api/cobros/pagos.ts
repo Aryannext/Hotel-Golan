@@ -1,9 +1,8 @@
 // Pagos (FR-07, FR-15; RN-12): listar y confirmar si una transferencia llegó. La regla de verificación (Inbox/Outbox)
 // es la misma que se probó en la Fase 1.5 (scripts/lib/verificacion.ts).
-import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
-import { verificarPago, type ResultadoVerificacion } from '../../../scripts/lib/verificacion.ts';
+import { aplicarVerificacion, type ResultadoVerificacion } from '../../../scripts/lib/verificacion.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
@@ -64,20 +63,21 @@ export function rutasPagos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
       body: { type: 'object', additionalProperties: false, required: ['resultado'], properties: { resultado: { type: 'string', enum: ['LLEGO', 'NO_LLEGO'] } } },
       headers: { type: 'object', properties: { 'idempotency-key': { type: 'string', format: 'uuid' } } },
     },
-  }, async (req) => {
-    try {
-      await verificarPago(bd, {
-        pagoId: req.params.id, resultado: req.body.resultado, usuarioId: req.usuario!.id,
-        clave: req.headers['idempotency-key'] ?? randomUUID(), momento: ahora(),
-      });
-    } catch (error) {
-      const m = error instanceof Error ? error.message : '';
-      if (m.startsWith('NO_ENCONTRADO')) throw new ErrorApi(404, 'NO_ENCONTRADO', 'El pago no existe.');
-      if (m.startsWith('CONFLICTO')) throw new ErrorApi(409, 'CONFLICTO', 'Ese pago ya no está por confirmar (ya se confirmó, se anuló o fue en efectivo).');
-      throw error;
-    }
-    const [pago] = await leerPagos(bd, { id: req.params.id });
-    return pago;
+  }, async (req, rep) => {
+    // La misma idempotencia que el resto de la API (HAL-19): revisa usuario y operación de la clave.
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], req.usuario!.id, 'verificarPago', async (tx) => {
+      try {
+        await aplicarVerificacion(tx, { pagoId: req.params.id, resultado: req.body.resultado, usuarioId: req.usuario!.id, momento: ahora() });
+      } catch (error) {
+        const m = error instanceof Error ? error.message : '';
+        if (m.startsWith('NO_ENCONTRADO')) throw new ErrorApi(404, 'NO_ENCONTRADO', 'El pago no existe.');
+        if (m.startsWith('CONFLICTO')) throw new ErrorApi(409, 'CONFLICTO', 'Ese pago ya no está por confirmar (ya se confirmó, se anuló o fue en efectivo).');
+        throw error;
+      }
+      const [pago] = await leerPagos(tx, { id: req.params.id });
+      return { estado: 200, cuerpo: pago };
+    });
+    return rep.code(r.estado).send(r.cuerpo);
   });
 
   // Pago o abono a la cuenta (FR-07): efectivo → EN_CAJA; transferencia → POR_VERIFICAR (RN-10, RN-12).

@@ -10,7 +10,8 @@ export function PorConfirmar({ pagos, sinRevisar, alCambiar }: { pagos: Pago[]; 
   const [dudando, setDudando] = useState<string | null>(null);
   const [enviando, setEnviando] = useState<string | null>(null);
   const [error, setError] = useState('');
-  // Una clave por pago: si se toca dos veces o se reintenta, no se aplica dos veces.
+  // Una clave por pago y por decisión: repetir la misma no la aplica dos veces, y tocar la otra después no devuelve en
+  // silencio la primera: el sistema responde que ese pago ya no está por confirmar (HAL-19).
   const [claves] = useState(() => new Map<string, string>());
   const clave = (id: string) => claves.get(id) ?? (claves.set(id, nuevaClave()), claves.get(id)!);
 
@@ -18,7 +19,7 @@ export function PorConfirmar({ pagos, sinRevisar, alCambiar }: { pagos: Pago[]; 
     setEnviando(p.id);
     setError('');
     try {
-      await api.verificarPago(p.id, resultado, clave(p.id));
+      await api.verificarPago(p.id, resultado, clave(`${p.id}:${resultado}`));
       setDudando(null);
       alCambiar();
     } catch (e) {

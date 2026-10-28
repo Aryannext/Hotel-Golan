@@ -117,6 +117,12 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
         <button type="button" class="btn btn--primario btn--l btn--bloque" onClick={() => setEntregando(true)}><Ico id="check" clase="ico--s" />Entregar turno</button>
         <p class="ayuda" style="text-align:center">Entregue al terminar su horario, cuando llegue quien lo recibe.</p>
       </>}
+      {/* HAL-18 [P/V]: un turno trabado (quien lo tenía se fue sin entregarlo) lo cierra la administración. */}
+      {turno.estado === 'ABIERTO' && esAdmin && turno.responsable !== usuario && <>
+        <button type="button" class="btn btn--secundario btn--l btn--bloque" onClick={() => setEntregando(true)}>
+          <Ico id="alerta" clase="ico--s" />Cerrar el turno de {turno.responsable}</button>
+        <p class="ayuda" style="text-align:center">Solo si se fue sin entregarlo. Usted cuenta la plata y escribe el motivo.</p>
+      </>}
 
       {recibiendoExterno && <LavanderiaExterna alCerrar={() => setRecibiendoExterno(false)}
         alRegistrar={(texto) => { setRecibiendoExterno(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
@@ -129,7 +135,13 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
       {saliendo && <SalidaDinero debeHaber={c.debe_haber} alCerrar={() => setSaliendo(false)}
         alRegistrar={(texto) => { setSaliendo(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
       {anulando && <Anular que={anulando} alCerrar={() => setAnulando(null)} alAnular={(texto) => { setAnulando(null); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
-      {entregando && <EntregarTurno turno={turno} alCerrar={() => setEntregando(false)} alEntregar={(texto) => { setEntregando(false); alEntregar?.(texto); }} />}
+      {entregando && <EntregarTurno turno={turno} porAdministracion={turno.responsable !== usuario} alCerrar={() => setEntregando(false)}
+        alEntregar={(texto) => {
+          setEntregando(false);
+          // Quien entrega su propio turno sale del sistema; la administración que cierra uno trabado sigue adentro.
+          if (turno.responsable === usuario) alEntregar?.(texto);
+          else { alAvisar?.(texto); setPropia((n) => n + 1); }
+        }} />}
     </div>
   );
 }

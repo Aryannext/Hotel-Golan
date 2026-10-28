@@ -14,7 +14,7 @@
     "db:verificar": "node --test scripts/verificar-local.test.ts",
     "simular:verificacion": "node --env-file=.env scripts/simular-verificacion.ts",
     "privacidad:anonimizar": "node --env-file=.env scripts/anonimizar.ts",
-    "tipos": "tsc --noEmit && tsc --noEmit -p src/web",
+    "tipos": "tsc --noEmit && tsc --noEmit -p src/web && tsc --noEmit -p src/web/tsconfig.pruebas.json",
     "test": "node --test \"src/**/*.test.ts\" scripts/verificar-local.test.ts",
     "lint": "eslint . --max-warnings=0",
     "pretest:coverage": "node -e \"require('node:fs').mkdirSync('coverage', { recursive: true })\"",

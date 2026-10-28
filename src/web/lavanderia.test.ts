@@ -37,8 +37,9 @@ describe('TICKET-24 · externos', () => {
   it('lo que falta para entregar: el externo usa lo que debe el pedido; el huésped, su cuenta', () => {
     assert.equal(faltaParaEntregar({ ...base, por_cobrar: 5000 }, null), 5000);
     assert.equal(faltaParaEntregar({ ...base, por_cobrar: 0 }, null), 0);
-    assert.equal(faltaParaEntregar({ ...base, estadia_id: 'e1', habitacion_numero: '205', cliente_nombre: null, por_cobrar: null }, 2000), 2000);
-    assert.equal(faltaParaEntregar({ ...base, estadia_id: 'e1', habitacion_numero: '205', cliente_nombre: null, por_cobrar: null }, null), null);
+    const delHuesped = { ...base, estadia_id: 'e1', habitacion_numero: '205', cliente_nombre: null, por_cobrar: null };
+    assert.equal(faltaParaEntregar(delHuesped, 2000), 2000);
+    assert.equal(faltaParaEntregar(delHuesped, null), null);
   });
   it('el cobro de un externo se ve como lavandería con su nombre', () => {
     const p = { id: 'g1', habitacion_numero: null, venta_detalle: null, lavanderia_cliente: 'Cliente Prueba', medio: 'NEQUI', valor: 5000, estado: 'POR_VERIFICAR',

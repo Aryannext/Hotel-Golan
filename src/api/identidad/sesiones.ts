@@ -23,6 +23,11 @@ const relleno = () => (hashRelleno ??= hash('000000'));
 const credencialesInvalidas = () =>
   new ErrorApi(401, 'CREDENCIALES_INVALIDAS', 'El usuario o el PIN no son correctos.');
 
+function bloqueado(hasta: Date, ahora: Date) {
+  const minutos = Math.max(1, Math.ceil((new Date(hasta).getTime() - ahora.getTime()) / 60_000));
+  return new ErrorApi(423, 'USUARIO_BLOQUEADO', `Usuario bloqueado por intentos fallidos. Intente de nuevo en ${minutos} minuto${minutos === 1 ? '' : 's'}.`);
+}
+
 interface FilaUsuario { id: string; nombre: string; usuario: string; rol: Rol; activo: boolean; pin_hash: string; intentos_fallidos: number; bloqueado_hasta: Date | null }
 
 export async function iniciarSesion(bd: Bd, ahora: Date, usuario: string, pin: string) {
@@ -33,18 +38,19 @@ export async function iniciarSesion(bd: Bd, ahora: Date, usuario: string, pin: s
     await verify(await relleno(), pin);
     throw credencialesInvalidas();
   }
-  if (u.bloqueado_hasta && new Date(u.bloqueado_hasta) > ahora) {
-    const minutos = Math.ceil((new Date(u.bloqueado_hasta).getTime() - ahora.getTime()) / 60_000);
-    throw new ErrorApi(423, 'USUARIO_BLOQUEADO', `Usuario bloqueado por intentos fallidos. Intente de nuevo en ${minutos} minuto${minutos === 1 ? '' : 's'}.`);
-  }
+  if (u.bloqueado_hasta && new Date(u.bloqueado_hasta) > ahora) throw bloqueado(u.bloqueado_hasta, ahora);
+  // El intento se reserva antes de verificar, en una sola sentencia (HAL-10): aunque lleguen muchos en paralelo,
+  // nunca se verifican más de INTENTOS_MAXIMOS PIN por bloqueo. Si se acabaron, el usuario queda bloqueado.
+  const [reserva] = await bd.consultar<{ intentos_fallidos: number }>(
+    `UPDATE usuarios SET intentos_fallidos = intentos_fallidos + 1
+      WHERE id = $1 AND intentos_fallidos < $2 AND (bloqueado_hasta IS NULL OR bloqueado_hasta <= $3)
+      RETURNING intentos_fallidos`, [u.id, INTENTOS_MAXIMOS, ahora]);
+  if (!reserva) throw bloqueado(new Date(ahora.getTime() + BLOQUEO_MS), ahora);
   if (!(await verify(u.pin_hash, pin))) {
-    const intentos = u.intentos_fallidos + 1;
-    if (intentos >= INTENTOS_MAXIMOS) {
+    if (reserva.intentos_fallidos >= INTENTOS_MAXIMOS) {
       await bd.consultar('UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = $2 WHERE id = $1',
         [u.id, new Date(ahora.getTime() + BLOQUEO_MS)]);
       await auditar(bd, { usuarioId: u.id, accion: 'BLOQUEAR', entidad: 'usuarios', entidadId: u.id, ocurrido: ahora });
-    } else {
-      await bd.consultar('UPDATE usuarios SET intentos_fallidos = $2 WHERE id = $1', [u.id, intentos]);
     }
     throw credencialesInvalidas();
   }
