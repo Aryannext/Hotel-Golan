@@ -35,7 +35,7 @@
 ## Trabajo previo existente
 - La rama local `ticket-19-despliegue-vps` (commit «arranque de producción y dirección de escucha») trae la carga inicial sin semilla, la dirección de escucha y `arranque.test.ts`.
 - Esa rama sale de una versión vieja de main y choca con los cambios de la semilla de los TICKETS 20 a 25.
-- **Actualización 27-10-2026 (HG-HAL-001):** el arranque sin semilla ya está en `main` por otro camino. Si se integra el PR #47:
+- **Actualización 27-10-2026 (HG-HAL-001):** el arranque sin semilla se hizo por otro camino, en el PR #47 (pendiente de integrar). Con ese PR:
   - `npm run db:iniciar` hace la carga inicial, y la semilla y `db:reiniciar` exigen `HOTEL_ENTORNO=desarrollo`;
   - existen `GET /api/v1/salud` y `npm start` para el servicio con reinicio automático.
 
