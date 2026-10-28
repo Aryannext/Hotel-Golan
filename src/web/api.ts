@@ -124,7 +124,7 @@ export const api = {
   salidasDelTurno: (turnoId: string) => pedir<{ items: SalidaTurno[] }>('GET', `/movimientos_caja?turno_id=${turnoId}`),
   registrarSalida: (cuerpo: { tipo: TipoSalida; detalle: string; valor: number; habitacion_numero?: string }, clave: string) =>
     pedir<SalidaTurno>('POST', '/movimientos_caja', cuerpo, { 'idempotency-key': clave }),
-  entregarTurno: (cuerpo: { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string }) =>
+  entregarTurno: (cuerpo: { pago_tomado: boolean; efectivo_contado: number; motivo_diferencia?: string; motivo_cierre?: string }) =>
     pedir<Turno>('POST', '/turnos/actual/entrega', cuerpo),
   // TICKET-34 · quiénes se quedan hoy (queda en la auditoría).
   huespedesHoy: () => pedir<{ items: TitularHoy[] }>('GET', '/huespedes/hoy'),

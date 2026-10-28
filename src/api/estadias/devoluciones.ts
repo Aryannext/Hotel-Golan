@@ -32,14 +32,15 @@ export function rutasDevoluciones(app: FastifyInstance, bd: Bd, ahora: () => Dat
     const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'registrarDevolucion', async (tx) => {
       const momento = ahora();
       const est = await estadiaActiva(tx, id);
-      const [p] = await tx.consultar<{ efectivo: number; transferencias: number; por_verificar: number }>(
+      const [p] = await tx.consultar<{ efectivo: number; transferencias: number; por_verificar: number; devuelto: number }>(
         `SELECT coalesce(sum(valor) FILTER (WHERE estado = 'EN_CAJA'), 0)::int AS efectivo,
                 coalesce(sum(valor) FILTER (WHERE estado = 'VERIFICADO'), 0)::int AS transferencias,
-                count(*) FILTER (WHERE estado = 'POR_VERIFICAR')::int AS por_verificar
+                count(*) FILTER (WHERE estado = 'POR_VERIFICAR')::int AS por_verificar,
+                (SELECT coalesce(sum(valor), 0)::int FROM movimientos_caja WHERE estadia_id = $1 AND anulado_en IS NULL) AS devuelto
            FROM pagos WHERE estadia_id = $1 AND anulado_en IS NULL`, [id]);
 
-      // Nunca más de lo pagado; si ya la usó, nada (RN-08).
-      const valor = motivo === 'SOLO_MIRO' ? p.efectivo + p.transferencias : 0;
+      // Nunca más de lo pagado, menos lo ya devuelto en un cambio de habitación (HAL-15); si ya la usó, nada (RN-08).
+      const valor = motivo === 'SOLO_MIRO' ? Math.max(0, p.efectivo + p.transferencias - p.devuelto) : 0;
       if (motivo === 'SOLO_MIRO') {
         if (p.por_verificar > 0) {
           throw new ErrorApi(409, 'PAGO_SIN_VERIFICAR', 'Pagó por transferencia y todavía no se ha confirmado. Espere a que la administración la verifique.');

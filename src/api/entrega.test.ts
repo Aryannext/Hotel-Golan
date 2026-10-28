@@ -32,6 +32,8 @@ describe('RN-09, RN-11, FR-13 — Entrega del turno', () => {
       pago_tomado: true, efectivo_esperado: 184500, efectivo_contado: 184500, diferencia: 0, motivo_diferencia: null, entregado_por: 'recepcion2',
       // TICKET-31: sin nada registrado después, lo ajustado es igual al cierre.
       efectivo_esperado_ajustado: 184500, diferencia_ajustada: 0,
+      // HAL-18: lo entregó su responsable, no la administración.
+      motivo_cierre: null,
     });
     const otra = await e.entrar('recepcion1');
     const siguiente = (await e.app.inject({ method: 'GET', url: '/api/v1/turnos/actual', headers: { cookie: otra } })).json();
