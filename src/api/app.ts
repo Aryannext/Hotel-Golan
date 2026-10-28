@@ -43,7 +43,19 @@ export interface OpcionesApp {
   /** Carpeta con la PWA compilada (dist/web). Si existe, la API la sirve. */
   dirWeb?: string;
   registros?: boolean;
+  /** Cada cuánto el SSE manda un latido y revisa la sesión (HAL-25). Las pruebas lo acortan. */
+  latidoMs?: number;
 }
+
+/**
+ * Cabeceras de seguridad sin dependencias (HG-HAL-001 HAL-27). Las fuentes vienen de Google Fonts mientras se definen en
+ * el diseño; los estilos en línea los usa la PWA. Las respuestas de la API no se guardan en caché.
+ */
+const POLITICA_CONTENIDO = [
+  "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com", "img-src 'self' data:", "connect-src 'self'", "frame-ancestors 'none'",
+  "base-uri 'self'", "form-action 'self'", "object-src 'none'",
+].join('; ');
 
 const MENSAJE_4XX: Record<number, string> = { 413: 'El envío es demasiado grande.', 415: 'Envíe los datos en formato JSON.' };
 
@@ -93,6 +105,14 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     listo();
   });
 
+  app.addHook('onSend', async (req, rep) => {
+    rep.header('x-content-type-options', 'nosniff');
+    rep.header('referrer-policy', 'no-referrer');
+    rep.header('x-frame-options', 'DENY');
+    rep.header('content-security-policy', POLITICA_CONTENIDO);
+    if (req.url.startsWith('/api/')) rep.header('cache-control', 'no-store');
+  });
+
   // Salud (HG-HAL-001 HAL-06): sin sesión, para el monitoreo y el reinicio automático del VPS. No expone datos.
   app.get('/api/v1/salud', async (_req, rep) => {
     try {
@@ -131,7 +151,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rutasCambioHabitacion(api, o.bd, ahora);
     rutasHuespedesHoy(api, o.bd, ahora);
     rutasProductosVendidos(api, o.bd, ahora);
-    rutasEventos(api, o.bd, ahora, publicador, conexionesVivas);
+    rutasEventos(api, o.bd, ahora, publicador, conexionesVivas, o.latidoMs);
     listo();
   }, { prefix: '/api/v1' });
 
