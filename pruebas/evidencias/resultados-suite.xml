@@ -1,0 +1,773 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testsuite name="Semilla sintética" time="9.051409" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:06.463Z" hostname="Pipi_2026">
+		<testcase name="carga las 12 habitaciones, 8 tarifas, 8 reglas y 6 usuarios" time="0.009722" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+		<testcase name="guarda el PIN como hash Argon2id, nunca en claro" time="0.002837" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+		<testcase name="solo usa documentos de prueba" time="0.002363" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+	</testsuite>
+	<testsuite name="Caja del turno (RN-10)" time="0.007976" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:15.510Z" hostname="Pipi_2026">
+		<testcase name="debe haber $234.500: base $208.500 + efectivo $26.000; transferencias $85.000 aparte" time="0.007625" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+	</testsuite>
+	<testsuite name="Restricciones del modelo" time="0.032258" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:15.490Z" hostname="Pipi_2026">
+		<testcase name="impide un segundo turno activo (RN-09)" time="0.006591" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+		<testcase name="impide dos estadías activas en la misma habitación" time="0.006652" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+		<testcase name="tres horas admite máximo 2 personas (RN-03) y pagar al salir solo con una noche (RN-06)" time="0.006998" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+		<testcase name="el efectivo no puede quedar «por verificar» y el descuento no puede ser positivo" time="0.005764" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+		<testcase name="un menor necesita acompañante verificado (RN-16)" time="0.002413" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+		<testcase name="una entrega que no cuadra exige motivo (RN-11)" time="0.002538" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+	</testsuite>
+	<testsuite name="Simulador de verificación (opción B, Inbox/Outbox)" time="0.034167" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:15.488Z" hostname="Pipi_2026">
+		<testcase name="confirma la transferencia, deja auditoría y evento, y no se repite con la misma clave" time="0.028129" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+		<testcase name="no permite verificar dos veces un pago ya verificado con otra clave" time="0.005686" classname="test" file="C:\Users\crist\proyectos\hotel-golan\scripts\verificar-local.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-21 — anonimizar a los 90 días" time="10.681685" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:06.391Z" hostname="Pipi_2026">
+		<testcase name="con una retención mayor no borra nada: el plazo sale de la regla configurable" time="0.022015" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anonimizacion.test.ts"/>
+		<testcase name="antes de cumplir los 90 días no se borra; la estadía desistida hace más de 90 días sí" time="0.013871" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anonimizacion.test.ts"/>
+		<testcase name="Escenario «Anonimizar a los 90 días»: salida el 10-07-2026, tarea el 09-10-2026" time="0.036350" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anonimizacion.test.ts"/>
+		<testcase name="no toca estadías recientes ni activas" time="0.003125" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anonimizacion.test.ts"/>
+		<testcase name="es idempotente: otra corrida no falla ni duplica la auditoría" time="0.011038" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anonimizacion.test.ts"/>
+		<testcase name="la tarea programada corre al arrancar y se detiene" time="0.070307" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anonimizacion.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-17, FR-20 — Anulaciones de la administración" time="10.817370" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:06.506Z" hostname="Pipi_2026">
+		<testcase name="anular un cobro en efectivo: sigue visible como anulado, deja de sumar a la caja y la cuenta vuelve a deber" time="0.239598" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anulaciones.test.ts"/>
+		<testcase name="anular una transferencia por verificar la quita de «por confirmar»" time="0.043358" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anulaciones.test.ts"/>
+		<testcase name="anular una salida de dinero: el «debe haber» vuelve a subir y queda auditado" time="0.101421" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anulaciones.test.ts"/>
+		<testcase name="recepción no anula: 403 SIN_PERMISO" time="0.007009" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anulaciones.test.ts"/>
+		<testcase name="motivo corto: 400; lo ya anulado: 409; lo que no existe: 404" time="0.027307" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anulaciones.test.ts"/>
+		<testcase name="la salida de una devolución no se anula por aquí: 409" time="0.070897" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\anulaciones.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-23 — avisos de la semilla" time="10.274993" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:07.049Z" hostname="Pipi_2026">
+		<testcase name="211 con transferencia por verificar, 207 por revisar y 204 en limpieza; sin nombres de huéspedes" time="0.025541" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\avisos.test.ts"/>
+		<testcase name="una salida vencida aparece con solo avanzar el reloj, con el valor por hora de las reglas" time="0.031776" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\avisos.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-17 (V5-03, V5-05) — cambia de opinión a los pocos minutos de entrar" time="10.969635" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:06.513Z" hostname="Pipi_2026">
+		<testcase name="de ventilador (206) a aire (201) a los 3 minutos: paga la diferencia de $15.000" time="0.435432" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cambio-habitacion.test.ts"/>
+		<testcase name="de aire (202) a ventilador (209) a los 4 minutos: se le devuelven $15.000 en efectivo y la cuenta queda en $0" time="0.380463" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cambio-habitacion.test.ts"/>
+		<testcase name="el límite de minutos se configura en Ajustes (minutos_cambio_sin_cargo)" time="0.240983" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cambio-habitacion.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-17 (V5-04) — ya usó la habitación" time="0.295825" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:17.471Z" hostname="Pipi_2026">
+		<testcase name="antes de las 12 m. se cobra la habitación nueva completa y la salida se recalcula" time="0.163535" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cambio-habitacion.test.ts"/>
+		<testcase name="después de las 12 m. no se cambia: 409 y nada cambia" time="0.131605" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cambio-habitacion.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-30 — habitación destino y registro" time="0.206933" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:17.773Z" hostname="Pipi_2026">
+		<testcase name="a una habitación ocupada o a la misma: 409" time="0.151597" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cambio-habitacion.test.ts"/>
+		<testcase name="queda en la auditoría con origen, destino y valor, sin datos del huésped" time="0.003079" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cambio-habitacion.test.ts"/>
+		<testcase name="la estadía avisa si tiene ropa en lavandería sin entregar (para «Dar salida»)" time="0.051361" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cambio-habitacion.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-22 — Permisos de la configuración" time="10.262583" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:07.867Z" hostname="Pipi_2026">
+		<testcase name="recepción consulta tarifas y reglas, pero no cambia nada: 403 SIN_PERMISO" time="0.044553" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-22 — Tarifas con vigencia" time="0.109676" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:18.021Z" hostname="Pipi_2026">
+		<testcase name="GET /tarifas: las 8 tarifas vigentes con su fecha de inicio" time="0.007889" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="PUT /tarifas crea una vigencia nueva: lo cotizado antes del cambio conserva el precio anterior" time="0.048897" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="una entrada registrada antes del cambio no cambia de valor" time="0.032354" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="tres horas solo lleva personas = 2; combinaciones repetidas o valores en 0: 400" time="0.017812" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-22 — Reglas numéricas" time="0.117241" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:18.013Z" hostname="Pipi_2026">
+		<testcase name="GET /reglas devuelve los ocho valores configurables" time="0.010537" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="PATCH /reglas cambia solo lo enviado, queda auditado y aplica a las cotizaciones nuevas" time="0.064518" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="el pago del turno ya abierto no cambia; aplica desde el turno siguiente" time="0.031155" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="cuerpo vacío, claves desconocidas u horas fuera de rango: 400" time="0.009419" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-22 — Catálogo de productos" time="0.257606" disabled="0" errors="0" tests="9" failures="0" skipped="0" timestamp="2026-10-26T18:37:17.874Z" hostname="Pipi_2026">
+		<testcase name="crear un producto: 201, aparece en el catálogo y queda auditado" time="0.019594" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="RN-13 (V5-19): los productos de la familiar no van en el sistema; ningún producto es de otro dueño: 400" time="0.005752" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="RN-13 (V5-19): la regla es por dueño, no por sección: un producto del hotel puede ir en la sección 1 (antes, 400)" time="0.011496" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="FR-24: la administración crea un producto de vitrina sin indicar dueño (queda del hotel) y recepción lo carga a una habitación" time="0.044109" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="FR-24: productos de la vitrina de aseo también se crean y se editan" time="0.048759" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="nombre repetido en el mismo grupo: 409; precio negativo o grupo desconocido: 400" time="0.017099" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="cambiar un precio no altera un cargo anterior; los cargos nuevos usan el precio nuevo" time="0.067658" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="desactivar un producto lo quita del catálogo de recepción; la administración lo sigue viendo para reactivarlo" time="0.023193" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+		<testcase name="producto que no existe: 404; renombrar a un nombre que ya existe en el grupo: 409" time="0.018482" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\configuracion.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-04 — Cotizar una estadía" time="10.202984" disabled="0" errors="0" tests="12" failures="0" skipped="0" timestamp="2026-10-26T18:37:07.930Z" hostname="Pipi_2026">
+		<testcase name="sin sesión: 401" time="0.013363" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="noche con aire, 3 personas, entrando a las 3:00 p. m.: $95.000 y sale mañana a las 12 m." time="0.042733" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="sin entrada_en usa la hora actual del servidor (6:10 a. m. → 24 horas)" time="0.013223" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="dos noches con descuento: $120.000 − $10.000 = $110.000; no permite pagar al salir" time="0.013807" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="descuento menor al máximo: $3.000 por noche, dos noches = $6.000" time="0.012834" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="descuento por encima del máximo: 422 DESCUENTO_EXCEDE_MAXIMO" time="0.061023" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="tres horas con ventilador: $25.000, sale 3 horas después" time="0.014106" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="4 personas en noche: 400 INVALID_PAYLOAD (el contrato permite máximo 3)" time="0.002940" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="3 personas en tres horas: 422 CAPACIDAD_EXCEDIDA" time="0.012371" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="descuento en tres horas: 422 DESCUENTO_NO_PERMITIDO" time="0.010060" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="habitación que no existe o modalidad POR_HORAS: 400" time="0.004614" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+		<testcase name="usa la tarifa vigente en la hora de entrada (FR-22)" time="0.019646" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cotizaciones.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-06 — Catálogo de productos para cargos" time="10.073596" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:13.035Z" hostname="Pipi_2026">
+		<testcase name="GET /productos lista los activos con el contrato Producto" time="0.023831" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="un producto inactivo no aparece en el catálogo" time="0.007505" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-06, RN-18, RN-14 — Cargos a la cuenta" time="0.314664" disabled="0" errors="0" tests="8" failures="0" skipped="0" timestamp="2026-10-26T18:37:22.795Z" hostname="Pipi_2026">
+		<testcase name="la cuenta de la 211 de la semilla: saldo $28.000 con $30.000 por verificar" time="0.017733" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="varios productos con cantidad y la llave perdida: cada cargo guarda precio unitario y cantidad" time="0.068802" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="un cambio de precio posterior no altera los cargos ya hechos" time="0.043357" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="el recargo de aseo extremo queda como cargo RECARGO_ASEO de $20.000 y se audita" time="0.053034" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="producto inactivo: 409; producto o estadía que no existen: 404" time="0.028761" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="cantidades fuera de 1 a 20 o lista vacía: 400" time="0.009606" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="a una estadía cerrada no se le cargan consumos: 409" time="0.025470" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="con Idempotency-Key, repetir no duplica los cargos" time="0.065802" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-07, RN-06 — Pagos y abonos a la cuenta" time="0.463384" disabled="0" errors="0" tests="5" failures="0" skipped="0" timestamp="2026-10-26T18:37:22.646Z" hostname="Pipi_2026">
+		<testcase name="un abono en efectivo entra a la caja del turno y baja el saldo" time="0.129601" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="un pago por Nequi queda POR_VERIFICAR: baja el saldo, no entra a la caja y avisa a la administración" time="0.101990" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="no se cobra más que el saldo: 409; valor cero: 400" time="0.115959" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="con Idempotency-Key, un doble toque registra un solo pago" time="0.052501" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+		<testcase name="pagar todo el saldo deja la cuenta en cero" time="0.062442" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-09 — Sin turno abierto no se reciben pagos" time="5.691663" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:17.422Z" hostname="Pipi_2026">
+		<testcase name="pagos: 409 SIN_TURNO_ABIERTO" time="5.691152" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\cuenta.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-18 (V5-06) — daños con valor de reposición" time="10.479145" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:12.922Z" hostname="Pipi_2026">
+		<testcase name="la administración carga «Toalla manchada» por $25.000: queda como cargo DANO con quién lo registró y sube el saldo" time="0.125028" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\danos.test.ts"/>
+		<testcase name="recepción no pone el valor de un daño: 403" time="0.006971" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\danos.test.ts"/>
+		<testcase name="sin descripción o con valor $0: 400" time="0.014831" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\danos.test.ts"/>
+		<testcase name="con el daño sin pagar, la salida responde 409 SALDO_PENDIENTE (RN-07)" time="0.130143" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\danos.test.ts"/>
+		<testcase name="a una estadía que ya terminó o no existe: 409 o 404" time="0.011608" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\danos.test.ts"/>
+		<testcase name="queda en la auditoría como daño, sin datos del huésped" time="0.002301" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\danos.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-28 — datos del hotel para el aviso" time="10.344936" disabled="0" errors="0" tests="5" failures="0" skipped="0" timestamp="2026-10-26T18:37:13.057Z" hostname="Pipi_2026">
+		<testcase name="al empezar no hay datos: todos en null (la pantalla avisa qué falta)" time="0.013252" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\datos-hotel.test.ts"/>
+		<testcase name="la administración los guarda; recepción los lee para mostrar el aviso" time="0.065323" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\datos-hotel.test.ts"/>
+		<testcase name="queda en la auditoría qué campos cambiaron, sin los valores" time="0.024775" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\datos-hotel.test.ts"/>
+		<testcase name="un campo vacío se guarda como null" time="0.013541" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\datos-hotel.test.ts"/>
+		<testcase name="recepción no los cambia (403); sin sesión, 401; un teléfono o un RNT mal escrito, 400" time="0.012379" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\datos-hotel.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-08, FR-10 — Devolución por desistimiento" time="10.965850" disabled="0" errors="0" tests="8" failures="0" skipped="0" timestamp="2026-10-26T18:37:12.437Z" hostname="Pipi_2026">
+		<testcase name="solo miró la habitación y pagó en efectivo: se devuelven 45.000 con un movimiento DEVOLUCION en el turno abierto" time="0.159924" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\devolucion.test.ts"/>
+		<testcase name="ya usó la habitación: la devolución es de 0 y no se crea movimiento de caja" time="0.127197" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\devolucion.test.ts"/>
+		<testcase name="transferencia sin verificar: 409 PAGO_SIN_VERIFICAR y la estadía sigue activa" time="0.051253" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\devolucion.test.ts"/>
+		<testcase name="si pagó por transferencia (ya confirmada), el medio lo decide la administración" time="0.126195" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\devolucion.test.ts"/>
+		<testcase name="recepción no elige devolver por transferencia: 403" time="0.076571" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\devolucion.test.ts"/>
+		<testcase name="una sola devolución por estadía (la segunda: 409) y con Idempotency-Key se devuelve la misma" time="0.068009" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\devolucion.test.ts"/>
+		<testcase name="si iba a pagar al salir y no pagó nada, solo miró: devolución de 0" time="0.047110" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\devolucion.test.ts"/>
+		<testcase name="estadía inexistente: 404; motivo o medio inválido: 400" time="0.013057" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\devolucion.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-09, RN-11, FR-13 — Entrega del turno" time="34.431126" disabled="0" errors="0" tests="9" failures="0" skipped="0" timestamp="2026-10-26T18:37:06.426Z" hostname="Pipi_2026">
+		<testcase name="sin sesión: 401" time="10.192659" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\entrega.test.ts"/>
+		<testcase name="entrega que cuadra: CERRADO con esperado 184.500 y diferencia 0; el turno de día queda por recibir con 184.500" time="6.822501" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\entrega.test.ts"/>
+		<testcase name="al entregar se cierra la sesión de quien entregó" time="4.678583" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\entrega.test.ts"/>
+		<testcase name="entrega que no cuadra exige motivo (422 MOTIVO_REQUERIDO); con motivo queda la diferencia de −4.500 y se avisa" time="3.889533" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\entrega.test.ts"/>
+		<testcase name="si no tomó su pago, lo esperado es todo el «debe haber» (234.500)" time="2.170547" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\entrega.test.ts"/>
+		<testcase name="la administración no entrega turnos: 403 SIN_PERMISO" time="1.725957" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\entrega.test.ts"/>
+		<testcase name="solo lo entrega quien tiene el turno: otra recepcionista recibe 403" time="1.705966" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\entrega.test.ts"/>
+		<testcase name="sin turno abierto no hay nada que entregar: 409 SIN_TURNO_ABIERTO; datos inválidos: 400" time="1.596323" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\entrega.test.ts"/>
+		<testcase name="ciclo completo: entrega la noche y la siguiente recibe el día con lo contado" time="1.641350" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\entrega.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-06, RN-16, FR-05 — Registro de la entrada" time="10.896143" disabled="0" errors="0" tests="14" failures="0" skipped="0" timestamp="2026-10-26T18:37:30.032Z" hostname="Pipi_2026">
+		<testcase name="sin sesión: 401" time="0.027193" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="entrada pagada en efectivo: estadía ACTIVA, cargo de 55.000, pago EN_CAJA y habitación OCUPADA" time="0.066906" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="el documento sale enmascarado (••••678) y nunca completo; la auditoría no guarda datos personales" time="0.066756" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="sin autorización de datos no se registra: 422 AUTORIZACION_REQUERIDA y nada cambia" time="0.013656" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="menor de edad sin acompañante verificado: 400 INVALID_PAYLOAD" time="0.006065" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="TICKET-36: el documento es obligatorio por ley (registro de huéspedes); sin tipo o sin número, 400 y nada se crea" time="0.016076" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="pagar al salir se permite con una noche: forma_cobro AL_SALIR, sin pago y saldo igual a la tarifa" time="0.115656" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="varias noches o tres horas no se pagan al salir: 422 PAGO_AL_SALIR_NO_PERMITIDO" time="0.028468" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="no se asigna una habitación ocupada ni una en limpieza: 409 HABITACION_NO_DISPONIBLE" time="0.018794" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="dos entradas a la vez en la misma habitación: solo una se registra" time="0.108968" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="el descuento queda como cargo DESCUENTO aparte y el servidor recalcula el precio" time="0.077618" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="un descuento menor al máximo queda con su valor; por encima del máximo no se registra nada" time="0.079024" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="efectivo menor que el total queda como abono y el resto como saldo" time="0.038693" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="pago por Nequi: queda POR_VERIFICAR, no entra a la caja y la habitación se entrega igual" time="0.064259" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-03 — Idempotencia: un doble toque no duplica el registro" time="0.119060" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.809Z" hostname="Pipi_2026">
+		<testcase name="reenviar con la misma Idempotency-Key devuelve la misma estadía y existe un solo pago" time="0.116852" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+	</testsuite>
+	<testsuite name="Consultar estadías" time="0.167168" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.761Z" hostname="Pipi_2026">
+		<testcase name="GET /estadias?estado=ACTIVA lista las activas con total y paginación" time="0.039846" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="GET /estadias/{id} devuelve la cuenta de la semilla (211: debe 28.000 con 30.000 por verificar)" time="0.120348" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+		<testcase name="una estadía que no existe: 404; un id mal formado: 400" time="0.006153" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-09 — Sin turno abierto no se registran entradas" time="6.006841" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:34.922Z" hostname="Pipi_2026">
+		<testcase name="con el turno por recibir: 409 SIN_TURNO_ABIERTO" time="6.006311" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\estadias.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-12, FR-15, SSE — Eventos en tiempo real" time="10.458153" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:30.470Z" hostname="Pipi_2026">
+		<testcase name="sin sesión: 401" time="0.073887" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\eventos.test.ts"/>
+		<testcase name="la recepción suscrita recibe pago.verificado en menos de 5 s cuando la administradora confirma" time="0.065541" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\eventos.test.ts"/>
+		<testcase name="el aviso de diferencia de caja (turno.diferencia) solo llega a la administración" time="0.101765" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\eventos.test.ts"/>
+		<testcase name="al reconectar con Last-Event-ID recibe lo que se perdió" time="0.048406" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\eventos.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-25 — Surtido" time="10.297152" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:30.631Z" hostname="Pipi_2026">
+		<testcase name="la administración anota lo que llegó: 201 y queda en la auditoría con quién lo registró" time="0.025062" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\existencias.test.ts"/>
+		<testcase name="recepción no anota surtido ni ve existencias: 403" time="0.010910" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\existencias.test.ts"/>
+		<testcase name="cantidad 0 o negativa, o producto sin existencias (lavandería, llave): 400 o 422" time="0.023022" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\existencias.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-21 — Existencias calculadas" time="0.181703" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.747Z" hostname="Pipi_2026">
+		<testcase name="solo nevera y vitrinas tienen existencias; lavandería y otros no aparecen" time="0.017806" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\existencias.test.ts"/>
+		<testcase name="surtir 10 y cargar 3 a una habitación deja 7; anular uno de esos cargos lo devuelve (8)" time="0.156811" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\existencias.test.ts"/>
+		<testcase name="lo vendido sin surtido deja existencias negativas (se avisa, no se bloquea la venta)" time="0.006413" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\existencias.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-04, FR-08 — Extender después del mediodía (aire, 1 persona, salida 12 m., son las 11:50 a. m.)" time="8.581150" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:32.347Z" hostname="Pipi_2026">
+		<testcase name="1 hora(s) → cargo EXTENSION de $8000 y nueva salida 2026-10-12T13:00:00-05:00" time="0.099236" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+		<testcase name="4 hora(s) → cargo EXTENSION de $32000 y nueva salida 2026-10-12T16:00:00-05:00" time="0.147161" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+		<testcase name="5 hora(s) → cargo EXTENSION de $60000 y nueva salida 2026-10-13T12:00:00-05:00" time="0.078372" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-04 — Cotizar y aplicar extensiones" time="0.371619" disabled="0" errors="0" tests="7" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.557Z" hostname="Pipi_2026">
+		<testcase name="la cotización avisa que pasa de las 4:00 p. m. y no cambia nada" time="0.068807" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+		<testcase name="otra noche: 24 horas más con la tarifa por personas; el cargo dice «otra noche» y se audita" time="0.068293" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+		<testcase name="por horas que pasan de las 4:00 p. m.: el cargo dice que se cobra la noche completa" time="0.055386" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+		<testcase name="tres horas con 3 personas: 422 CAPACIDAD_EXCEDIDA" time="0.056220" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+		<testcase name="por horas sin horas, horas con otra modalidad o más de 12: 400; estadía inexistente: 404" time="0.037693" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+		<testcase name="con Idempotency-Key, un doble toque extiende una sola vez" time="0.041691" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+		<testcase name="una estadía cerrada no se extiende: 409" time="0.038620" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\extension.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-23 — fecha prevista de la factura" time="7.735020" disabled="0" errors="0" tests="13" failures="0" skipped="0" timestamp="2026-10-26T18:37:33.194Z" hostname="Pipi_2026">
+		<testcase name="pedida un viernes, el lunes siguiente" time="0.030304" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="si ese lunes es festivo (12 de octubre), el martes" time="0.000574" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="si ese lunes es festivo (16 de noviembre), el martes" time="0.000482" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="cuenta el día de Bogotá: un viernes a las 11:30 p. m. sigue siendo viernes" time="0.000361" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="sábado, el lunes" time="0.000400" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="domingo, el lunes" time="0.000641" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="entre semana, el siguiente día hábil [P/V]" time="0.000409" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="salta Jueves y Viernes Santo" time="0.000408" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="hasta 3 días hábiles — viernes: hasta el miércoles (3 días hábiles)" time="0.000574" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="hasta 3 días hábiles — viernes antes del festivo del lunes 16: hasta el jueves" time="0.000447" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="hasta 3 días hábiles — martes: hasta el viernes" time="0.000345" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="hasta 3 días hábiles — fin de año: salta el 1 de enero y el fin de semana" time="0.000324" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="festivos de Colombia en 2026 (Ley 51 de 1983: los trasladables pasan al lunes)" time="0.001561" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-28 — recepción anota la solicitud desde la estadía" time="0.090112" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.839Z" hostname="Pipi_2026">
+		<testcase name="201: queda PENDIENTE, con quién la registró y la fecha prevista (viernes → lunes)" time="0.031030" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="la ficha de la estadía la muestra con su estado" time="0.007302" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="basta el RUT con el correo o con el teléfono; sin ninguno de los dos, 400" time="0.018974" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="un RUT, correo o teléfono mal escrito: 400" time="0.008600" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="una estadía que no existe: 404" time="0.012788" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="recepción no ve la lista general ni avanza estados: 403" time="0.010435" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-28 — la administración la avanza: PENDIENTE → ENVIADA_AL_CONTADOR → ENTREGADA" time="0.158848" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.772Z" hostname="Pipi_2026">
+		<testcase name="ve las pendientes, la más antigua primero" time="0.000355" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="no puede saltarse un paso: 409 TRANSICION_INVALIDA" time="0.009325" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="enviada al contador y luego entregada, con quién y cuándo" time="0.117698" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="una entregada ya no cambia: 409" time="0.008720" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="cada cambio queda auditado sin el RUT, el correo ni el teléfono (FR-20)" time="0.004473" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+		<testcase name="una solicitud que no existe: 404" time="0.008514" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-21 — los datos de la solicitud se borran con la anonimización" time="0.171142" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.759Z" hostname="Pipi_2026">
+		<testcase name="cuando se anonimiza el huésped, la solicitud queda sin RUT, correo ni teléfono; el estado se conserva" time="0.170728" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\facturas.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-01 — Mapa de habitaciones" time="8.305235" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:32.625Z" hostname="Pipi_2026">
+		<testcase name="sin sesión: 401" time="0.004457" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\habitaciones.test.ts"/>
+		<testcase name="devuelve las 12 habitaciones en orden, con tipo y estado" time="0.013884" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\habitaciones.test.ts"/>
+		<testcase name="las ocupadas traen su estadía resumida: saldo, por verificar y salida en hora de Bogotá" time="0.007073" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\habitaciones.test.ts"/>
+		<testcase name="marca vencida una estadía cuya salida ya pasó" time="0.008357" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\habitaciones.test.ts"/>
+		<testcase name="filtra por estado" time="0.007658" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\habitaciones.test.ts"/>
+		<testcase name="estado inválido: 400 INVALID_PAYLOAD" time="0.001812" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\habitaciones.test.ts"/>
+	</testsuite>
+	<testsuite name="Aplicación web servida por la API" time="0.138216" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.792Z" hostname="Pipi_2026">
+		<testcase name="GET / entrega index.html y las rutas de la app caen en index.html" time="0.026543" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\habitaciones.test.ts"/>
+		<testcase name="sirve un archivo publicado después de arrancar (nueva versión sin reiniciar)" time="0.082880" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\habitaciones.test.ts"/>
+		<testcase name="un archivo que no existe responde 404, no la página principal" time="0.027947" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\habitaciones.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-31 (V5-02) — quiénes se quedan hoy" time="8.113658" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:32.817Z" hostname="Pipi_2026">
+		<testcase name="lista las habitaciones ocupadas con el nombre y el documento completo del titular, por habitación" time="0.014427" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\huespedes-hoy.test.ts"/>
+		<testcase name="una estadía terminada no aparece" time="0.043883" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\huespedes-hoy.test.ts"/>
+		<testcase name="sin sesión: 401" time="0.001915" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\huespedes-hoy.test.ts"/>
+		<testcase name="cada consulta queda en la auditoría con quién la hizo, sin nombres ni documentos" time="0.001996" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\huespedes-hoy.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-19 — Inicio de sesión" time="8.794825" disabled="0" errors="0" tests="7" failures="0" skipped="0" timestamp="2026-10-26T18:37:32.136Z" hostname="Pipi_2026">
+		<testcase name="PIN correcto: 201 y cookie HttpOnly, Secure, SameSite=Strict de 12 horas" time="0.127600" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+		<testcase name="el token se guarda como hash, no en claro" time="0.058959" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+		<testcase name="PIN incorrecto y usuario inexistente responden igual: 401 CREDENCIALES_INVALIDAS" time="0.154727" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+		<testcase name="PIN que no tiene 6 dígitos: 400 INVALID_PAYLOAD" time="0.003674" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+		<testcase name="bloqueo tras 5 intentos fallidos durante 15 minutos, aunque el PIN sea correcto" time="0.433454" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+		<testcase name="un usuario desactivado no puede entrar" time="0.099239" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+		<testcase name="registra INICIAR_SESION y BLOQUEAR en auditoría sin el PIN" time="0.002885" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+	</testsuite>
+	<testsuite name="Sesión actual" time="0.218583" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.712Z" hostname="Pipi_2026">
+		<testcase name="sin cookie: 401 NO_AUTENTICADO" time="0.003407" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+		<testcase name="con cookie: 200 con el usuario" time="0.072935" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+		<testcase name="vence a las 12 horas" time="0.075143" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+		<testcase name="cerrar sesión: 204 y la cookie deja de servir" time="0.049084" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+	</testsuite>
+	<testsuite name="Errores comunes" time="0.002072" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.928Z" hostname="Pipi_2026">
+		<testcase name="ruta inexistente: 404 NO_ENCONTRADO en JSON" time="0.001801" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\identidad.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-27 — Pedido de un externo" time="7.872529" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:33.058Z" hostname="Pipi_2026">
+		<testcase name="2 sábanas de «Cliente Externo Prueba»: 201, $8.000 por cobrar, sin habitación ni cargos" time="0.043171" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia-externos.test.ts"/>
+		<testcase name="pagado por adelantado en efectivo: suma a la caja, no debe nada y se entrega sin cobrar de nuevo" time="0.094620" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia-externos.test.ts"/>
+		<testcase name="sin pagar no se entrega; con autorización queda como deuda a su nombre y con quien autorizó" time="0.188632" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia-externos.test.ts"/>
+		<testcase name="cuando vuelve y paga (por Nequi), la deuda sale de la lista" time="0.050710" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia-externos.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-27 — Validaciones y privacidad de externos" time="0.069331" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.861Z" hostname="Pipi_2026">
+		<testcase name="sin nombre o con un nombre de una letra: 400" time="0.024746" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia-externos.test.ts"/>
+		<testcase name="el nombre del externo se borra con la anonimización, 90 días después de entregar" time="0.044085" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia-externos.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-27 — Pedido de lavandería de un huésped" time="7.707216" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:33.223Z" hostname="Pipi_2026">
+		<testcase name="2 busos y 1 pantalón para la 205: 201, $7.000, cargado a la cuenta y por entregar" time="0.099129" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia.test.ts"/>
+		<testcase name="sin pagar y sin autorización no se entrega: 422 PAGO_REQUERIDO" time="0.030759" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia.test.ts"/>
+		<testcase name="al entregar cobrando en efectivo: queda pagado, entra a la caja y sale de los pendientes" time="0.124632" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia.test.ts"/>
+		<testcase name="un pedido ya entregado no se entrega otra vez: 409" time="0.009502" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-22 — Entrega sin pago autorizada por recepción" time="0.255216" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.675Z" hostname="Pipi_2026">
+		<testcase name="se entrega con la autorización registrada; la deuda sigue y la salida queda bloqueada (RN-07)" time="0.113032" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia.test.ts"/>
+		<testcase name="si la cuenta ya está en $0 (pagó antes), se entrega sin cobrar de nuevo" time="0.141524" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-27 — Validaciones" time="0.041841" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.889Z" hostname="Pipi_2026">
+		<testcase name="solo prendas de lavandería: 422 NO_VENDIBLE; estadía que no existe: 404; sin prendas: 400" time="0.024805" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia.test.ts"/>
+		<testcase name="en «Agregar cargos» ya no se cargan prendas sueltas: la lavandería va como pedido (409)" time="0.016256" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lavanderia.test.ts"/>
+	</testsuite>
+	<testsuite name="inserción en lote" time="7.026156" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:33.904Z" hostname="Pipi_2026">
+		<testcase name="publicarEventos guarda todos los eventos en el orden dado, con su payload" time="0.016581" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lotes.test.ts"/>
+		<testcase name="publicarEventos sin eventos no hace nada" time="0.010235" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lotes.test.ts"/>
+		<testcase name="auditarVarios guarda una fila por registro, en orden y con su detalle" time="0.011680" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\lotes.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-33 (RN-24) — reportes a Migración Colombia" time="8.203317" disabled="0" errors="0" tests="8" failures="0" skipped="0" timestamp="2026-10-26T18:37:32.728Z" hostname="Pipi_2026">
+		<testcase name="la entrada de un extranjero deja pendiente su llegada; la de un colombiano no" time="0.016026" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\migracion.test.ts"/>
+		<testcase name="los datos para llenar el SIRE se piden aparte y cada consulta queda en la auditoría, sin los datos" time="0.010461" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\migracion.test.ts"/>
+		<testcase name="pasadas las horas configuradas (24) sin reportar, queda «atrasado»" time="0.161327" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\migracion.test.ts"/>
+		<testcase name="«Ya lo reporté» lo quita de la lista y queda en la auditoría; marcarlo otra vez es 409" time="0.090987" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\migracion.test.ts"/>
+		<testcase name="no hay nada que reportar de un colombiano ni de una salida que no ha pasado: 409" time="0.030099" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\migracion.test.ts"/>
+		<testcase name="al dar salida al extranjero queda pendiente el reporte de su salida" time="0.060706" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\migracion.test.ts"/>
+		<testcase name="si el extranjero desiste antes de reportar su llegada, no queda nada pendiente" time="0.086836" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\migracion.test.ts"/>
+		<testcase name="sin sesión: 401; una estadía que no existe: 404" time="0.009197" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\migracion.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-12, RN-10 — Una salida de dinero baja la caja, pero no cuenta como venta" time="7.986765" disabled="0" errors="0" tests="7" failures="0" skipped="0" timestamp="2026-10-26T18:37:32.945Z" hostname="Pipi_2026">
+		<testcase name="sin sesión: 401" time="0.009121" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\movimientos.test.ts"/>
+		<testcase name="compra para el hotel de $10.000: «debe haber» pasa de 234.500 a 224.500 y el efectivo cobrado sigue en 26.000" time="0.040262" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\movimientos.test.ts"/>
+		<testcase name="el recargo de aseo entregado a quien limpió (RN-14) lleva la habitación" time="0.030413" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\movimientos.test.ts"/>
+		<testcase name="la administración también registra salidas (retiro de la administración)" time="0.122746" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\movimientos.test.ts"/>
+		<testcase name="una devolución no se crea desde aquí; valor cero, detalle corto o campos de más: 400" time="0.010542" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\movimientos.test.ts"/>
+		<testcase name="con Idempotency-Key, un doble toque registra una sola salida" time="0.048026" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\movimientos.test.ts"/>
+		<testcase name="GET /movimientos_caja lista las salidas del turno activo en orden; también con turno_id" time="0.048823" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\movimientos.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-09 — Sin turno abierto no sale dinero" time="4.655974" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:36.276Z" hostname="Pipi_2026">
+		<testcase name="409 SIN_TURNO_ABIERTO" time="4.654674" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\movimientos.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-12, FR-15 — Pagos por confirmar" time="7.685819" disabled="0" errors="0" tests="8" failures="0" skipped="0" timestamp="2026-10-26T18:37:33.246Z" hostname="Pipi_2026">
+		<testcase name="sin sesión: 401" time="0.005112" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\pagos.test.ts"/>
+		<testcase name="GET /pagos?estado=POR_VERIFICAR muestra la transferencia de la 211 con el contrato Pago" time="0.014534" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\pagos.test.ts"/>
+		<testcase name="GET /pagos filtra por turno y recepción también puede consultar" time="0.009425" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\pagos.test.ts"/>
+		<testcase name="la administradora confirma con un toque: VERIFICADO con verificado_por «admin»; la caja no cambia" time="0.146809" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\pagos.test.ts"/>
+		<testcase name="la transferencia no llegó: RECHAZADO y el saldo de la 211 sube 30.000" time="0.067246" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\pagos.test.ts"/>
+		<testcase name="recepción no puede confirmar transferencias: 403 SIN_PERMISO" time="0.095652" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\pagos.test.ts"/>
+		<testcase name="un pago ya confirmado o en efectivo: 409; uno que no existe: 404; resultado inválido: 400" time="0.032380" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\pagos.test.ts"/>
+		<testcase name="con Idempotency-Key, un doble toque devuelve lo mismo y no se aplica dos veces" time="0.068753" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\pagos.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-32 (V5-20) — productos vendidos" time="6.651544" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:34.281Z" hostname="Pipi_2026">
+		<testcase name="por día del hotel: cargados a habitaciones, de contado y la lavandería de afuera, por grupo y producto" time="0.035860" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\productos-vendidos.test.ts"/>
+		<testcase name="por turno: el turno de noche abierto tiene lo mismo" time="0.009663" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\productos-vendidos.test.ts"/>
+		<testcase name="por semana o mes: un rango de días del hotel; un día sin ventas da cero" time="0.017698" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\productos-vendidos.test.ts"/>
+		<testcase name="cambiar el precio de un producto no altera lo ya vendido" time="0.027178" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\productos-vendidos.test.ts"/>
+		<testcase name="anular el pago de una venta de contado la quita del informe" time="0.056051" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\productos-vendidos.test.ts"/>
+		<testcase name="solo la administración (recepción: 403); rango al revés o sin rango ni turno: 400" time="0.009844" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\productos-vendidos.test.ts"/>
+	</testsuite>
+	<testsuite name="ADR-010 (V5-16) — la plata del registro tardío es del turno en que entró el huésped" time="7.162992" disabled="0" errors="0" tests="5" failures="0" skipped="0" timestamp="2026-10-26T18:37:33.770Z" hostname="Pipi_2026">
+		<testcase name="el pago y la estadía quedan en el turno de A, aunque los digite B" time="0.003697" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio-turno.test.ts"/>
+		<testcase name="la caja abierta de B no cambia: su base ya traía esa plata" time="0.014776" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio-turno.test.ts"/>
+		<testcase name="el turno de A conserva su cierre y muestra la diferencia ajustada: el sobrante queda explicado" time="0.021899" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio-turno.test.ts"/>
+		<testcase name="la administración recibe el aviso del registro tardío en un turno cerrado" time="0.002839" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio-turno.test.ts"/>
+		<testcase name="el resumen del día del hotel la cuenta en el día de la entrada real (12 de octubre)" time="0.019338" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio-turno.test.ts"/>
+	</testsuite>
+	<testsuite name="ADR-010 — Registro tardío" time="6.551110" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:34.381Z" hostname="Pipi_2026">
+		<testcase name="TICKET-36: lo del talonario también necesita el documento (400 sin él)" time="0.011057" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio.test.ts"/>
+		<testcase name="una entrada de hace 3 horas calcula la salida con la hora real (3:10 a. m. → 12 m. del mismo día)" time="0.071443" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio.test.ts"/>
+		<testcase name="el precio es el de la tarifa vigente a la hora real de entrada" time="0.040813" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio.test.ts"/>
+		<testcase name="una entrada normal no es tardía y también dice quién la registró" time="0.033248" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio.test.ts"/>
+		<testcase name="registro tardío sin hora, hora sin registro tardío, más de 48 horas atrás o en el futuro: 400" time="0.035163" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio.test.ts"/>
+		<testcase name="justo 48 horas atrás todavía se acepta" time="0.038035" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\registro-tardio.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-01 — La salida de la noche depende de la hora de entrada" time="0.015425" disabled="0" errors="0" tests="19" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.917Z" hostname="Pipi_2026">
+		<testcase name="entra 2026-10-12 02:00, 1 noche(s) → sale 2026-10-12 12:00 (MADRUGADA_MISMO_DIA)" time="0.003682" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 06:00, 1 noche(s) → sale 2026-10-12 12:00 (MADRUGADA_MISMO_DIA)" time="0.000306" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 06:01, 1 noche(s) → sale 2026-10-13 06:01 (VEINTICUATRO_HORAS)" time="0.000246" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 06:15, 1 noche(s) → sale 2026-10-13 06:15 (VEINTICUATRO_HORAS)" time="0.000198" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 06:30, 1 noche(s) → sale 2026-10-13 06:30 (VEINTICUATRO_HORAS)" time="0.000198" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 09:59, 1 noche(s) → sale 2026-10-13 09:59 (VEINTICUATRO_HORAS)" time="0.000188" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 10:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)" time="0.000243" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 11:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)" time="0.000199" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 11:59, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)" time="0.000296" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 12:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)" time="0.000412" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 15:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)" time="0.000194" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 22:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)" time="0.000214" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 23:59, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)" time="0.000151" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 03:00, 2 noche(s) → sale 2026-10-13 12:00 (MADRUGADA_MISMO_DIA)" time="0.000137" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 09:00, 2 noche(s) → sale 2026-10-14 09:00 (VEINTICUATRO_HORAS)" time="0.000121" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 10:00, 2 noche(s) → sale 2026-10-14 12:00 (MEDIODIA_SIGUIENTE)" time="0.000085" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="entra 2026-10-12 15:00, 2 noche(s) → sale 2026-10-14 12:00 (MEDIODIA_SIGUIENTE)" time="0.000071" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="tres horas: sale 3 horas después" time="0.002775" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="no depende de la zona horaria del servidor: usa siempre UTC−5" time="0.000309" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas" time="0.003706" disabled="0" errors="0" tests="11" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.930Z" hostname="Pipi_2026">
+		<testcase name="VENTILADOR NOCHE con 1 persona(s) → $45000" time="0.000730" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="VENTILADOR NOCHE con 2 persona(s) → $55000" time="0.000124" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="VENTILADOR NOCHE con 3 persona(s) → $80000" time="0.000182" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="AIRE NOCHE con 1 persona(s) → $60000" time="0.000229" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="AIRE NOCHE con 2 persona(s) → $70000" time="0.000162" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="AIRE NOCHE con 3 persona(s) → $95000" time="0.000101" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="VENTILADOR TRES_HORAS con 2 persona(s) → $25000" time="0.000073" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="AIRE TRES_HORAS con 1 persona(s) → $35000" time="0.000115" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="varias noches multiplica la tarifa por noche" time="0.000198" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="tres horas admite máximo 2 personas: CAPACIDAD_EXCEDIDA" time="0.000863" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="una noche admite máximo 3 personas: CAPACIDAD_EXCEDIDA" time="0.000225" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-05 — Descuento por noche hasta el máximo configurado ($5.000), solo en la modalidad de noche" time="0.031960" disabled="0" errors="0" tests="7" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.902Z" hostname="Pipi_2026">
+		<testcase name="el máximo, dos noches: $10.000" time="0.000357" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="recepción puede dar menos: $3.000 por noche, dos noches = $6.000" time="0.000140" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="sin pedirlo: $0" time="0.000135" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="más del máximo: DESCUENTO_EXCEDE_MAXIMO, con el máximo en el mensaje" time="0.029790" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="el máximo sigue lo que la administración configure" time="0.000277" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="descuento negativo o con decimales: no se acepta" time="0.000539" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="tres horas con descuento: DESCUENTO_NO_PERMITIDO" time="0.000208" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-09 — Fin programado del turno (día 6:30 a. m. – 6:30 p. m.; noche 6:30 p. m. – 6:30 a. m.)" time="0.001047" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.932Z" hostname="Pipi_2026">
+		<testcase name="NOCHE recibido 2026-10-12 18:30 → termina 2026-10-13 06:30" time="0.000320" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="NOCHE recibido 2026-10-12 18:10 → termina 2026-10-13 06:30" time="0.000081" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="NOCHE recibido 2026-10-13 01:00 → termina 2026-10-13 06:30" time="0.000082" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="DIA recibido 2026-10-13 06:30 → termina 2026-10-13 18:30" time="0.000068" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="DIA recibido 2026-10-13 06:05 → termina 2026-10-13 18:30" time="0.000066" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="DIA recibido 2026-10-13 19:00 → termina 2026-10-14 18:30" time="0.000104" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+	</testsuite>
+	<testsuite name="Cotización completa" time="0.002156" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.931Z" hostname="Pipi_2026">
+		<testcase name="dos noches con aire, 1 persona y descuento: $120.000 − $10.000 = $110.000; no permite pagar al salir" time="0.001640" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="una noche sí permite pagar al salir; tres horas no" time="0.000321" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa" time="0.002262" disabled="0" errors="0" tests="8" failures="0" skipped="0" timestamp="2026-10-26T18:37:40.931Z" hostname="Pipi_2026">
+		<testcase name="salida 12 m., son las 11:50 a. m., 1 hora(s) → $8000, sale 2026-10-12 13:00" time="0.000579" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="salida 12 m., son las 11:50 a. m., 4 hora(s) → $32000, sale 2026-10-12 16:00" time="0.000127" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="salida 12 m., son las 11:50 a. m., 5 hora(s) → $60000, sale 2026-10-13 12:00" time="0.000165" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="con la salida ya vencida, cuenta desde ahora (lo que sea mayor)" time="0.000168" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="por horas en la noche (después de las 4:00 p. m.) ya es noche completa" time="0.000141" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="otra noche suma 24 horas desde la salida actual, con la tarifa por personas" time="0.000177" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="otra noche con la salida vencida sigue la regla de salida desde ahora (RN-01): sale mañana a las 12 m., no 24 horas después" time="0.000206" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+		<testcase name="tres horas más: tarifa de tres horas y máximo 2 personas" time="0.000290" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reglas\reglas.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-16 / RN-15 — historial y reporte del día del hotel" time="19.767269" disabled="0" errors="0" tests="10" failures="0" skipped="0" timestamp="2026-10-26T18:37:27.134Z" hostname="Pipi_2026">
+		<testcase name="solo administración: 401 sin sesión y 403 para recepción en las tres consultas" time="5.854200" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+		<testcase name="historial del más reciente al más antiguo, paginado y con total independiente de la página" time="1.854798" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+		<testcase name="límite predeterminado de 20 y orden estable cuando coinciden las horas" time="1.795202" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+		<testcase name="detalle incluye pagos y salidas anulados; los totales los excluyen y el cierre permanece intacto" time="1.649993" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+		<testcase name="valida UUID, paginación y fechas; un turno inexistente responde 404" time="1.566758" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+		<testcase name="Resumen del día 12 de octubre: 195.000 + 26.000 = 221.000, sin sumar la base" time="1.490378" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+		<testcase name="corte inclusivo a las 6:30, exclusivo al día siguiente, con madrugada y cambio de mes en Bogotá" time="1.391007" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+		<testcase name="suma por separado descuentos, salidas y diferencias; omite anulados y transferencias rechazadas" time="1.351091" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+		<testcase name="la verificación posterior actualiza el día del cobro, sin moverlo al día de confirmación" time="1.375457" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+		<testcase name="turno por recibir aparece en el historial sin responsable ni cierre y no infla el resumen" time="1.432222" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\reportes.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-07, FR-09 — Nadie sale debiendo" time="5.419977" disabled="0" errors="0" tests="5" failures="0" skipped="0" timestamp="2026-10-26T18:37:41.537Z" hostname="Pipi_2026">
+		<testcase name="sin sesión: 401" time="0.007067" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+		<testcase name="salida bloqueada por saldo: 409 SALDO_PENDIENTE y la estadía sigue ACTIVA" time="0.037017" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+		<testcase name="salida con la cuenta al día: CERRADA con hora real y la habitación queda POR_REVISAR" time="0.041087" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+		<testcase name="una estadía ya cerrada no sale dos veces (409); una que no existe: 404" time="0.013743" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+		<testcase name="con una transferencia por verificar y saldo $0 sí puede salir (la habitación se entrega igual, RN-12)" time="0.058461" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-02 — Revisión y transiciones de la habitación" time="0.091924" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:46.865Z" hostname="Pipi_2026">
+		<testcase name="la habitación por revisar no se puede asignar" time="0.008812" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+		<testcase name="por revisar → limpieza especial (fluidos) → disponible" time="0.029365" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+		<testcase name="por revisar → limpieza normal deja la nota «Limpieza normal»" time="0.009724" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+		<testcase name="por revisar → mantenimiento con la nota del daño → por revisar cuando se arregla" time="0.018312" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+		<testcase name="transiciones no permitidas: 409 TRANSICION_INVALIDA" time="0.020618" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+		<testcase name="OCUPADA no se pide a mano, limpieza especial solo con LIMPIEZA y habitación inexistente: 400" time="0.003895" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\salida.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-10, FR-11 — La caja del turno solo suma efectivo" time="4.759596" disabled="0" errors="0" tests="5" failures="0" skipped="0" timestamp="2026-10-26T18:37:42.299Z" hostname="Pipi_2026">
+		<testcase name="sin sesión: 401" time="0.004361" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="caja del ejemplo real del relevo: 208.500 + 26.000 = 234.500; transferencias 85.000 aparte" time="0.010253" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="la administración también ve la caja" time="0.041002" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="una salida de dinero baja «debe haber», pero el efectivo cobrado sigue igual" time="0.010688" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="lo anulado no cuenta y una transferencia rechazada no suma" time="0.015725" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-09, RN-11, FR-14 — Recibir el turno" time="13.719550" disabled="0" errors="0" tests="9" failures="0" skipped="0" timestamp="2026-10-26T18:37:33.340Z" hostname="Pipi_2026">
+		<testcase name="recibir el turno con un toque: queda ABIERTO con la base contada y el usuario como responsable" time="1.835787" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="antes de recibir, la sesión avisa que hay un turno por recibir; después ya no" time="1.750075" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="el turno por recibir se puede consultar: muestra lo entregado y aún no tiene responsable" time="1.638544" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="recibir con diferencia sin motivo: 422 MOTIVO_REQUERIDO y el turno sigue por recibir" time="1.529069" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="recibir con diferencia avisa a la administración (evento turno.diferencia)" time="1.489261" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="la administración no recibe turnos: 403" time="1.384281" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="un turno ya recibido no se vuelve a recibir: 409 CONFLICTO" time="1.364632" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="valor contado negativo o campos de más: 400 INVALID_PAYLOAD" time="1.366068" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+		<testcase name="sin turno ABIERTO no se puede cobrar: SIN_TURNO_ABIERTO (409)" time="1.357565" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\turnos.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-18 — Usuarios (solo la administración)" time="5.511202" disabled="0" errors="0" tests="10" failures="0" skipped="0" timestamp="2026-10-26T18:37:41.598Z" hostname="Pipi_2026">
+		<testcase name="recepción no gestiona usuarios ni ve la auditoría: 403 SIN_PERMISO" time="0.019375" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="lista los usuarios con su rol y estado, sin el PIN" time="0.004963" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="crear un usuario: 201, el PIN se guarda con Argon2id y la persona ya puede entrar" time="0.062730" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="usuario repetido: 409 CONFLICTO; PIN que no es de 6 dígitos o campos de más: 400" time="0.038754" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="Escenario «Usuario desactivado»: no puede entrar y sus sesiones anteriores quedan revocadas" time="0.128276" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="reactivar: la persona vuelve a entrar con su PIN" time="0.040346" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="cambiar el PIN: el anterior deja de servir, el nuevo queda en Argon2id y se cierran sus sesiones abiertas" time="0.119383" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="desbloquear: quien se bloqueó por intentos fallidos puede volver a entrar sin esperar los 15 minutos" time="0.160538" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="la administración no se desactiva a sí misma (el hotel no se queda sin quien administre): 409" time="0.006316" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="usuario que no existe: 404; sin cambios o con campos de más: 400" time="0.010406" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-20 — Auditoría" time="0.078299" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.031Z" hostname="Pipi_2026">
+		<testcase name="lista lo más reciente primero, con quién, qué acción y sobre qué; filtra por entidad y pagina" time="0.013619" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="no expone datos de huéspedes ni PIN" time="0.063001" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+		<testcase name="límite fuera de rango: 400" time="0.001270" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\usuarios.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-26 — Venta de contado en efectivo" time="4.957969" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:42.152Z" hostname="Pipi_2026">
+		<testcase name="2 aguas y 1 Gatorade en efectivo: 201, $10.000, suma a la caja y descuenta existencias" time="0.060535" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\ventas.test.ts"/>
+		<testcase name="el cobro aparece en los pagos del turno como venta de contado, sin habitación" time="0.012658" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\ventas.test.ts"/>
+		<testcase name="la administración la anula con motivo: la caja y las existencias se recalculan" time="0.042639" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\ventas.test.ts"/>
+		<testcase name="con la misma Idempotency-Key, repetir no duplica la venta" time="0.034077" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\ventas.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-26 — Venta de contado por transferencia (RN-12)" time="0.066751" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.043Z" hostname="Pipi_2026">
+		<testcase name="por Nequi queda por confirmar, no suma a la caja y avisa a la administración" time="0.066292" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\ventas.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-26 — Validaciones" time="0.043655" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.066Z" hostname="Pipi_2026">
+		<testcase name="solo productos de la nevera y las vitrinas: lavandería o llave responden 422 NO_VENDIBLE" time="0.011677" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\ventas.test.ts"/>
+		<testcase name="un producto desactivado responde 409; uno que no existe, 404" time="0.018937" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\ventas.test.ts"/>
+		<testcase name="sin productos, cantidad 0 o medio desconocido: 400; sin sesión: 401" time="0.012179" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\api\ventas.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-22 — tarifas en la PWA" time="0.007261" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.102Z" hostname="Pipi_2026">
+		<testcase name="nombra cada tarifa como la dice el hotel" time="0.004151" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ajustes.test.ts"/>
+		<testcase name="envía solo las tarifas que cambiaron y avisa los valores que no sirven" time="0.000787" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ajustes.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-22 — reglas en la PWA" time="0.002355" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.108Z" hostname="Pipi_2026">
+		<testcase name="muestra la hora de la noche completa en palabras" time="0.000584" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ajustes.test.ts"/>
+		<testcase name="envía solo las reglas que cambiaron, con sus límites" time="0.000767" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ajustes.test.ts"/>
+		<testcase name="describe una regla con su valor" time="0.000503" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ajustes.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-22 — productos en la PWA" time="0.001330" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="FR-24: la administración edita todos los grupos, incluidas las dos vitrinas" time="0.000481" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ajustes.test.ts"/>
+		<testcase name="valida nombre y precio" time="0.000456" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ajustes.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-21 · surtido en Ajustes" time="0.000734" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.110Z" hostname="Pipi_2026">
+		<testcase name="la cantidad que llegó es un entero de 1 a 10.000" time="0.000483" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ajustes.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-13 (V5-19) — productos de la familiar" time="0.000716" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.110Z" hostname="Pipi_2026">
+		<testcase name="la nota de Ajustes habla de los productos de la familiar, estén en la sección que estén, y no de la sección 1" time="0.000538" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ajustes.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-28 — aviso de privacidad" time="0.009060" disabled="0" errors="0" tests="5" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.101Z" hostname="Pipi_2026">
+		<testcase name="el texto corto es el aprobado: obligación legal, Migración, recepción y la pregunta final" time="0.001732" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\aviso.test.ts"/>
+		<testcase name="dice qué datos del hotel faltan en Ajustes" time="0.001550" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\aviso.test.ts"/>
+		<testcase name="la política completa usa los datos del hotel y el plazo de borrado configurado" time="0.002252" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\aviso.test.ts"/>
+		<testcase name="si falta un dato, lo marca en lugar de inventarlo" time="0.000353" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\aviso.test.ts"/>
+		<testcase name="valida los datos del formulario de Ajustes" time="0.000758" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\aviso.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-23 — avisos en pantalla" time="0.054252" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.056Z" hostname="Pipi_2026">
+		<testcase name="dice hace cuánto venció, en palabras" time="0.001552" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+		<testcase name="una salida vencida avisa que corre el valor por hora y la regla de la noche completa (RN-04)" time="0.002134" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+		<testcase name="se calcula con la hora actual, sin esperar al servidor: aparece al pasar la hora de salida" time="0.000513" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+		<testcase name="transferencia por verificar, por revisar y limpieza; sin nombres de huéspedes" time="0.000711" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+		<testcase name="ordena de lo más urgente a lo menos: vencidas, transferencias, por revisar, limpieza" time="0.046253" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+		<testcase name="sin reglas todavía (cargando), la salida vencida avisa sin valores" time="0.000360" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-21 · aviso de existencias (RN-21)" time="0.002118" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.108Z" hostname="Pipi_2026">
+		<testcase name="avisa los productos surtidos alguna vez que quedan en 0 o menos" time="0.000794" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+		<testcase name="lo que nunca se ha surtido no avisa (al empezar todo está en 0)" time="0.000408" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+		<testcase name="los avisos de existencias van después de los de habitaciones" time="0.000373" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-33 (TICKET-37) — avisos de reportes a Migración" time="0.001302" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="pide reportar la llegada o la salida, solo con la habitación; si está atrasado, es una alerta" time="0.000714" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+		<testcase name="van después de las salidas vencidas y antes de las transferencias" time="0.000339" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\avisos.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-17 — resumen del cambio" time="0.007653" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.103Z" hostname="Pipi_2026">
+		<testcase name="a los pocos minutos, a una más cara: paga la diferencia" time="0.002371" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\cambio.test.ts"/>
+		<testcase name="a los pocos minutos, a una más barata: se le devuelve en efectivo" time="0.000314" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\cambio.test.ts"/>
+		<testcase name="si pagó por transferencia, lo que queda a favor lo decide la administración" time="0.000469" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\cambio.test.ts"/>
+		<testcase name="ya usó la habitación: se cobra la nueva completa y cambia la salida" time="0.002136" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\cambio.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-30 — habitaciones a las que se puede pasar" time="0.000965" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.110Z" hostname="Pipi_2026">
+		<testcase name="solo las disponibles, sin la actual" time="0.000528" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\cambio.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-18 — daño con valor de reposición" time="0.009242" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.101Z" hostname="Pipi_2026">
+		<testcase name="lee la descripción y el valor en pesos" time="0.004467" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\danos.test.ts"/>
+		<testcase name="pide qué se dañó y un valor mayor que $0" time="0.000387" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\danos.test.ts"/>
+		<testcase name="recepción ve que el daño lo cobra la administradora" time="0.001925" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\danos.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-18 — usuarios en la PWA" time="0.008430" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.102Z" hostname="Pipi_2026">
+		<testcase name="sugiere un usuario válido a partir del nombre, sin tildes ni espacios" time="0.001734" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\equipo.test.ts"/>
+		<testcase name="valida el formulario de usuario nuevo con mensajes sencillos" time="0.002120" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\equipo.test.ts"/>
+		<testcase name="muestra si la persona está activa, desactivada o bloqueada (con la hora en Bogotá)" time="0.000584" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\equipo.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-20 — actividad en palabras" time="0.002804" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.108Z" hostname="Pipi_2026">
+		<testcase name="describe cada acción sin tecnicismos" time="0.002167" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\equipo.test.ts"/>
+		<testcase name="un usuario que ya no está en la lista o una acción nueva no rompen la pantalla" time="0.000277" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\equipo.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-28 — datos de la solicitud" time="0.007267" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.103Z" hostname="Pipi_2026">
+		<testcase name="el RUT o NIT con el correo o con el celular basta" time="0.003154" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\facturas.test.ts"/>
+		<testcase name="sin correo ni celular, pide uno de los dos" time="0.000433" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\facturas.test.ts"/>
+		<testcase name="marca el RUT, el correo o el celular mal escritos" time="0.000470" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\facturas.test.ts"/>
+		<testcase name="envía el RUT sin puntos ni espacios, el celular con +57 y omite lo vacío" time="0.000677" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\facturas.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-28 — estado y fecha prevista en palabras" time="0.004014" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.106Z" hostname="Pipi_2026">
+		<testcase name="cada estado con su etiqueta" time="0.000495" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\facturas.test.ts"/>
+		<testcase name="la fecha prevista con el día de la semana" time="0.000387" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\facturas.test.ts"/>
+		<testcase name="el rango de 1 a 3 días hábiles en palabras (V5-09)" time="0.000521" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\facturas.test.ts"/>
+		<testcase name="el siguiente paso solo lo da la administración, en orden" time="0.001935" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\facturas.test.ts"/>
+	</testsuite>
+	<testsuite name="lo que falta por pagar del pedido" time="0.003469" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.107Z" hostname="Pipi_2026">
+		<testcase name="es el valor del pedido, sin pasar del saldo de la cuenta" time="0.001351" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\lavanderia.test.ts"/>
+	</testsuite>
+	<testsuite name="textos" time="0.001768" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="quién pidió: la habitación o el nombre del externo" time="0.000454" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\lavanderia.test.ts"/>
+		<testcase name="mensaje al entregar" time="0.000482" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\lavanderia.test.ts"/>
+		<testcase name="la ficha tiene la vista «Recibir lavandería»" time="0.000287" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\lavanderia.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-24 · externos" time="0.001381" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="lo que falta para entregar: el externo usa lo que debe el pedido; el huésped, su cuenta" time="0.000416" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\lavanderia.test.ts"/>
+		<testcase name="el cobro de un externo se ve como lavandería con su nombre" time="0.000607" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\lavanderia.test.ts"/>
+	</testsuite>
+	<testsuite name="Presentación del mapa de habitaciones" time="0.010137" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.101Z" hostname="Pipi_2026">
+		<testcase name="traduce los estados de la API a las clases y textos del prototipo" time="0.002638" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="formatea pesos colombianos sin centavos" time="0.000494" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="muestra la hora de Bogotá tal como la manda la API, sin depender de la zona del equipo" time="0.000405" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="dice hoy o mañana respecto de la fecha de referencia" time="0.002142" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="cuenta las habitaciones por estado para los indicadores del inicio" time="0.000653" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="saca dos iniciales para el avatar, ignorando números y paréntesis" time="0.001383" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-02 — Paso «Habitación y servicio»" time="0.002076" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="máximo 3 personas por noche y 2 en tres horas" time="0.000449" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="al pasar a tres horas, baja las personas a 2 si había más" time="0.000500" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="describe la salida en palabras: «mañana a las 12:00 m.»" time="0.000476" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-03 · recibir el turno y caja" time="0.001620" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.110Z" hostname="Pipi_2026">
+		<testcase name="lee pesos escritos con puntos, signo o espacios; vacío o sin números es null" time="0.000740" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="describe la diferencia entre lo contado y lo entregado" time="0.000367" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="nombra el turno y su horario (RN-09)" time="0.000182" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-04 · asistente de entrada" time="0.002898" disabled="0" errors="0" tests="6" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="pide nombre, autorización y, para un menor, el acompañante verificado" time="0.000768" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="TICKET-36: el documento es obligatorio, con un mensaje que dice por qué" time="0.000479" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="valida el número de documento y el teléfono de 10 dígitos" time="0.000468" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="arma el huésped para la API: siempre con documento (TICKET-36), teléfono con +57 y documento sin puntos" time="0.000336" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="calcula vueltas o abono con el efectivo recibido" time="0.000240" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="enmascara el documento: ••••432" time="0.000165" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-04 · clave de idempotencia" time="0.007383" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.104Z" hostname="Pipi_2026">
+		<testcase name="genera un UUID v4 aunque la conexión no sea segura (sin randomUUID)" time="0.007148" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-05 · pagos por confirmar y avisos en vivo" time="0.001157" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.110Z" hostname="Pipi_2026">
+		<testcase name="nombra el medio de pago en palabras" time="0.000382" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="convierte el evento de verificación en un aviso sencillo para recepción" time="0.000470" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-05 · fechas relativas" time="0.000358" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.111Z" hostname="Pipi_2026">
+		<testcase name="dice «ayer» para el día anterior" time="0.000222" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-06 · ficha de la habitación: cargos y pagos" time="0.001840" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.110Z" hostname="Pipi_2026">
+		<testcase name="agrupa el catálogo en nevera, vitrinas, lavandería y otros (FR-24)" time="0.000530" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="resume la selección múltiple con cantidades y total" time="0.000395" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="describe el saldo: debe, por verificar o al día" time="0.000309" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="en efectivo cobra hasta el saldo y lo demás son vueltas; por transferencia, lo escrito" time="0.000261" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-08 · revisión de la habitación (FR-02)" time="0.000596" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.111Z" hostname="Pipi_2026">
+		<testcase name="ofrece solo las transiciones permitidas, en palabras sencillas" time="0.000431" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-10 · salidas de dinero y «Lo de este turno»" time="0.023858" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.088Z" hostname="Pipi_2026">
+		<testcase name="ofrece los tipos de salida en palabras sencillas; la devolución no está (sale desde la estadía)" time="0.000380" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="mezcla cobros y salidas del turno en orden de hora; las salidas restan y las transferencias no van a la caja" time="0.023027" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-11 · entregar el turno" time="0.000833" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.111Z" hostname="Pipi_2026">
+		<testcase name="debe dejar el «debe haber» menos el pago del turno si lo tomó" time="0.000271" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="avisa si entrega más de 60 minutos antes del fin programado" time="0.000326" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-07 · extender la estadía (RN-04)" time="0.000490" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.111Z" hostname="Pipi_2026">
+		<testcase name="advierte cuando las horas pasan de las 4:00 p. m. y dice la nueva salida en palabras" time="0.000366" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-09 · desistimiento y devolución (RN-08)" time="0.002380" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="solo miró: devuelve todo lo pagado en efectivo; ya la usó: nada" time="0.001504" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="con una transferencia por verificar hay que esperar a la administración" time="0.000177" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="si pagó por transferencia, la devolución la decide la administración" time="0.000213" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+		<testcase name="lo rechazado o anulado no se devuelve" time="0.000162" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="TICKET-12 · anulaciones (FR-17)" time="0.008576" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.103Z" hostname="Pipi_2026">
+		<testcase name="solo la administración anula cobros y salidas vigentes; una devolución no se anula por aquí" time="0.008413" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\logica.test.ts"/>
+	</testsuite>
+	<testsuite name="cuantos: número con su palabra en singular o plural" time="0.003173" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="1 en singular; 0 y varios en plural" time="0.001261" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="etiquetaCampana" time="0.000610" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.112Z" hostname="Pipi_2026">
+		<testcase name="dice cuántos avisos hay" time="0.000367" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="íconos" time="0.002227" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.110Z" hostname="Pipi_2026">
+		<testcase name="icoTono: alerta, éxito o información" time="0.001555" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+		<testcase name="icoMovimiento: salida, efectivo o transferencia" time="0.000280" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="textoCambio" time="0.000728" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.112Z" hostname="Pipi_2026">
+		<testcase name="vueltas, abono (con su texto) o pago exacto" time="0.000457" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="claseAsistente" time="0.000602" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.112Z" hostname="Pipi_2026">
+		<testcase name="marca el paso activo y los ya hechos" time="0.000301" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="notas de la cotización" time="0.001031" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.111Z" hostname="Pipi_2026">
+		<testcase name="notaFranja explica la salida especial" time="0.000540" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+		<testcase name="notaCobro dice cuándo se cobra" time="0.000205" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="cuarto del mapa" time="0.003715" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="detalle: salida y, si aplica, lo que debe o lo que falta verificar" time="0.002755" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+		<testcase name="acción: entrada si está disponible, cuenta si tiene estadía, estado si no" time="0.000432" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+		<testcase name="pista para el lector de pantalla según la acción" time="0.000269" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="ficha" time="0.021624" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.091Z" hostname="Pipi_2026">
+		<testcase name="tituloFicha según la vista" time="0.000466" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+		<testcase name="pillEstadoPago: por verificar, no llegó, verificado" time="0.000276" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+		<testcase name="textoDevolucion: de dónde sale lo que se devuelve" time="0.000212" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+		<testcase name="textoDesistimiento: con o sin devolución" time="0.000211" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-31 — quiénes se quedan hoy" time="0.000365" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.112Z" hostname="Pipi_2026">
+		<testcase name="muestra el documento completo con el nombre del tipo, o «Sin documento»" time="0.000264" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="Inicio de recepción más simple" time="0.000504" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.112Z" hostname="Pipi_2026">
+		<testcase name="resume los avisos en una sola línea" time="0.000344" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\presentacion.test.ts"/>
+	</testsuite>
+	<testsuite name="RN-15 — presentación del historial" time="0.030444" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.082Z" hostname="Pipi_2026">
+		<testcase name="antes de las 6:30 propone el día anterior en Bogotá, incluso al cambiar de año" time="0.013493" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\reportes.test.ts"/>
+		<testcase name="presenta la fecha sin convertirla a la zona horaria del navegador" time="0.000449" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\reportes.test.ts"/>
+		<testcase name="rechaza fechas vacías, imposibles o invertidas y permite un solo día" time="0.001132" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\reportes.test.ts"/>
+	</testsuite>
+	<testsuite name="ADR-010 (V5-16) — diferencia ajustada por lo registrado después" time="0.001563" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.111Z" hostname="Pipi_2026">
+		<testcase name="si cambió, lo explica con la nueva diferencia" time="0.000651" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\reportes.test.ts"/>
+		<testcase name="si no cambió, no dice nada" time="0.000430" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\reportes.test.ts"/>
+	</testsuite>
+	<testsuite name="FR-32 (V5-20) — periodos del informe de productos" time="0.004234" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.108Z" hostname="Pipi_2026">
+		<testcase name="día: el mismo día del hotel" time="0.002006" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\reportes.test.ts"/>
+		<testcase name="semana: de lunes a domingo" time="0.000440" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\reportes.test.ts"/>
+		<testcase name="mes: el mes calendario, también en febrero y diciembre" time="0.000713" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\reportes.test.ts"/>
+		<testcase name="nombra los grupos en palabras" time="0.000384" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\reportes.test.ts"/>
+	</testsuite>
+	<testsuite name="ADR-010 — registro tardío en la PWA" time="0.010643" disabled="0" errors="0" tests="5" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.102Z" hostname="Pipi_2026">
+		<testcase name="convierte a la hora de Bogotá para el campo de fecha y hora" time="0.003359" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\tardio.test.ts"/>
+		<testcase name="el campo solo deja elegir entre hace 48 horas y ahora" time="0.001557" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\tardio.test.ts"/>
+		<testcase name="lo escrito se envía con el desfase de Bogotá; lo que no es una fecha real no se envía" time="0.000622" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\tardio.test.ts"/>
+		<testcase name="avisa en palabras si falta la hora, si es futura o si pasó de 48 horas" time="0.002019" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\tardio.test.ts"/>
+		<testcase name="la ficha dice cuándo entró y quién lo digitó" time="0.000503" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\tardio.test.ts"/>
+	</testsuite>
+	<testsuite name="textoDescuento: el botón muestra el máximo de reglas.descuento_noche" time="0.007105" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.105Z" hostname="Pipi_2026">
+		<testcase name="muestra el máximo configurado" time="0.004053" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="sin reglas cargadas no inventa un valor" time="0.000313" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="con descuento en $0 no hay rebaja que ofrecer" time="0.000270" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+	</testsuite>
+	<testsuite name="leerDescuento: recepción escribe cuánto por noche, sin pasar del máximo" time="0.003334" disabled="0" errors="0" tests="4" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.109Z" hostname="Pipi_2026">
+		<testcase name="acepta valores hasta el máximo, con o sin puntos" time="0.001795" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="bloquea lo que pase del máximo" time="0.000376" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="pide un valor mayor que $0" time="0.000306" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="sin reglas cargadas lee el valor y deja el tope al servidor" time="0.000262" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+	</testsuite>
+	<testsuite name="ayudaPersonas: el adicional de la tercera sale de las tarifas de noche" time="0.002884" disabled="0" errors="0" tests="7" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.110Z" hostname="Pipi_2026">
+		<testcase name="es la diferencia entre 3 y 2 personas del tipo de habitación" time="0.000715" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="sin tarifas cargadas solo da el máximo" time="0.000228" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="si falta la tarifa de 2 o de 3 personas, solo da el máximo" time="0.000376" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="no mezcla tipos de habitación ni modalidades" time="0.000250" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="si hay dos tarifas para la misma combinación, no adivina cuál vale" time="0.000246" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="si la de 3 no cuesta más que la de 2, no habla de adicional" time="0.000216" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="en tres horas: máximo 2, sin adicional" time="0.000167" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+	</testsuite>
+	<testsuite name="ayudaHoras: extender por horas usa reglas.valor_hora" time="0.000754" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.113Z" hostname="Pipi_2026">
+		<testcase name="muestra el valor configurado" time="0.000378" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="sin reglas cargadas no inventa un valor" time="0.000137" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+	</testsuite>
+	<testsuite name="ayudaRecargoAseo: el recargo sale del catálogo" time="0.001209" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.112Z" hostname="Pipi_2026">
+		<testcase name="usa el precio del producto «Recargo aseo extremo»" time="0.000538" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="sin el producto (no cargado, inactivo o repetido) no inventa un valor" time="0.000180" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+		<testcase name="el aviso al pasar a limpieza especial también lo lee del catálogo" time="0.000260" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\textosConfig.test.ts"/>
+	</testsuite>
+	<testsuite name="origen del pago" time="0.005835" disabled="0" errors="0" tests="2" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.108Z" hostname="Pipi_2026">
+		<testcase name="habitación o venta de contado con su detalle" time="0.001550" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ventas.test.ts"/>
+		<testcase name="en «Lo de este turno», la venta se ve como venta de contado" time="0.001957" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ventas.test.ts"/>
+	</testsuite>
+	<testsuite name="avisos en vivo de una venta sin habitación" time="0.002806" disabled="0" errors="0" tests="1" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.111Z" hostname="Pipi_2026">
+		<testcase name="dice «de una venta de contado» y no pide cobrar antes de la salida" time="0.002387" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ventas.test.ts"/>
+	</testsuite>
+	<testsuite name="cobro de contado en efectivo" time="0.001945" disabled="0" errors="0" tests="3" failures="0" skipped="0" timestamp="2026-10-26T18:37:47.112Z" hostname="Pipi_2026">
+		<testcase name="sin valor escrito es pago exacto" time="0.000717" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ventas.test.ts"/>
+		<testcase name="si recibe más, calcula las vueltas" time="0.000350" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ventas.test.ts"/>
+		<testcase name="si recibe menos, no deja registrar: de contado no hay abonos" time="0.000355" classname="test" file="C:\Users\crist\proyectos\hotel-golan\src\web\ventas.test.ts"/>
+	</testsuite>
+	<!-- tests 510 -->
+	<!-- suites 126 -->
+	<!-- pass 510 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 42056.1579 -->
+</testsuites>
