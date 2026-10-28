@@ -4,6 +4,7 @@
 // @node-rs/argon2 usa Argon2id por defecto (ADR-003); la prueba «guarda el PIN como hash Argon2id» lo verifica.
 import { hash } from '@node-rs/argon2';
 import type { Bd } from './bd.ts';
+import { PRODUCTOS, REGLAS, TARIFAS } from './catalogo-base.ts';
 
 const BASE = '2026-10-12'; // lunes de demostración; horas en America/Bogota (-05:00)
 const t = (dia: string, hhmm: string) => `${dia}T${hhmm}:00-05:00`;
@@ -27,26 +28,7 @@ const HABITACIONES: Array<[string, 'AIRE' | 'VENTILADOR', string, string | null]
   ['301', 'AIRE', 'MANTENIMIENTO', 'Ducha en reparación'],
 ];
 
-// RN-02 y RN-03. Tres horas: una sola fila (personas = 2) que vale para 1 o 2 personas.
-const TARIFAS: Array<[string, string, number, number]> = [
-  ['VENTILADOR', 'NOCHE', 1, 45000], ['VENTILADOR', 'NOCHE', 2, 55000], ['VENTILADOR', 'NOCHE', 3, 80000],
-  ['AIRE', 'NOCHE', 1, 60000], ['AIRE', 'NOCHE', 2, 70000], ['AIRE', 'NOCHE', 3, 95000],
-  ['VENTILADOR', 'TRES_HORAS', 2, 25000], ['AIRE', 'TRES_HORAS', 2, 35000],
-];
-
-const REGLAS: Array<[string, number]> = [
-  ['valor_hora', 8000], ['hora_noche_completa', 16], ['descuento_noche', 5000],
-  ['pago_turno_dia', 70000], ['pago_turno_noche', 50000], ['retencion_datos_dias', 90],
-];
-
-// Precios informados (HG-LEV-001 §§8–9; HG-ACT-001 T2-18). La vitrina se carga en la segunda entrega.
-const PRODUCTOS: Array<[string, string, number]> = [
-  ['Coca-Cola', 'NEVERA', 4000], ['Agua', 'NEVERA', 2500], ['Hit', 'NEVERA', 3500], ['Sáviloe', 'NEVERA', 4000],
-  ['Gatorade', 'NEVERA', 5000], ['Squash', 'NEVERA', 4000], ['Pony Malta', 'NEVERA', 3500],
-  ['Buso', 'LAVANDERIA', 2000], ['Pantalón', 'LAVANDERIA', 3000], ['Vestido', 'LAVANDERIA', 4000],
-  ['Toalla', 'LAVANDERIA', 3000], ['Sábana', 'LAVANDERIA', 4000], ['Cobija', 'LAVANDERIA', 5000],
-  ['Llave perdida', 'OTROS', 40000], ['Recargo aseo extremo', 'OTROS', 20000],
-];
+// Tarifas, reglas y productos: catálogo base compartido con el arranque de una base nueva (catalogo-base.ts).
 
 export interface ResumenSemilla {
   usuarios: number;
