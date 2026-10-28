@@ -1,0 +1,510 @@
+OK	Semilla sintética	carga las 12 habitaciones, 8 tarifas, 8 reglas y 6 usuarios
+OK	Semilla sintética	guarda el PIN como hash Argon2id, nunca en claro
+OK	Semilla sintética	solo usa documentos de prueba
+OK	Caja del turno (RN-10)	debe haber $234.500: base $208.500 + efectivo $26.000; transferencias $85.000 aparte
+OK	Restricciones del modelo	impide un segundo turno activo (RN-09)
+OK	Restricciones del modelo	impide dos estadías activas en la misma habitación
+OK	Restricciones del modelo	tres horas admite máximo 2 personas (RN-03) y pagar al salir solo con una noche (RN-06)
+OK	Restricciones del modelo	el efectivo no puede quedar «por verificar» y el descuento no puede ser positivo
+OK	Restricciones del modelo	un menor necesita acompañante verificado (RN-16)
+OK	Restricciones del modelo	una entrega que no cuadra exige motivo (RN-11)
+OK	Simulador de verificación (opción B, Inbox/Outbox)	confirma la transferencia, deja auditoría y evento, y no se repite con la misma clave
+OK	Simulador de verificación (opción B, Inbox/Outbox)	no permite verificar dos veces un pago ya verificado con otra clave
+OK	FR-21 — anonimizar a los 90 días	con una retención mayor no borra nada: el plazo sale de la regla configurable
+OK	FR-21 — anonimizar a los 90 días	antes de cumplir los 90 días no se borra; la estadía desistida hace más de 90 días sí
+OK	FR-21 — anonimizar a los 90 días	Escenario «Anonimizar a los 90 días»: salida el 10-07-2026, tarea el 09-10-2026
+OK	FR-21 — anonimizar a los 90 días	no toca estadías recientes ni activas
+OK	FR-21 — anonimizar a los 90 días	es idempotente: otra corrida no falla ni duplica la auditoría
+OK	FR-21 — anonimizar a los 90 días	la tarea programada corre al arrancar y se detiene
+OK	FR-17, FR-20 — Anulaciones de la administración	anular un cobro en efectivo: sigue visible como anulado, deja de sumar a la caja y la cuenta vuelve a deber
+OK	FR-17, FR-20 — Anulaciones de la administración	anular una transferencia por verificar la quita de «por confirmar»
+OK	FR-17, FR-20 — Anulaciones de la administración	anular una salida de dinero: el «debe haber» vuelve a subir y queda auditado
+OK	FR-17, FR-20 — Anulaciones de la administración	recepción no anula: 403 SIN_PERMISO
+OK	FR-17, FR-20 — Anulaciones de la administración	motivo corto: 400; lo ya anulado: 409; lo que no existe: 404
+OK	FR-17, FR-20 — Anulaciones de la administración	la salida de una devolución no se anula por aquí: 409
+OK	FR-23 — avisos de la semilla	211 con transferencia por verificar, 207 por revisar y 204 en limpieza; sin nombres de huéspedes
+OK	FR-23 — avisos de la semilla	una salida vencida aparece con solo avanzar el reloj, con el valor por hora de las reglas
+OK	RN-17 (V5-03, V5-05) — cambia de opinión a los pocos minutos de entrar	de ventilador (206) a aire (201) a los 3 minutos: paga la diferencia de $15.000
+OK	RN-17 (V5-03, V5-05) — cambia de opinión a los pocos minutos de entrar	de aire (202) a ventilador (209) a los 4 minutos: se le devuelven $15.000 en efectivo y la cuenta queda en $0
+OK	RN-17 (V5-03, V5-05) — cambia de opinión a los pocos minutos de entrar	el límite de minutos se configura en Ajustes (minutos_cambio_sin_cargo)
+OK	RN-17 (V5-04) — ya usó la habitación	antes de las 12 m. se cobra la habitación nueva completa y la salida se recalcula
+OK	RN-17 (V5-04) — ya usó la habitación	después de las 12 m. no se cambia: 409 y nada cambia
+OK	FR-30 — habitación destino y registro	a una habitación ocupada o a la misma: 409
+OK	FR-30 — habitación destino y registro	queda en la auditoría con origen, destino y valor, sin datos del huésped
+OK	FR-30 — habitación destino y registro	la estadía avisa si tiene ropa en lavandería sin entregar (para «Dar salida»)
+OK	FR-22 — Permisos de la configuración	recepción consulta tarifas y reglas, pero no cambia nada: 403 SIN_PERMISO
+OK	FR-22 — Tarifas con vigencia	GET /tarifas: las 8 tarifas vigentes con su fecha de inicio
+OK	FR-22 — Tarifas con vigencia	PUT /tarifas crea una vigencia nueva: lo cotizado antes del cambio conserva el precio anterior
+OK	FR-22 — Tarifas con vigencia	una entrada registrada antes del cambio no cambia de valor
+OK	FR-22 — Tarifas con vigencia	tres horas solo lleva personas = 2; combinaciones repetidas o valores en 0: 400
+OK	FR-22 — Reglas numéricas	GET /reglas devuelve los ocho valores configurables
+OK	FR-22 — Reglas numéricas	PATCH /reglas cambia solo lo enviado, queda auditado y aplica a las cotizaciones nuevas
+OK	FR-22 — Reglas numéricas	el pago del turno ya abierto no cambia; aplica desde el turno siguiente
+OK	FR-22 — Reglas numéricas	cuerpo vacío, claves desconocidas u horas fuera de rango: 400
+OK	FR-22 — Catálogo de productos	crear un producto: 201, aparece en el catálogo y queda auditado
+OK	FR-22 — Catálogo de productos	RN-13 (V5-19): los productos de la familiar no van en el sistema; ningún producto es de otro dueño: 400
+OK	FR-22 — Catálogo de productos	RN-13 (V5-19): la regla es por dueño, no por sección: un producto del hotel puede ir en la sección 1 (antes, 400)
+OK	FR-22 — Catálogo de productos	FR-24: la administración crea un producto de vitrina sin indicar dueño (queda del hotel) y recepción lo carga a una habitación
+OK	FR-22 — Catálogo de productos	FR-24: productos de la vitrina de aseo también se crean y se editan
+OK	FR-22 — Catálogo de productos	nombre repetido en el mismo grupo: 409; precio negativo o grupo desconocido: 400
+OK	FR-22 — Catálogo de productos	cambiar un precio no altera un cargo anterior; los cargos nuevos usan el precio nuevo
+OK	FR-22 — Catálogo de productos	desactivar un producto lo quita del catálogo de recepción; la administración lo sigue viendo para reactivarlo
+OK	FR-22 — Catálogo de productos	producto que no existe: 404; renombrar a un nombre que ya existe en el grupo: 409
+OK	FR-04 — Cotizar una estadía	sin sesión: 401
+OK	FR-04 — Cotizar una estadía	noche con aire, 3 personas, entrando a las 3:00 p. m.: $95.000 y sale mañana a las 12 m.
+OK	FR-04 — Cotizar una estadía	sin entrada_en usa la hora actual del servidor (6:10 a. m. → 24 horas)
+OK	FR-04 — Cotizar una estadía	dos noches con descuento: $120.000 − $10.000 = $110.000; no permite pagar al salir
+OK	FR-04 — Cotizar una estadía	descuento menor al máximo: $3.000 por noche, dos noches = $6.000
+OK	FR-04 — Cotizar una estadía	descuento por encima del máximo: 422 DESCUENTO_EXCEDE_MAXIMO
+OK	FR-04 — Cotizar una estadía	tres horas con ventilador: $25.000, sale 3 horas después
+OK	FR-04 — Cotizar una estadía	4 personas en noche: 400 INVALID_PAYLOAD (el contrato permite máximo 3)
+OK	FR-04 — Cotizar una estadía	3 personas en tres horas: 422 CAPACIDAD_EXCEDIDA
+OK	FR-04 — Cotizar una estadía	descuento en tres horas: 422 DESCUENTO_NO_PERMITIDO
+OK	FR-04 — Cotizar una estadía	habitación que no existe o modalidad POR_HORAS: 400
+OK	FR-04 — Cotizar una estadía	usa la tarifa vigente en la hora de entrada (FR-22)
+OK	FR-06 — Catálogo de productos para cargos	GET /productos lista los activos con el contrato Producto
+OK	FR-06 — Catálogo de productos para cargos	un producto inactivo no aparece en el catálogo
+OK	FR-06, RN-18, RN-14 — Cargos a la cuenta	la cuenta de la 211 de la semilla: saldo $28.000 con $30.000 por verificar
+OK	FR-06, RN-18, RN-14 — Cargos a la cuenta	varios productos con cantidad y la llave perdida: cada cargo guarda precio unitario y cantidad
+OK	FR-06, RN-18, RN-14 — Cargos a la cuenta	un cambio de precio posterior no altera los cargos ya hechos
+OK	FR-06, RN-18, RN-14 — Cargos a la cuenta	el recargo de aseo extremo queda como cargo RECARGO_ASEO de $20.000 y se audita
+OK	FR-06, RN-18, RN-14 — Cargos a la cuenta	producto inactivo: 409; producto o estadía que no existen: 404
+OK	FR-06, RN-18, RN-14 — Cargos a la cuenta	cantidades fuera de 1 a 20 o lista vacía: 400
+OK	FR-06, RN-18, RN-14 — Cargos a la cuenta	a una estadía cerrada no se le cargan consumos: 409
+OK	FR-06, RN-18, RN-14 — Cargos a la cuenta	con Idempotency-Key, repetir no duplica los cargos
+OK	FR-07, RN-06 — Pagos y abonos a la cuenta	un abono en efectivo entra a la caja del turno y baja el saldo
+OK	FR-07, RN-06 — Pagos y abonos a la cuenta	un pago por Nequi queda POR_VERIFICAR: baja el saldo, no entra a la caja y avisa a la administración
+OK	FR-07, RN-06 — Pagos y abonos a la cuenta	no se cobra más que el saldo: 409; valor cero: 400
+OK	FR-07, RN-06 — Pagos y abonos a la cuenta	con Idempotency-Key, un doble toque registra un solo pago
+OK	FR-07, RN-06 — Pagos y abonos a la cuenta	pagar todo el saldo deja la cuenta en cero
+OK	RN-09 — Sin turno abierto no se reciben pagos	pagos: 409 SIN_TURNO_ABIERTO
+OK	RN-18 (V5-06) — daños con valor de reposición	la administración carga «Toalla manchada» por $25.000: queda como cargo DANO con quién lo registró y sube el saldo
+OK	RN-18 (V5-06) — daños con valor de reposición	recepción no pone el valor de un daño: 403
+OK	RN-18 (V5-06) — daños con valor de reposición	sin descripción o con valor $0: 400
+OK	RN-18 (V5-06) — daños con valor de reposición	con el daño sin pagar, la salida responde 409 SALDO_PENDIENTE (RN-07)
+OK	RN-18 (V5-06) — daños con valor de reposición	a una estadía que ya terminó o no existe: 409 o 404
+OK	RN-18 (V5-06) — daños con valor de reposición	queda en la auditoría como daño, sin datos del huésped
+OK	TICKET-28 — datos del hotel para el aviso	al empezar no hay datos: todos en null (la pantalla avisa qué falta)
+OK	TICKET-28 — datos del hotel para el aviso	la administración los guarda; recepción los lee para mostrar el aviso
+OK	TICKET-28 — datos del hotel para el aviso	queda en la auditoría qué campos cambiaron, sin los valores
+OK	TICKET-28 — datos del hotel para el aviso	un campo vacío se guarda como null
+OK	TICKET-28 — datos del hotel para el aviso	recepción no los cambia (403); sin sesión, 401; un teléfono o un RNT mal escrito, 400
+OK	RN-08, FR-10 — Devolución por desistimiento	solo miró la habitación y pagó en efectivo: se devuelven 45.000 con un movimiento DEVOLUCION en el turno abierto
+OK	RN-08, FR-10 — Devolución por desistimiento	ya usó la habitación: la devolución es de 0 y no se crea movimiento de caja
+OK	RN-08, FR-10 — Devolución por desistimiento	transferencia sin verificar: 409 PAGO_SIN_VERIFICAR y la estadía sigue activa
+OK	RN-08, FR-10 — Devolución por desistimiento	si pagó por transferencia (ya confirmada), el medio lo decide la administración
+OK	RN-08, FR-10 — Devolución por desistimiento	recepción no elige devolver por transferencia: 403
+OK	RN-08, FR-10 — Devolución por desistimiento	una sola devolución por estadía (la segunda: 409) y con Idempotency-Key se devuelve la misma
+OK	RN-08, FR-10 — Devolución por desistimiento	si iba a pagar al salir y no pagó nada, solo miró: devolución de 0
+OK	RN-08, FR-10 — Devolución por desistimiento	estadía inexistente: 404; motivo o medio inválido: 400
+OK	RN-09, RN-11, FR-13 — Entrega del turno	sin sesión: 401
+OK	RN-09, RN-11, FR-13 — Entrega del turno	entrega que cuadra: CERRADO con esperado 184.500 y diferencia 0; el turno de día queda por recibir con 184.500
+OK	RN-09, RN-11, FR-13 — Entrega del turno	al entregar se cierra la sesión de quien entregó
+OK	RN-09, RN-11, FR-13 — Entrega del turno	entrega que no cuadra exige motivo (422 MOTIVO_REQUERIDO); con motivo queda la diferencia de −4.500 y se avisa
+OK	RN-09, RN-11, FR-13 — Entrega del turno	si no tomó su pago, lo esperado es todo el «debe haber» (234.500)
+OK	RN-09, RN-11, FR-13 — Entrega del turno	la administración no entrega turnos: 403 SIN_PERMISO
+OK	RN-09, RN-11, FR-13 — Entrega del turno	solo lo entrega quien tiene el turno: otra recepcionista recibe 403
+OK	RN-09, RN-11, FR-13 — Entrega del turno	sin turno abierto no hay nada que entregar: 409 SIN_TURNO_ABIERTO; datos inválidos: 400
+OK	RN-09, RN-11, FR-13 — Entrega del turno	ciclo completo: entrega la noche y la siguiente recibe el día con lo contado
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	sin sesión: 401
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	entrada pagada en efectivo: estadía ACTIVA, cargo de 55.000, pago EN_CAJA y habitación OCUPADA
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	el documento sale enmascarado (••••678) y nunca completo; la auditoría no guarda datos personales
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	sin autorización de datos no se registra: 422 AUTORIZACION_REQUERIDA y nada cambia
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	menor de edad sin acompañante verificado: 400 INVALID_PAYLOAD
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	TICKET-36: el documento es obligatorio por ley (registro de huéspedes); sin tipo o sin número, 400 y nada se crea
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	pagar al salir se permite con una noche: forma_cobro AL_SALIR, sin pago y saldo igual a la tarifa
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	varias noches o tres horas no se pagan al salir: 422 PAGO_AL_SALIR_NO_PERMITIDO
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	no se asigna una habitación ocupada ni una en limpieza: 409 HABITACION_NO_DISPONIBLE
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	dos entradas a la vez en la misma habitación: solo una se registra
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	el descuento queda como cargo DESCUENTO aparte y el servidor recalcula el precio
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	un descuento menor al máximo queda con su valor; por encima del máximo no se registra nada
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	efectivo menor que el total queda como abono y el resto como saldo
+OK	RN-06, RN-16, FR-05 — Registro de la entrada	pago por Nequi: queda POR_VERIFICAR, no entra a la caja y la habitación se entrega igual
+OK	FR-03 — Idempotencia: un doble toque no duplica el registro	reenviar con la misma Idempotency-Key devuelve la misma estadía y existe un solo pago
+OK	Consultar estadías	GET /estadias?estado=ACTIVA lista las activas con total y paginación
+OK	Consultar estadías	GET /estadias/{id} devuelve la cuenta de la semilla (211: debe 28.000 con 30.000 por verificar)
+OK	Consultar estadías	una estadía que no existe: 404; un id mal formado: 400
+OK	RN-09 — Sin turno abierto no se registran entradas	con el turno por recibir: 409 SIN_TURNO_ABIERTO
+OK	RN-12, FR-15, SSE — Eventos en tiempo real	sin sesión: 401
+OK	RN-12, FR-15, SSE — Eventos en tiempo real	la recepción suscrita recibe pago.verificado en menos de 5 s cuando la administradora confirma
+OK	RN-12, FR-15, SSE — Eventos en tiempo real	el aviso de diferencia de caja (turno.diferencia) solo llega a la administración
+OK	RN-12, FR-15, SSE — Eventos en tiempo real	al reconectar con Last-Event-ID recibe lo que se perdió
+OK	FR-25 — Surtido	la administración anota lo que llegó: 201 y queda en la auditoría con quién lo registró
+OK	FR-25 — Surtido	recepción no anota surtido ni ve existencias: 403
+OK	FR-25 — Surtido	cantidad 0 o negativa, o producto sin existencias (lavandería, llave): 400 o 422
+OK	RN-21 — Existencias calculadas	solo nevera y vitrinas tienen existencias; lavandería y otros no aparecen
+OK	RN-21 — Existencias calculadas	surtir 10 y cargar 3 a una habitación deja 7; anular uno de esos cargos lo devuelve (8)
+OK	RN-21 — Existencias calculadas	lo vendido sin surtido deja existencias negativas (se avisa, no se bloquea la venta)
+OK	RN-04, FR-08 — Extender después del mediodía (aire, 1 persona, salida 12 m., son las 11:50 a. m.)	1 hora(s) → cargo EXTENSION de $8000 y nueva salida 2026-10-12T13:00:00-05:00
+OK	RN-04, FR-08 — Extender después del mediodía (aire, 1 persona, salida 12 m., son las 11:50 a. m.)	4 hora(s) → cargo EXTENSION de $32000 y nueva salida 2026-10-12T16:00:00-05:00
+OK	RN-04, FR-08 — Extender después del mediodía (aire, 1 persona, salida 12 m., son las 11:50 a. m.)	5 hora(s) → cargo EXTENSION de $60000 y nueva salida 2026-10-13T12:00:00-05:00
+OK	RN-04 — Cotizar y aplicar extensiones	la cotización avisa que pasa de las 4:00 p. m. y no cambia nada
+OK	RN-04 — Cotizar y aplicar extensiones	otra noche: 24 horas más con la tarifa por personas; el cargo dice «otra noche» y se audita
+OK	RN-04 — Cotizar y aplicar extensiones	por horas que pasan de las 4:00 p. m.: el cargo dice que se cobra la noche completa
+OK	RN-04 — Cotizar y aplicar extensiones	tres horas con 3 personas: 422 CAPACIDAD_EXCEDIDA
+OK	RN-04 — Cotizar y aplicar extensiones	por horas sin horas, horas con otra modalidad o más de 12: 400; estadía inexistente: 404
+OK	RN-04 — Cotizar y aplicar extensiones	con Idempotency-Key, un doble toque extiende una sola vez
+OK	RN-04 — Cotizar y aplicar extensiones	una estadía cerrada no se extiende: 409
+OK	RN-23 — fecha prevista de la factura	pedida un viernes, el lunes siguiente
+OK	RN-23 — fecha prevista de la factura	si ese lunes es festivo (12 de octubre), el martes
+OK	RN-23 — fecha prevista de la factura	si ese lunes es festivo (16 de noviembre), el martes
+OK	RN-23 — fecha prevista de la factura	cuenta el día de Bogotá: un viernes a las 11:30 p. m. sigue siendo viernes
+OK	RN-23 — fecha prevista de la factura	sábado, el lunes
+OK	RN-23 — fecha prevista de la factura	domingo, el lunes
+OK	RN-23 — fecha prevista de la factura	entre semana, el siguiente día hábil [P/V]
+OK	RN-23 — fecha prevista de la factura	salta Jueves y Viernes Santo
+OK	RN-23 — fecha prevista de la factura	hasta 3 días hábiles — viernes: hasta el miércoles (3 días hábiles)
+OK	RN-23 — fecha prevista de la factura	hasta 3 días hábiles — viernes antes del festivo del lunes 16: hasta el jueves
+OK	RN-23 — fecha prevista de la factura	hasta 3 días hábiles — martes: hasta el viernes
+OK	RN-23 — fecha prevista de la factura	hasta 3 días hábiles — fin de año: salta el 1 de enero y el fin de semana
+OK	RN-23 — fecha prevista de la factura	festivos de Colombia en 2026 (Ley 51 de 1983: los trasladables pasan al lunes)
+OK	FR-28 — recepción anota la solicitud desde la estadía	201: queda PENDIENTE, con quién la registró y la fecha prevista (viernes → lunes)
+OK	FR-28 — recepción anota la solicitud desde la estadía	la ficha de la estadía la muestra con su estado
+OK	FR-28 — recepción anota la solicitud desde la estadía	basta el RUT con el correo o con el teléfono; sin ninguno de los dos, 400
+OK	FR-28 — recepción anota la solicitud desde la estadía	un RUT, correo o teléfono mal escrito: 400
+OK	FR-28 — recepción anota la solicitud desde la estadía	una estadía que no existe: 404
+OK	FR-28 — recepción anota la solicitud desde la estadía	recepción no ve la lista general ni avanza estados: 403
+OK	FR-28 — la administración la avanza: PENDIENTE → ENVIADA_AL_CONTADOR → ENTREGADA	ve las pendientes, la más antigua primero
+OK	FR-28 — la administración la avanza: PENDIENTE → ENVIADA_AL_CONTADOR → ENTREGADA	no puede saltarse un paso: 409 TRANSICION_INVALIDA
+OK	FR-28 — la administración la avanza: PENDIENTE → ENVIADA_AL_CONTADOR → ENTREGADA	enviada al contador y luego entregada, con quién y cuándo
+OK	FR-28 — la administración la avanza: PENDIENTE → ENVIADA_AL_CONTADOR → ENTREGADA	una entregada ya no cambia: 409
+OK	FR-28 — la administración la avanza: PENDIENTE → ENVIADA_AL_CONTADOR → ENTREGADA	cada cambio queda auditado sin el RUT, el correo ni el teléfono (FR-20)
+OK	FR-28 — la administración la avanza: PENDIENTE → ENVIADA_AL_CONTADOR → ENTREGADA	una solicitud que no existe: 404
+OK	FR-21 — los datos de la solicitud se borran con la anonimización	cuando se anonimiza el huésped, la solicitud queda sin RUT, correo ni teléfono; el estado se conserva
+OK	FR-01 — Mapa de habitaciones	sin sesión: 401
+OK	FR-01 — Mapa de habitaciones	devuelve las 12 habitaciones en orden, con tipo y estado
+OK	FR-01 — Mapa de habitaciones	las ocupadas traen su estadía resumida: saldo, por verificar y salida en hora de Bogotá
+OK	FR-01 — Mapa de habitaciones	marca vencida una estadía cuya salida ya pasó
+OK	FR-01 — Mapa de habitaciones	filtra por estado
+OK	FR-01 — Mapa de habitaciones	estado inválido: 400 INVALID_PAYLOAD
+OK	Aplicación web servida por la API	GET / entrega index.html y las rutas de la app caen en index.html
+OK	Aplicación web servida por la API	sirve un archivo publicado después de arrancar (nueva versión sin reiniciar)
+OK	Aplicación web servida por la API	un archivo que no existe responde 404, no la página principal
+OK	FR-31 (V5-02) — quiénes se quedan hoy	lista las habitaciones ocupadas con el nombre y el documento completo del titular, por habitación
+OK	FR-31 (V5-02) — quiénes se quedan hoy	una estadía terminada no aparece
+OK	FR-31 (V5-02) — quiénes se quedan hoy	sin sesión: 401
+OK	FR-31 (V5-02) — quiénes se quedan hoy	cada consulta queda en la auditoría con quién la hizo, sin nombres ni documentos
+OK	FR-19 — Inicio de sesión	PIN correcto: 201 y cookie HttpOnly, Secure, SameSite=Strict de 12 horas
+OK	FR-19 — Inicio de sesión	el token se guarda como hash, no en claro
+OK	FR-19 — Inicio de sesión	PIN incorrecto y usuario inexistente responden igual: 401 CREDENCIALES_INVALIDAS
+OK	FR-19 — Inicio de sesión	PIN que no tiene 6 dígitos: 400 INVALID_PAYLOAD
+OK	FR-19 — Inicio de sesión	bloqueo tras 5 intentos fallidos durante 15 minutos, aunque el PIN sea correcto
+OK	FR-19 — Inicio de sesión	un usuario desactivado no puede entrar
+OK	FR-19 — Inicio de sesión	registra INICIAR_SESION y BLOQUEAR en auditoría sin el PIN
+OK	Sesión actual	sin cookie: 401 NO_AUTENTICADO
+OK	Sesión actual	con cookie: 200 con el usuario
+OK	Sesión actual	vence a las 12 horas
+OK	Sesión actual	cerrar sesión: 204 y la cookie deja de servir
+OK	Errores comunes	ruta inexistente: 404 NO_ENCONTRADO en JSON
+OK	FR-27 — Pedido de un externo	2 sábanas de «Cliente Externo Prueba»: 201, $8.000 por cobrar, sin habitación ni cargos
+OK	FR-27 — Pedido de un externo	pagado por adelantado en efectivo: suma a la caja, no debe nada y se entrega sin cobrar de nuevo
+OK	FR-27 — Pedido de un externo	sin pagar no se entrega; con autorización queda como deuda a su nombre y con quien autorizó
+OK	FR-27 — Pedido de un externo	cuando vuelve y paga (por Nequi), la deuda sale de la lista
+OK	FR-27 — Validaciones y privacidad de externos	sin nombre o con un nombre de una letra: 400
+OK	FR-27 — Validaciones y privacidad de externos	el nombre del externo se borra con la anonimización, 90 días después de entregar
+OK	FR-27 — Pedido de lavandería de un huésped	2 busos y 1 pantalón para la 205: 201, $7.000, cargado a la cuenta y por entregar
+OK	FR-27 — Pedido de lavandería de un huésped	sin pagar y sin autorización no se entrega: 422 PAGO_REQUERIDO
+OK	FR-27 — Pedido de lavandería de un huésped	al entregar cobrando en efectivo: queda pagado, entra a la caja y sale de los pendientes
+OK	FR-27 — Pedido de lavandería de un huésped	un pedido ya entregado no se entrega otra vez: 409
+OK	RN-22 — Entrega sin pago autorizada por recepción	se entrega con la autorización registrada; la deuda sigue y la salida queda bloqueada (RN-07)
+OK	RN-22 — Entrega sin pago autorizada por recepción	si la cuenta ya está en $0 (pagó antes), se entrega sin cobrar de nuevo
+OK	FR-27 — Validaciones	solo prendas de lavandería: 422 NO_VENDIBLE; estadía que no existe: 404; sin prendas: 400
+OK	FR-27 — Validaciones	en «Agregar cargos» ya no se cargan prendas sueltas: la lavandería va como pedido (409)
+OK	inserción en lote	publicarEventos guarda todos los eventos en el orden dado, con su payload
+OK	inserción en lote	publicarEventos sin eventos no hace nada
+OK	inserción en lote	auditarVarios guarda una fila por registro, en orden y con su detalle
+OK	FR-33 (RN-24) — reportes a Migración Colombia	la entrada de un extranjero deja pendiente su llegada; la de un colombiano no
+OK	FR-33 (RN-24) — reportes a Migración Colombia	los datos para llenar el SIRE se piden aparte y cada consulta queda en la auditoría, sin los datos
+OK	FR-33 (RN-24) — reportes a Migración Colombia	pasadas las horas configuradas (24) sin reportar, queda «atrasado»
+OK	FR-33 (RN-24) — reportes a Migración Colombia	«Ya lo reporté» lo quita de la lista y queda en la auditoría; marcarlo otra vez es 409
+OK	FR-33 (RN-24) — reportes a Migración Colombia	no hay nada que reportar de un colombiano ni de una salida que no ha pasado: 409
+OK	FR-33 (RN-24) — reportes a Migración Colombia	al dar salida al extranjero queda pendiente el reporte de su salida
+OK	FR-33 (RN-24) — reportes a Migración Colombia	si el extranjero desiste antes de reportar su llegada, no queda nada pendiente
+OK	FR-33 (RN-24) — reportes a Migración Colombia	sin sesión: 401; una estadía que no existe: 404
+OK	FR-12, RN-10 — Una salida de dinero baja la caja, pero no cuenta como venta	sin sesión: 401
+OK	FR-12, RN-10 — Una salida de dinero baja la caja, pero no cuenta como venta	compra para el hotel de $10.000: «debe haber» pasa de 234.500 a 224.500 y el efectivo cobrado sigue en 26.000
+OK	FR-12, RN-10 — Una salida de dinero baja la caja, pero no cuenta como venta	el recargo de aseo entregado a quien limpió (RN-14) lleva la habitación
+OK	FR-12, RN-10 — Una salida de dinero baja la caja, pero no cuenta como venta	la administración también registra salidas (retiro de la administración)
+OK	FR-12, RN-10 — Una salida de dinero baja la caja, pero no cuenta como venta	una devolución no se crea desde aquí; valor cero, detalle corto o campos de más: 400
+OK	FR-12, RN-10 — Una salida de dinero baja la caja, pero no cuenta como venta	con Idempotency-Key, un doble toque registra una sola salida
+OK	FR-12, RN-10 — Una salida de dinero baja la caja, pero no cuenta como venta	GET /movimientos_caja lista las salidas del turno activo en orden; también con turno_id
+OK	RN-09 — Sin turno abierto no sale dinero	409 SIN_TURNO_ABIERTO
+OK	RN-12, FR-15 — Pagos por confirmar	sin sesión: 401
+OK	RN-12, FR-15 — Pagos por confirmar	GET /pagos?estado=POR_VERIFICAR muestra la transferencia de la 211 con el contrato Pago
+OK	RN-12, FR-15 — Pagos por confirmar	GET /pagos filtra por turno y recepción también puede consultar
+OK	RN-12, FR-15 — Pagos por confirmar	la administradora confirma con un toque: VERIFICADO con verificado_por «admin»; la caja no cambia
+OK	RN-12, FR-15 — Pagos por confirmar	la transferencia no llegó: RECHAZADO y el saldo de la 211 sube 30.000
+OK	RN-12, FR-15 — Pagos por confirmar	recepción no puede confirmar transferencias: 403 SIN_PERMISO
+OK	RN-12, FR-15 — Pagos por confirmar	un pago ya confirmado o en efectivo: 409; uno que no existe: 404; resultado inválido: 400
+OK	RN-12, FR-15 — Pagos por confirmar	con Idempotency-Key, un doble toque devuelve lo mismo y no se aplica dos veces
+OK	FR-32 (V5-20) — productos vendidos	por día del hotel: cargados a habitaciones, de contado y la lavandería de afuera, por grupo y producto
+OK	FR-32 (V5-20) — productos vendidos	por turno: el turno de noche abierto tiene lo mismo
+OK	FR-32 (V5-20) — productos vendidos	por semana o mes: un rango de días del hotel; un día sin ventas da cero
+OK	FR-32 (V5-20) — productos vendidos	cambiar el precio de un producto no altera lo ya vendido
+OK	FR-32 (V5-20) — productos vendidos	anular el pago de una venta de contado la quita del informe
+OK	FR-32 (V5-20) — productos vendidos	solo la administración (recepción: 403); rango al revés o sin rango ni turno: 400
+OK	ADR-010 (V5-16) — la plata del registro tardío es del turno en que entró el huésped	el pago y la estadía quedan en el turno de A, aunque los digite B
+OK	ADR-010 (V5-16) — la plata del registro tardío es del turno en que entró el huésped	la caja abierta de B no cambia: su base ya traía esa plata
+OK	ADR-010 (V5-16) — la plata del registro tardío es del turno en que entró el huésped	el turno de A conserva su cierre y muestra la diferencia ajustada: el sobrante queda explicado
+OK	ADR-010 (V5-16) — la plata del registro tardío es del turno en que entró el huésped	la administración recibe el aviso del registro tardío en un turno cerrado
+OK	ADR-010 (V5-16) — la plata del registro tardío es del turno en que entró el huésped	el resumen del día del hotel la cuenta en el día de la entrada real (12 de octubre)
+OK	ADR-010 — Registro tardío	TICKET-36: lo del talonario también necesita el documento (400 sin él)
+OK	ADR-010 — Registro tardío	una entrada de hace 3 horas calcula la salida con la hora real (3:10 a. m. → 12 m. del mismo día)
+OK	ADR-010 — Registro tardío	el precio es el de la tarifa vigente a la hora real de entrada
+OK	ADR-010 — Registro tardío	una entrada normal no es tardía y también dice quién la registró
+OK	ADR-010 — Registro tardío	registro tardío sin hora, hora sin registro tardío, más de 48 horas atrás o en el futuro: 400
+OK	ADR-010 — Registro tardío	justo 48 horas atrás todavía se acepta
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 02:00, 1 noche(s) → sale 2026-10-12 12:00 (MADRUGADA_MISMO_DIA)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 06:00, 1 noche(s) → sale 2026-10-12 12:00 (MADRUGADA_MISMO_DIA)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 06:01, 1 noche(s) → sale 2026-10-13 06:01 (VEINTICUATRO_HORAS)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 06:15, 1 noche(s) → sale 2026-10-13 06:15 (VEINTICUATRO_HORAS)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 06:30, 1 noche(s) → sale 2026-10-13 06:30 (VEINTICUATRO_HORAS)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 09:59, 1 noche(s) → sale 2026-10-13 09:59 (VEINTICUATRO_HORAS)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 10:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 11:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 11:59, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 12:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 15:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 22:00, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 23:59, 1 noche(s) → sale 2026-10-13 12:00 (MEDIODIA_SIGUIENTE)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 03:00, 2 noche(s) → sale 2026-10-13 12:00 (MADRUGADA_MISMO_DIA)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 09:00, 2 noche(s) → sale 2026-10-14 09:00 (VEINTICUATRO_HORAS)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 10:00, 2 noche(s) → sale 2026-10-14 12:00 (MEDIODIA_SIGUIENTE)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	entra 2026-10-12 15:00, 2 noche(s) → sale 2026-10-14 12:00 (MEDIODIA_SIGUIENTE)
+OK	RN-01 — La salida de la noche depende de la hora de entrada	tres horas: sale 3 horas después
+OK	RN-01 — La salida de la noche depende de la hora de entrada	no depende de la zona horaria del servidor: usa siempre UTC−5
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	VENTILADOR NOCHE con 1 persona(s) → $45000
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	VENTILADOR NOCHE con 2 persona(s) → $55000
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	VENTILADOR NOCHE con 3 persona(s) → $80000
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	AIRE NOCHE con 1 persona(s) → $60000
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	AIRE NOCHE con 2 persona(s) → $70000
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	AIRE NOCHE con 3 persona(s) → $95000
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	VENTILADOR TRES_HORAS con 2 persona(s) → $25000
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	AIRE TRES_HORAS con 1 persona(s) → $35000
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	varias noches multiplica la tarifa por noche
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	tres horas admite máximo 2 personas: CAPACIDAD_EXCEDIDA
+OK	RN-02, RN-03 — La tarifa depende del tipo, la modalidad y las personas	una noche admite máximo 3 personas: CAPACIDAD_EXCEDIDA
+OK	RN-05 — Descuento por noche hasta el máximo configurado ($5.000), solo en la modalidad de noche	el máximo, dos noches: $10.000
+OK	RN-05 — Descuento por noche hasta el máximo configurado ($5.000), solo en la modalidad de noche	recepción puede dar menos: $3.000 por noche, dos noches = $6.000
+OK	RN-05 — Descuento por noche hasta el máximo configurado ($5.000), solo en la modalidad de noche	sin pedirlo: $0
+OK	RN-05 — Descuento por noche hasta el máximo configurado ($5.000), solo en la modalidad de noche	más del máximo: DESCUENTO_EXCEDE_MAXIMO, con el máximo en el mensaje
+OK	RN-05 — Descuento por noche hasta el máximo configurado ($5.000), solo en la modalidad de noche	el máximo sigue lo que la administración configure
+OK	RN-05 — Descuento por noche hasta el máximo configurado ($5.000), solo en la modalidad de noche	descuento negativo o con decimales: no se acepta
+OK	RN-05 — Descuento por noche hasta el máximo configurado ($5.000), solo en la modalidad de noche	tres horas con descuento: DESCUENTO_NO_PERMITIDO
+OK	RN-09 — Fin programado del turno (día 6:30 a. m. – 6:30 p. m.; noche 6:30 p. m. – 6:30 a. m.)	NOCHE recibido 2026-10-12 18:30 → termina 2026-10-13 06:30
+OK	RN-09 — Fin programado del turno (día 6:30 a. m. – 6:30 p. m.; noche 6:30 p. m. – 6:30 a. m.)	NOCHE recibido 2026-10-12 18:10 → termina 2026-10-13 06:30
+OK	RN-09 — Fin programado del turno (día 6:30 a. m. – 6:30 p. m.; noche 6:30 p. m. – 6:30 a. m.)	NOCHE recibido 2026-10-13 01:00 → termina 2026-10-13 06:30
+OK	RN-09 — Fin programado del turno (día 6:30 a. m. – 6:30 p. m.; noche 6:30 p. m. – 6:30 a. m.)	DIA recibido 2026-10-13 06:30 → termina 2026-10-13 18:30
+OK	RN-09 — Fin programado del turno (día 6:30 a. m. – 6:30 p. m.; noche 6:30 p. m. – 6:30 a. m.)	DIA recibido 2026-10-13 06:05 → termina 2026-10-13 18:30
+OK	RN-09 — Fin programado del turno (día 6:30 a. m. – 6:30 p. m.; noche 6:30 p. m. – 6:30 a. m.)	DIA recibido 2026-10-13 19:00 → termina 2026-10-14 18:30
+OK	Cotización completa	dos noches con aire, 1 persona y descuento: $120.000 − $10.000 = $110.000; no permite pagar al salir
+OK	Cotización completa	una noche sí permite pagar al salir; tres horas no
+OK	RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa	salida 12 m., son las 11:50 a. m., 1 hora(s) → $8000, sale 2026-10-12 13:00
+OK	RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa	salida 12 m., son las 11:50 a. m., 4 hora(s) → $32000, sale 2026-10-12 16:00
+OK	RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa	salida 12 m., son las 11:50 a. m., 5 hora(s) → $60000, sale 2026-10-13 12:00
+OK	RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa	con la salida ya vencida, cuenta desde ahora (lo que sea mayor)
+OK	RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa	por horas en la noche (después de las 4:00 p. m.) ya es noche completa
+OK	RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa	otra noche suma 24 horas desde la salida actual, con la tarifa por personas
+OK	RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa	otra noche con la salida vencida sigue la regla de salida desde ahora (RN-01): sale mañana a las 12 m., no 24 horas después
+OK	RN-04 — Extensión por horas hasta las 4:00 p. m.; después, noche completa	tres horas más: tarifa de tres horas y máximo 2 personas
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	solo administración: 401 sin sesión y 403 para recepción en las tres consultas
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	historial del más reciente al más antiguo, paginado y con total independiente de la página
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	límite predeterminado de 20 y orden estable cuando coinciden las horas
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	detalle incluye pagos y salidas anulados; los totales los excluyen y el cierre permanece intacto
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	valida UUID, paginación y fechas; un turno inexistente responde 404
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	Resumen del día 12 de octubre: 195.000 + 26.000 = 221.000, sin sumar la base
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	corte inclusivo a las 6:30, exclusivo al día siguiente, con madrugada y cambio de mes en Bogotá
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	suma por separado descuentos, salidas y diferencias; omite anulados y transferencias rechazadas
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	la verificación posterior actualiza el día del cobro, sin moverlo al día de confirmación
+OK	FR-16 / RN-15 — historial y reporte del día del hotel	turno por recibir aparece en el historial sin responsable ni cierre y no infla el resumen
+OK	RN-07, FR-09 — Nadie sale debiendo	sin sesión: 401
+OK	RN-07, FR-09 — Nadie sale debiendo	salida bloqueada por saldo: 409 SALDO_PENDIENTE y la estadía sigue ACTIVA
+OK	RN-07, FR-09 — Nadie sale debiendo	salida con la cuenta al día: CERRADA con hora real y la habitación queda POR_REVISAR
+OK	RN-07, FR-09 — Nadie sale debiendo	una estadía ya cerrada no sale dos veces (409); una que no existe: 404
+OK	RN-07, FR-09 — Nadie sale debiendo	con una transferencia por verificar y saldo $0 sí puede salir (la habitación se entrega igual, RN-12)
+OK	FR-02 — Revisión y transiciones de la habitación	la habitación por revisar no se puede asignar
+OK	FR-02 — Revisión y transiciones de la habitación	por revisar → limpieza especial (fluidos) → disponible
+OK	FR-02 — Revisión y transiciones de la habitación	por revisar → limpieza normal deja la nota «Limpieza normal»
+OK	FR-02 — Revisión y transiciones de la habitación	por revisar → mantenimiento con la nota del daño → por revisar cuando se arregla
+OK	FR-02 — Revisión y transiciones de la habitación	transiciones no permitidas: 409 TRANSICION_INVALIDA
+OK	FR-02 — Revisión y transiciones de la habitación	OCUPADA no se pide a mano, limpieza especial solo con LIMPIEZA y habitación inexistente: 400
+OK	RN-10, FR-11 — La caja del turno solo suma efectivo	sin sesión: 401
+OK	RN-10, FR-11 — La caja del turno solo suma efectivo	caja del ejemplo real del relevo: 208.500 + 26.000 = 234.500; transferencias 85.000 aparte
+OK	RN-10, FR-11 — La caja del turno solo suma efectivo	la administración también ve la caja
+OK	RN-10, FR-11 — La caja del turno solo suma efectivo	una salida de dinero baja «debe haber», pero el efectivo cobrado sigue igual
+OK	RN-10, FR-11 — La caja del turno solo suma efectivo	lo anulado no cuenta y una transferencia rechazada no suma
+OK	RN-09, RN-11, FR-14 — Recibir el turno	recibir el turno con un toque: queda ABIERTO con la base contada y el usuario como responsable
+OK	RN-09, RN-11, FR-14 — Recibir el turno	antes de recibir, la sesión avisa que hay un turno por recibir; después ya no
+OK	RN-09, RN-11, FR-14 — Recibir el turno	el turno por recibir se puede consultar: muestra lo entregado y aún no tiene responsable
+OK	RN-09, RN-11, FR-14 — Recibir el turno	recibir con diferencia sin motivo: 422 MOTIVO_REQUERIDO y el turno sigue por recibir
+OK	RN-09, RN-11, FR-14 — Recibir el turno	recibir con diferencia avisa a la administración (evento turno.diferencia)
+OK	RN-09, RN-11, FR-14 — Recibir el turno	la administración no recibe turnos: 403
+OK	RN-09, RN-11, FR-14 — Recibir el turno	un turno ya recibido no se vuelve a recibir: 409 CONFLICTO
+OK	RN-09, RN-11, FR-14 — Recibir el turno	valor contado negativo o campos de más: 400 INVALID_PAYLOAD
+OK	RN-09, RN-11, FR-14 — Recibir el turno	sin turno ABIERTO no se puede cobrar: SIN_TURNO_ABIERTO (409)
+OK	FR-18 — Usuarios (solo la administración)	recepción no gestiona usuarios ni ve la auditoría: 403 SIN_PERMISO
+OK	FR-18 — Usuarios (solo la administración)	lista los usuarios con su rol y estado, sin el PIN
+OK	FR-18 — Usuarios (solo la administración)	crear un usuario: 201, el PIN se guarda con Argon2id y la persona ya puede entrar
+OK	FR-18 — Usuarios (solo la administración)	usuario repetido: 409 CONFLICTO; PIN que no es de 6 dígitos o campos de más: 400
+OK	FR-18 — Usuarios (solo la administración)	Escenario «Usuario desactivado»: no puede entrar y sus sesiones anteriores quedan revocadas
+OK	FR-18 — Usuarios (solo la administración)	reactivar: la persona vuelve a entrar con su PIN
+OK	FR-18 — Usuarios (solo la administración)	cambiar el PIN: el anterior deja de servir, el nuevo queda en Argon2id y se cierran sus sesiones abiertas
+OK	FR-18 — Usuarios (solo la administración)	desbloquear: quien se bloqueó por intentos fallidos puede volver a entrar sin esperar los 15 minutos
+OK	FR-18 — Usuarios (solo la administración)	la administración no se desactiva a sí misma (el hotel no se queda sin quien administre): 409
+OK	FR-18 — Usuarios (solo la administración)	usuario que no existe: 404; sin cambios o con campos de más: 400
+OK	FR-20 — Auditoría	lista lo más reciente primero, con quién, qué acción y sobre qué; filtra por entidad y pagina
+OK	FR-20 — Auditoría	no expone datos de huéspedes ni PIN
+OK	FR-20 — Auditoría	límite fuera de rango: 400
+OK	FR-26 — Venta de contado en efectivo	2 aguas y 1 Gatorade en efectivo: 201, $10.000, suma a la caja y descuenta existencias
+OK	FR-26 — Venta de contado en efectivo	el cobro aparece en los pagos del turno como venta de contado, sin habitación
+OK	FR-26 — Venta de contado en efectivo	la administración la anula con motivo: la caja y las existencias se recalculan
+OK	FR-26 — Venta de contado en efectivo	con la misma Idempotency-Key, repetir no duplica la venta
+OK	FR-26 — Venta de contado por transferencia (RN-12)	por Nequi queda por confirmar, no suma a la caja y avisa a la administración
+OK	FR-26 — Validaciones	solo productos de la nevera y las vitrinas: lavandería o llave responden 422 NO_VENDIBLE
+OK	FR-26 — Validaciones	un producto desactivado responde 409; uno que no existe, 404
+OK	FR-26 — Validaciones	sin productos, cantidad 0 o medio desconocido: 400; sin sesión: 401
+OK	FR-22 — tarifas en la PWA	nombra cada tarifa como la dice el hotel
+OK	FR-22 — tarifas en la PWA	envía solo las tarifas que cambiaron y avisa los valores que no sirven
+OK	FR-22 — reglas en la PWA	muestra la hora de la noche completa en palabras
+OK	FR-22 — reglas en la PWA	envía solo las reglas que cambiaron, con sus límites
+OK	FR-22 — reglas en la PWA	describe una regla con su valor
+OK	FR-22 — productos en la PWA	FR-24: la administración edita todos los grupos, incluidas las dos vitrinas
+OK	FR-22 — productos en la PWA	valida nombre y precio
+OK	TICKET-21 · surtido en Ajustes	la cantidad que llegó es un entero de 1 a 10.000
+OK	RN-13 (V5-19) — productos de la familiar	la nota de Ajustes habla de los productos de la familiar, estén en la sección que estén, y no de la sección 1
+OK	TICKET-28 — aviso de privacidad	el texto corto es el aprobado: obligación legal, Migración, recepción y la pregunta final
+OK	TICKET-28 — aviso de privacidad	dice qué datos del hotel faltan en Ajustes
+OK	TICKET-28 — aviso de privacidad	la política completa usa los datos del hotel y el plazo de borrado configurado
+OK	TICKET-28 — aviso de privacidad	si falta un dato, lo marca en lugar de inventarlo
+OK	TICKET-28 — aviso de privacidad	valida los datos del formulario de Ajustes
+OK	FR-23 — avisos en pantalla	dice hace cuánto venció, en palabras
+OK	FR-23 — avisos en pantalla	una salida vencida avisa que corre el valor por hora y la regla de la noche completa (RN-04)
+OK	FR-23 — avisos en pantalla	se calcula con la hora actual, sin esperar al servidor: aparece al pasar la hora de salida
+OK	FR-23 — avisos en pantalla	transferencia por verificar, por revisar y limpieza; sin nombres de huéspedes
+OK	FR-23 — avisos en pantalla	ordena de lo más urgente a lo menos: vencidas, transferencias, por revisar, limpieza
+OK	FR-23 — avisos en pantalla	sin reglas todavía (cargando), la salida vencida avisa sin valores
+OK	TICKET-21 · aviso de existencias (RN-21)	avisa los productos surtidos alguna vez que quedan en 0 o menos
+OK	TICKET-21 · aviso de existencias (RN-21)	lo que nunca se ha surtido no avisa (al empezar todo está en 0)
+OK	TICKET-21 · aviso de existencias (RN-21)	los avisos de existencias van después de los de habitaciones
+OK	FR-33 (TICKET-37) — avisos de reportes a Migración	pide reportar la llegada o la salida, solo con la habitación; si está atrasado, es una alerta
+OK	FR-33 (TICKET-37) — avisos de reportes a Migración	van después de las salidas vencidas y antes de las transferencias
+OK	RN-17 — resumen del cambio	a los pocos minutos, a una más cara: paga la diferencia
+OK	RN-17 — resumen del cambio	a los pocos minutos, a una más barata: se le devuelve en efectivo
+OK	RN-17 — resumen del cambio	si pagó por transferencia, lo que queda a favor lo decide la administración
+OK	RN-17 — resumen del cambio	ya usó la habitación: se cobra la nueva completa y cambia la salida
+OK	FR-30 — habitaciones a las que se puede pasar	solo las disponibles, sin la actual
+OK	RN-18 — daño con valor de reposición	lee la descripción y el valor en pesos
+OK	RN-18 — daño con valor de reposición	pide qué se dañó y un valor mayor que $0
+OK	RN-18 — daño con valor de reposición	recepción ve que el daño lo cobra la administradora
+OK	FR-18 — usuarios en la PWA	sugiere un usuario válido a partir del nombre, sin tildes ni espacios
+OK	FR-18 — usuarios en la PWA	valida el formulario de usuario nuevo con mensajes sencillos
+OK	FR-18 — usuarios en la PWA	muestra si la persona está activa, desactivada o bloqueada (con la hora en Bogotá)
+OK	FR-20 — actividad en palabras	describe cada acción sin tecnicismos
+OK	FR-20 — actividad en palabras	un usuario que ya no está en la lista o una acción nueva no rompen la pantalla
+OK	FR-28 — datos de la solicitud	el RUT o NIT con el correo o con el celular basta
+OK	FR-28 — datos de la solicitud	sin correo ni celular, pide uno de los dos
+OK	FR-28 — datos de la solicitud	marca el RUT, el correo o el celular mal escritos
+OK	FR-28 — datos de la solicitud	envía el RUT sin puntos ni espacios, el celular con +57 y omite lo vacío
+OK	FR-28 — estado y fecha prevista en palabras	cada estado con su etiqueta
+OK	FR-28 — estado y fecha prevista en palabras	la fecha prevista con el día de la semana
+OK	FR-28 — estado y fecha prevista en palabras	el rango de 1 a 3 días hábiles en palabras (V5-09)
+OK	FR-28 — estado y fecha prevista en palabras	el siguiente paso solo lo da la administración, en orden
+OK	lo que falta por pagar del pedido	es el valor del pedido, sin pasar del saldo de la cuenta
+OK	textos	quién pidió: la habitación o el nombre del externo
+OK	textos	mensaje al entregar
+OK	textos	la ficha tiene la vista «Recibir lavandería»
+OK	TICKET-24 · externos	lo que falta para entregar: el externo usa lo que debe el pedido; el huésped, su cuenta
+OK	TICKET-24 · externos	el cobro de un externo se ve como lavandería con su nombre
+OK	Presentación del mapa de habitaciones	traduce los estados de la API a las clases y textos del prototipo
+OK	Presentación del mapa de habitaciones	formatea pesos colombianos sin centavos
+OK	Presentación del mapa de habitaciones	muestra la hora de Bogotá tal como la manda la API, sin depender de la zona del equipo
+OK	Presentación del mapa de habitaciones	dice hoy o mañana respecto de la fecha de referencia
+OK	Presentación del mapa de habitaciones	cuenta las habitaciones por estado para los indicadores del inicio
+OK	Presentación del mapa de habitaciones	saca dos iniciales para el avatar, ignorando números y paréntesis
+OK	TICKET-02 — Paso «Habitación y servicio»	máximo 3 personas por noche y 2 en tres horas
+OK	TICKET-02 — Paso «Habitación y servicio»	al pasar a tres horas, baja las personas a 2 si había más
+OK	TICKET-02 — Paso «Habitación y servicio»	describe la salida en palabras: «mañana a las 12:00 m.»
+OK	TICKET-03 · recibir el turno y caja	lee pesos escritos con puntos, signo o espacios; vacío o sin números es null
+OK	TICKET-03 · recibir el turno y caja	describe la diferencia entre lo contado y lo entregado
+OK	TICKET-03 · recibir el turno y caja	nombra el turno y su horario (RN-09)
+OK	TICKET-04 · asistente de entrada	pide nombre, autorización y, para un menor, el acompañante verificado
+OK	TICKET-04 · asistente de entrada	TICKET-36: el documento es obligatorio, con un mensaje que dice por qué
+OK	TICKET-04 · asistente de entrada	valida el número de documento y el teléfono de 10 dígitos
+OK	TICKET-04 · asistente de entrada	arma el huésped para la API: siempre con documento (TICKET-36), teléfono con +57 y documento sin puntos
+OK	TICKET-04 · asistente de entrada	calcula vueltas o abono con el efectivo recibido
+OK	TICKET-04 · asistente de entrada	enmascara el documento: ••••432
+OK	TICKET-04 · clave de idempotencia	genera un UUID v4 aunque la conexión no sea segura (sin randomUUID)
+OK	TICKET-05 · pagos por confirmar y avisos en vivo	nombra el medio de pago en palabras
+OK	TICKET-05 · pagos por confirmar y avisos en vivo	convierte el evento de verificación en un aviso sencillo para recepción
+OK	TICKET-05 · fechas relativas	dice «ayer» para el día anterior
+OK	TICKET-06 · ficha de la habitación: cargos y pagos	agrupa el catálogo en nevera, vitrinas, lavandería y otros (FR-24)
+OK	TICKET-06 · ficha de la habitación: cargos y pagos	resume la selección múltiple con cantidades y total
+OK	TICKET-06 · ficha de la habitación: cargos y pagos	describe el saldo: debe, por verificar o al día
+OK	TICKET-06 · ficha de la habitación: cargos y pagos	en efectivo cobra hasta el saldo y lo demás son vueltas; por transferencia, lo escrito
+OK	TICKET-08 · revisión de la habitación (FR-02)	ofrece solo las transiciones permitidas, en palabras sencillas
+OK	TICKET-10 · salidas de dinero y «Lo de este turno»	ofrece los tipos de salida en palabras sencillas; la devolución no está (sale desde la estadía)
+OK	TICKET-10 · salidas de dinero y «Lo de este turno»	mezcla cobros y salidas del turno en orden de hora; las salidas restan y las transferencias no van a la caja
+OK	TICKET-11 · entregar el turno	debe dejar el «debe haber» menos el pago del turno si lo tomó
+OK	TICKET-11 · entregar el turno	avisa si entrega más de 60 minutos antes del fin programado
+OK	TICKET-07 · extender la estadía (RN-04)	advierte cuando las horas pasan de las 4:00 p. m. y dice la nueva salida en palabras
+OK	TICKET-09 · desistimiento y devolución (RN-08)	solo miró: devuelve todo lo pagado en efectivo; ya la usó: nada
+OK	TICKET-09 · desistimiento y devolución (RN-08)	con una transferencia por verificar hay que esperar a la administración
+OK	TICKET-09 · desistimiento y devolución (RN-08)	si pagó por transferencia, la devolución la decide la administración
+OK	TICKET-09 · desistimiento y devolución (RN-08)	lo rechazado o anulado no se devuelve
+OK	TICKET-12 · anulaciones (FR-17)	solo la administración anula cobros y salidas vigentes; una devolución no se anula por aquí
+OK	cuantos: número con su palabra en singular o plural	1 en singular; 0 y varios en plural
+OK	etiquetaCampana	dice cuántos avisos hay
+OK	íconos	icoTono: alerta, éxito o información
+OK	íconos	icoMovimiento: salida, efectivo o transferencia
+OK	textoCambio	vueltas, abono (con su texto) o pago exacto
+OK	claseAsistente	marca el paso activo y los ya hechos
+OK	notas de la cotización	notaFranja explica la salida especial
+OK	notas de la cotización	notaCobro dice cuándo se cobra
+OK	cuarto del mapa	detalle: salida y, si aplica, lo que debe o lo que falta verificar
+OK	cuarto del mapa	acción: entrada si está disponible, cuenta si tiene estadía, estado si no
+OK	cuarto del mapa	pista para el lector de pantalla según la acción
+OK	ficha	tituloFicha según la vista
+OK	ficha	pillEstadoPago: por verificar, no llegó, verificado
+OK	ficha	textoDevolucion: de dónde sale lo que se devuelve
+OK	ficha	textoDesistimiento: con o sin devolución
+OK	FR-31 — quiénes se quedan hoy	muestra el documento completo con el nombre del tipo, o «Sin documento»
+OK	Inicio de recepción más simple	resume los avisos en una sola línea
+OK	RN-15 — presentación del historial	antes de las 6:30 propone el día anterior en Bogotá, incluso al cambiar de año
+OK	RN-15 — presentación del historial	presenta la fecha sin convertirla a la zona horaria del navegador
+OK	RN-15 — presentación del historial	rechaza fechas vacías, imposibles o invertidas y permite un solo día
+OK	ADR-010 (V5-16) — diferencia ajustada por lo registrado después	si cambió, lo explica con la nueva diferencia
+OK	ADR-010 (V5-16) — diferencia ajustada por lo registrado después	si no cambió, no dice nada
+OK	FR-32 (V5-20) — periodos del informe de productos	día: el mismo día del hotel
+OK	FR-32 (V5-20) — periodos del informe de productos	semana: de lunes a domingo
+OK	FR-32 (V5-20) — periodos del informe de productos	mes: el mes calendario, también en febrero y diciembre
+OK	FR-32 (V5-20) — periodos del informe de productos	nombra los grupos en palabras
+OK	ADR-010 — registro tardío en la PWA	convierte a la hora de Bogotá para el campo de fecha y hora
+OK	ADR-010 — registro tardío en la PWA	el campo solo deja elegir entre hace 48 horas y ahora
+OK	ADR-010 — registro tardío en la PWA	lo escrito se envía con el desfase de Bogotá; lo que no es una fecha real no se envía
+OK	ADR-010 — registro tardío en la PWA	avisa en palabras si falta la hora, si es futura o si pasó de 48 horas
+OK	ADR-010 — registro tardío en la PWA	la ficha dice cuándo entró y quién lo digitó
+OK	textoDescuento: el botón muestra el máximo de reglas.descuento_noche	muestra el máximo configurado
+OK	textoDescuento: el botón muestra el máximo de reglas.descuento_noche	sin reglas cargadas no inventa un valor
+OK	textoDescuento: el botón muestra el máximo de reglas.descuento_noche	con descuento en $0 no hay rebaja que ofrecer
+OK	leerDescuento: recepción escribe cuánto por noche, sin pasar del máximo	acepta valores hasta el máximo, con o sin puntos
+OK	leerDescuento: recepción escribe cuánto por noche, sin pasar del máximo	bloquea lo que pase del máximo
+OK	leerDescuento: recepción escribe cuánto por noche, sin pasar del máximo	pide un valor mayor que $0
+OK	leerDescuento: recepción escribe cuánto por noche, sin pasar del máximo	sin reglas cargadas lee el valor y deja el tope al servidor
+OK	ayudaPersonas: el adicional de la tercera sale de las tarifas de noche	es la diferencia entre 3 y 2 personas del tipo de habitación
+OK	ayudaPersonas: el adicional de la tercera sale de las tarifas de noche	sin tarifas cargadas solo da el máximo
+OK	ayudaPersonas: el adicional de la tercera sale de las tarifas de noche	si falta la tarifa de 2 o de 3 personas, solo da el máximo
+OK	ayudaPersonas: el adicional de la tercera sale de las tarifas de noche	no mezcla tipos de habitación ni modalidades
+OK	ayudaPersonas: el adicional de la tercera sale de las tarifas de noche	si hay dos tarifas para la misma combinación, no adivina cuál vale
+OK	ayudaPersonas: el adicional de la tercera sale de las tarifas de noche	si la de 3 no cuesta más que la de 2, no habla de adicional
+OK	ayudaPersonas: el adicional de la tercera sale de las tarifas de noche	en tres horas: máximo 2, sin adicional
+OK	ayudaHoras: extender por horas usa reglas.valor_hora	muestra el valor configurado
+OK	ayudaHoras: extender por horas usa reglas.valor_hora	sin reglas cargadas no inventa un valor
+OK	ayudaRecargoAseo: el recargo sale del catálogo	usa el precio del producto «Recargo aseo extremo»
+OK	ayudaRecargoAseo: el recargo sale del catálogo	sin el producto (no cargado, inactivo o repetido) no inventa un valor
+OK	ayudaRecargoAseo: el recargo sale del catálogo	el aviso al pasar a limpieza especial también lo lee del catálogo
+OK	origen del pago	habitación o venta de contado con su detalle
+OK	origen del pago	en «Lo de este turno», la venta se ve como venta de contado
+OK	avisos en vivo de una venta sin habitación	dice «de una venta de contado» y no pide cobrar antes de la salida
+OK	cobro de contado en efectivo	sin valor escrito es pago exacto
+OK	cobro de contado en efectivo	si recibe más, calcula las vueltas
+OK	cobro de contado en efectivo	si recibe menos, no deja registrar: de contado no hay abonos
