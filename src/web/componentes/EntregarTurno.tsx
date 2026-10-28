@@ -1,10 +1,11 @@
 // «Entregar turno» (TICKET-11, FR-13; RN-11), como en el prototipo: ¿tomó su pago?, conteo obligatorio y motivo si no cuadra.
 // Al entregar se cierra la sesión; quien llega confirma con un toque lo que recibió.
 // HAL-18 [P/V]: si quien lo tenía se fue sin entregarlo, la administración lo cierra con el motivo y su sesión sigue.
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { api, ErrorApi, type Turno } from '../api.ts';
 import { avisoTemprano, debeDejar, diferenciaConteo, leerPesos, pesos } from '../logica.ts';
 import { Ico } from './Ico.tsx';
+import { useModal } from './Panel.tsx';
 
 export function EntregarTurno({ turno, porAdministracion = false, alCerrar, alEntregar }: {
   turno: Turno; porAdministracion?: boolean; alCerrar: () => void; alEntregar: (texto: string) => void;
@@ -16,12 +17,7 @@ export function EntregarTurno({ turno, porAdministracion = false, alCerrar, alEn
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  useEffect(() => {
-    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
-    document.addEventListener('keydown', escape);
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', escape); document.body.style.overflow = ''; };
-  }, []);
+  const { ref, tituloId } = useModal(alCerrar);
 
   const c = turno.caja;
   const dejar = debeDejar(c.debe_haber, c.pago_turno, pagoTomado === true);
@@ -54,11 +50,11 @@ export function EntregarTurno({ turno, porAdministracion = false, alCerrar, alEn
 
   return (
     <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
-      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-hidden="true" tabIndex={-1} onClick={alCerrar} />
+      <dialog open ref={ref} tabIndex={-1} class="panel" aria-modal="true" aria-labelledby={tituloId}>
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">{porAdministracion ? 'Cerrar un turno sin entregar' : 'Entregar turno'}</h2>
+          <div class="titulos"><h2 id={tituloId}>{porAdministracion ? 'Cerrar un turno sin entregar' : 'Entregar turno'}</h2>
             <p>Turno {turno.tipo === 'NOCHE' ? 'de noche' : 'de día'} de {turno.responsable}</p></div>
         </div>
         <div class="panel__cuerpo">
@@ -84,7 +80,8 @@ export function EntregarTurno({ turno, porAdministracion = false, alCerrar, alEn
             </section>
             <div class="campo"><label htmlFor="contado">Cuente la plata. ¿Cuánto deja en la caja? <span class="req">*</span></label>
               <input id="contado" inputmode="numeric" autocomplete="off" placeholder={`Ej. ${dejar}`} value={contado} onInput={(e) => setContado((e.target as HTMLInputElement).value)} /></div>
-            {dif ? <p><span class={`pill pill--${dif.tono}`}>{dif.texto}</span></p> : <p class="ayuda">Escriba lo que contó, aunque coincida.</p>}
+            {/* La diferencia cambia al escribir: se anuncia (A11Y-04). */}
+            <p class={dif ? undefined : 'ayuda'} aria-live="polite">{dif ? <span class={`pill pill--${dif.tono}`}>{dif.texto}</span> : 'Escriba lo que contó, aunque coincida.'}</p>
             {dif?.tono === 'alerta' && <div class="campo"><label htmlFor="motivo">¿Por qué no cuadra? <span class="req">*</span></label>
               <input id="motivo" autocomplete="off" maxLength={300} placeholder="Ej. devolví $5.000 a la 205 y no lo anoté" value={motivo}
                 onInput={(e) => setMotivo((e.target as HTMLInputElement).value)} />

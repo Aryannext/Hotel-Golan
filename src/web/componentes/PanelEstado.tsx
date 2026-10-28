@@ -4,6 +4,7 @@ import { api, ErrorApi, type Habitacion } from '../api.ts';
 import { accionesEstado, textoEstado, type AccionEstado, type Producto } from '../logica.ts';
 import { avisoLimpiezaEspecial, ayudaRecargoAseo } from '../textosConfig.ts';
 import { Ico } from './Ico.tsx';
+import { useModal } from './Panel.tsx';
 
 const AYUDA: Record<string, string> = {
   POR_REVISAR: 'La revisa la persona del turno. ¿Cómo quedó la habitación?',
@@ -20,12 +21,7 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
   const [productos, setProductos] = useState<Producto[] | null>(null);
   useEffect(() => { api.productos().then((r) => setProductos(r.items)).catch(() => undefined); }, []);
 
-  useEffect(() => {
-    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
-    document.addEventListener('keydown', escape);
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', escape); document.body.style.overflow = ''; };
-  }, []);
+  const { ref, tituloId } = useModal(alCerrar);
 
   async function aplicar(a: AccionEstado) {
     if (a.pideNota && !danio) { setDanio(true); return; }
@@ -47,11 +43,11 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
   const danioAccion = acciones.find((a) => a.pideNota);
   return (
     <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
-      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-hidden="true" tabIndex={-1} onClick={alCerrar} />
+      <dialog open ref={ref} tabIndex={-1} class="panel" aria-modal="true" aria-labelledby={tituloId}>
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label={danio ? 'Volver' : 'Cerrar'} onClick={() => (danio ? setDanio(false) : alCerrar())}><Ico id={danio ? 'atras' : 'cerrar'} clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">{h.estado === 'POR_REVISAR' ? `Revisar habitación ${h.numero}` : `Habitación ${h.numero}`}</h2>
+          <div class="titulos"><h2 id={tituloId}>{h.estado === 'POR_REVISAR' ? `Revisar habitación ${h.numero}` : `Habitación ${h.numero}`}</h2>
             <p>{h.tipo === 'AIRE' ? 'Aire acondicionado' : 'Ventilador'} · {textoEstado(h.estado)}{h.nota ? ` · ${h.nota}` : ''}</p></div>
         </div>
         <div class="panel__cuerpo">

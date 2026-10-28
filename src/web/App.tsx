@@ -163,10 +163,13 @@ export function App() {
                   {v === 'confirmar' && porConfirmar.length > 0 && <span class="pestana__cuenta" aria-label={`${porConfirmar.length} por confirmar`}>{porConfirmar.length}</span>}
                 </button>)}
               </div>
-              {aviso && !cotizando && <div class={`nota nota--${aviso.tono}`} aria-live="polite" style="margin-bottom:16px">
-                <Ico id={icoTono(aviso.tono)} clase="ico--s" /><p>{aviso.texto}</p>
-                <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
-              </div>}
+              {/* La región viva siempre está montada: si naciera junto con el texto, el lector podría no anunciarlo (A11Y-03). */}
+              <div aria-live="polite">
+                {aviso && !cotizando && <div class={`nota nota--${aviso.tono}`} style="margin-bottom:16px">
+                  <Ico id={icoTono(aviso.tono)} clase="ico--s" /><p>{aviso.texto}</p>
+                  <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
+                </div>}
+              </div>
               {/* Si falla una recarga, el aviso va arriba y lo que se estaba haciendo no se desmonta (UI-01). */}
               {error && vista === 'mapa' && <div class="nota" role="alert" style="margin-bottom:16px"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
               {vistaActual()}

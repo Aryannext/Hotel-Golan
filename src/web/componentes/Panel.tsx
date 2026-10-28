@@ -1,20 +1,56 @@
 // Panel lateral (abajo en el celular) común: velo, <dialog>, encabezado con «Cerrar», cuerpo con el error y pie.
 // También los ganchos de los paneles: cerrar con Escape y enviar una acción mostrando el error en palabras.
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { MedioPago } from '../api.ts';
 import { enviarYReleer } from '../envio.ts';
+import { crearPila } from '../pilaPaneles.ts';
 import { textoMedio } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 
-/** Escape cierra el panel y la página de atrás no se desplaza mientras está abierto. */
-export function useCerrarConEscape(alCerrar: () => void) {
+const pila = crearPila();
+let escuchandoEscape = false;
+const alTeclear = (ev: KeyboardEvent) => { if (ev.key === 'Escape') pila.escape(); };
+
+/** Vuelve inerte todo lo que no es el panel ni sus ancestros; devuelve lo que marcó, para liberarlo al cerrar. */
+function inertizarFondo(panel: HTMLElement | null): HTMLElement[] {
+  const marcados: HTMLElement[] = [];
+  for (let el = panel?.closest('.capa-panel') ?? null; el && el !== document.body; el = el.parentElement) {
+    for (const hermano of Array.from(el.parentElement?.children ?? [])) {
+      if (hermano !== el && hermano instanceof HTMLElement && !hermano.inert) {
+        hermano.inert = true;
+        marcados.push(hermano);
+      }
+    }
+  }
+  return marcados;
+}
+
+/**
+ * Panel modal (HG-HAL-001 HAL-13): lo de atrás queda inerte (no se toca ni se enfoca), el foco entra al panel y vuelve
+ * a donde estaba al cerrarlo, Escape cierra solo el panel de encima y la página de atrás no se desplaza.
+ * Devuelve la referencia del <dialog> (con tabIndex={-1}) y un id único para su título.
+ */
+export function useModal(alCerrar: () => void) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const tituloId = useId();
+  const cerrar = useRef(alCerrar);
+  cerrar.current = alCerrar;
   useEffect(() => {
-    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
-    document.addEventListener('keydown', escape);
+    const previo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const quitar = pila.abrir(() => cerrar.current());
+    if (!escuchandoEscape) { document.addEventListener('keydown', alTeclear); escuchandoEscape = true; }
     document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', escape); document.body.style.overflow = ''; };
+    const inertes = inertizarFondo(ref.current);
+    ref.current?.focus();
+    return () => {
+      quitar();
+      for (const el of inertes) el.inert = false;
+      if (pila.abiertos() === 0) document.body.style.overflow = '';
+      if (previo?.isConnected) previo.focus();
+    };
   }, []);
+  return { ref, tituloId };
 }
 
 /**
@@ -37,14 +73,14 @@ export function useEnvio() {
 export function Panel({ titulo, subtitulo, error, pie, alCerrar, children }: {
   titulo: ComponentChildren; subtitulo?: ComponentChildren; error?: string; pie?: ComponentChildren; alCerrar: () => void; children?: ComponentChildren;
 }) {
-  useCerrarConEscape(alCerrar);
+  const { ref, tituloId } = useModal(alCerrar);
   return (
     <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
-      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
+      <button type="button" class="velo velo--visible" aria-hidden="true" tabIndex={-1} onClick={alCerrar} />
+      <dialog open ref={ref} tabIndex={-1} class="panel" aria-modal="true" aria-labelledby={tituloId}>
         <div class="panel__cab">
           <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">{titulo}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
+          <div class="titulos"><h2 id={tituloId}>{titulo}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
         </div>
         <div class="panel__cuerpo">
           {children}
