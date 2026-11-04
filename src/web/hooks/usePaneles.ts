@@ -7,14 +7,15 @@ import type { Habitacion } from '../api.ts';
 import type { Aviso as AvisoPendiente } from '../avisos.ts';
 
 export interface Paneles {
-  /** Habitación en el asistente de entrada; ocupa la vista entera, no es un panel. */
+  /** Habitación en el asistente de entrada; se muestra en el panel contextual, sin reemplazar la vista. */
   cotizando: Habitacion | null;
   ficha: Habitacion | null;
+  fichaInicio: 'cuenta' | 'salida' | 'extender';
   revisando: Habitacion | null;
   viendoHoy: boolean;
   reportando: AvisoPendiente | null;
   cotizar: (h: Habitacion | null) => void;
-  abrirFicha: (h: Habitacion | null) => void;
+  abrirFicha: (h: Habitacion | null, inicio?: 'cuenta' | 'salida' | 'extender') => void;
   revisar: (h: Habitacion | null) => void;
   verHoy: (abierto: boolean) => void;
   reportar: (a: AvisoPendiente | null) => void;
@@ -24,14 +25,15 @@ export interface Paneles {
 export function usePaneles(): Paneles {
   const [cotizando, setCotizando] = useState<Habitacion | null>(null);
   const [ficha, setFicha] = useState<Habitacion | null>(null);
+  const [fichaInicio, setFichaInicio] = useState<'cuenta' | 'salida' | 'extender'>('cuenta');
   const [revisando, setRevisando] = useState<Habitacion | null>(null);
   const [viendoHoy, setViendoHoy] = useState(false);
   const [reportando, setReportando] = useState<AvisoPendiente | null>(null);
 
   return {
-    cotizando, ficha, revisando, viendoHoy, reportando,
+    cotizando, ficha, fichaInicio, revisando, viendoHoy, reportando,
     cotizar: setCotizando,
-    abrirFicha: setFicha,
+    abrirFicha: (h, inicio = 'cuenta') => { setFichaInicio(inicio); setFicha(h); },
     revisar: setRevisando,
     verHoy: setViendoHoy,
     reportar: setReportando,

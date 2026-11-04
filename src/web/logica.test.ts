@@ -36,7 +36,7 @@ describe('Presentación del mapa de habitaciones', () => {
 
   it('cuenta las habitaciones por estado para los indicadores del inicio', () => {
     const c = contarEstados([{ estado: 'DISPONIBLE' }, { estado: 'OCUPADA' }, { estado: 'OCUPADA' }, { estado: 'LIMPIEZA' }, { estado: 'POR_REVISAR' }]);
-    assert.deepEqual(c, { disponibles: 1, ocupadas: 2, limpiezaORevision: 2, mantenimiento: 0 });
+    assert.deepEqual(c, { disponibles: 1, ocupadas: 2, limpieza: 1, porRevisar: 1, limpiezaORevision: 2, mantenimiento: 0 });
   });
 
   it('filtra el mapa por el mismo grupo que cuenta cada indicador', () => {

@@ -33,6 +33,7 @@ import { rutasMigracion } from './migracion/rutas.ts';
 import { rutasDatosHotel } from './configuracion/hotel.ts';
 import { Publicador, rutasEventos } from './tiempo_real/eventos.ts';
 import { ErrorRegla } from './reglas/reglas.ts';
+import { rutasFotos } from './fotos/rutas.ts';
 
 export type App = FastifyInstance;
 
@@ -58,6 +59,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     if (error instanceof ErrorApi) return rep.code(error.estado).send({ codigo: error.codigo, mensaje: error.message });
     // Violación de una regla del hotel (RN-xx): 422 con el código de la regla.
     if (error instanceof ErrorRegla) return rep.code(422).send({ codigo: error.codigo, mensaje: error.message });
+    if ('code' in error && error.code === 'FST_ERR_CTP_BODY_TOO_LARGE') return rep.code(413).send({ codigo: 'INVALID_PAYLOAD', mensaje: 'La imagen supera el tamaño permitido de 5 MB.' });
     if ('validation' in error && error.validation) {
       return rep.code(400).send({
         codigo: 'INVALID_PAYLOAD',
@@ -100,6 +102,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rutasExtensiones(api, o.bd, ahora);
     rutasDevoluciones(api, o.bd, ahora);
     rutasProductos(api, o.bd, ahora);
+    rutasFotos(api, o.bd, ahora);
     rutasMigracion(api, o.bd, ahora);
     rutasDatosHotel(api, o.bd, ahora);
     rutasTarifas(api, o.bd, ahora);

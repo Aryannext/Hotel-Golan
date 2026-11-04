@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion } from '../api.ts';
 import { accionesEstado, textoEstado, type AccionEstado, type Producto } from '../logica.ts';
 import { avisoLimpiezaEspecial, ayudaRecargoAseo } from '../textosConfig.ts';
+import { Panel } from './Panel.tsx';
 import { Ico } from './Ico.tsx';
 
 const AYUDA: Record<string, string> = {
@@ -19,13 +20,6 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
   // El recargo de aseo extremo es un producto del catálogo (Ajustes); sin catálogo, el texto va sin importe.
   const [productos, setProductos] = useState<Producto[] | null>(null);
   useEffect(() => { api.productos().then((r) => setProductos(r.items)).catch(() => undefined); }, []);
-
-  useEffect(() => {
-    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
-    document.addEventListener('keydown', escape);
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', escape); document.body.style.overflow = ''; };
-  }, []);
 
   async function aplicar(a: AccionEstado) {
     if (a.pideNota && !danio) { setDanio(true); return; }
@@ -46,15 +40,7 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
   const acciones = accionesEstado(h.estado);
   const danioAccion = acciones.find((a) => a.pideNota);
   return (
-    <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
-      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
-        <div class="panel__cab">
-          <button type="button" class="redondo" aria-label={danio ? 'Volver' : 'Cerrar'} onClick={() => (danio ? setDanio(false) : alCerrar())}><Ico id={danio ? 'atras' : 'cerrar'} clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">{h.estado === 'POR_REVISAR' ? `Revisar habitación ${h.numero}` : `Habitación ${h.numero}`}</h2>
-            <p>{h.tipo === 'AIRE' ? 'Aire acondicionado' : 'Ventilador'} · {textoEstado(h.estado)}{h.nota ? ` · ${h.nota}` : ''}</p></div>
-        </div>
-        <div class="panel__cuerpo">
+    <Panel titulo={'Habitación ' + h.numero} subtitulo={textoEstado(h.estado)} alCerrar={() => danio ? setDanio(false) : alCerrar()}>
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
           {danio && danioAccion ? <>
             <div class="campo"><label htmlFor="nota-danio">¿Qué se dañó?</label>
@@ -71,8 +57,6 @@ export function PanelEstado({ habitacion: h, alCerrar, alCambiar }: { habitacion
               </>)}
             </div>
           </>}
-        </div>
-      </dialog>
-    </div>
+    </Panel>
   );
 }

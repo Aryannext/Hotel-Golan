@@ -10,6 +10,7 @@ import type { CotizacionCambio } from './cambio.ts';
 // Cliente de la API. La sesión viaja en la cookie HttpOnly; el navegador la envía sola (same-origin).
 export interface Usuario { id: string; nombre: string; usuario: string; rol: 'RECEPCION' | 'ADMINISTRACION'; activo: boolean }
 export interface SesionActual { usuario: Usuario; expira_en: string; turno_por_recibir: boolean }
+export interface FotoCompartida { clave: string; version: string; tiene_foto: boolean }
 export interface EstadiaResumen { id: string; nombre_corto: string; salida_prevista_en: string; saldo: number; por_verificar: number; vencida: boolean }
 export interface Habitacion { numero: string; tipo: 'AIRE' | 'VENTILADOR'; estado: string; nota: string | null; estadia_activa: EstadiaResumen | null }
 
@@ -96,6 +97,9 @@ async function pedir<T>(metodo: string, ruta: string, cuerpo?: unknown, cabecera
 }
 
 export const api = {
+  fotos: () => pedir<FotoCompartida[]>('GET', '/fotos'),
+  guardarFoto: (clave: string, imagen: string, soloSiNoExiste = false) => pedir<FotoCompartida>('PUT', `/fotos/${encodeURIComponent(clave)}`, { imagen }, soloSiNoExiste ? { 'if-none-match': '*' } : {}),
+  eliminarFoto: (clave: string) => pedir<FotoCompartida>('DELETE', `/fotos/${encodeURIComponent(clave)}`),
   turnos: (desplazamiento = 0, limite = 20) => pedir<{ items: Turno[]; total: number }>('GET', `/turnos?limite=${limite}&desplazamiento=${desplazamiento}`),
   turno: (id: string) => pedir<TurnoDetalle>('GET', `/turnos/${id}`),
   productosVendidos: (q: { desde: string; hasta: string } | { turno_id: string }) =>

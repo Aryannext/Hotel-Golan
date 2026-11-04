@@ -1,20 +1,33 @@
-// Panel lateral (abajo en el celular) común: velo, <dialog>, encabezado con «Cerrar», cuerpo con el error y pie.
+// Columna contextual común: junto al contenido en escritorio; completa en móvil.
 // También los ganchos de los paneles: cerrar con Escape y enviar una acción mostrando el error en palabras.
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
+import { createPortal } from 'preact/compat';
 import { ErrorApi, type MedioPago } from '../api.ts';
 import { textoMedio } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 
 const SIN_CONEXION = 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.';
 
-/** Escape cierra el panel y la página de atrás no se desplaza mientras está abierto. */
+const abiertos: symbol[] = [];
+/** Solo el contexto superior responde a Escape; el fondo sigue utilizable. */
 export function useCerrarConEscape(alCerrar: () => void) {
+  const cerrar = useRef(alCerrar);
+  cerrar.current = alCerrar;
   useEffect(() => {
-    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
+    const identidad = Symbol();
+    abiertos.push(identidad);
+    const escape = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape' && abiertos.at(-1) === identidad) {
+        ev.preventDefault(); cerrar.current();
+      }
+    };
     document.addEventListener('keydown', escape);
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', escape); document.body.style.overflow = ''; };
+    return () => {
+      document.removeEventListener('keydown', escape);
+      const indice = abiertos.indexOf(identidad);
+      if (indice >= 0) abiertos.splice(indice, 1);
+    };
   }, []);
 }
 
@@ -36,26 +49,44 @@ export function useEnvio() {
   return { enviando, error, setError, enviar };
 }
 
-export function Panel({ titulo, subtitulo, error, pie, alCerrar, children }: {
-  titulo: ComponentChildren; subtitulo?: ComponentChildren; error?: string; pie?: ComponentChildren; alCerrar: () => void; children?: ComponentChildren;
+export function Panel({ titulo, subtitulo, error, pie, alCerrar, children, ancho = 'normal' }: {
+  titulo: ComponentChildren; subtitulo?: ComponentChildren; error?: string; pie?: ComponentChildren; alCerrar: () => void; children?: ComponentChildren; ancho?: 'normal' | 'detalle' | 'cuenta' | 'entrada';
 }) {
   useCerrarConEscape(alCerrar);
-  return (
-    <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
-      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
+  const tituloId = useId();
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const anterior = document.activeElement as HTMLElement | null;
+    const dialog = ref.current;
+    if (!dialog) return;
+    const controles = () => [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]')]
+      .filter((el) => el.getClientRects().length && !el.hidden);
+    controles()[0]?.focus();
+    const atrapar = (ev: KeyboardEvent) => {
+      const paneles = [...document.querySelectorAll('[data-panel-contextual]')];
+      if (paneles.at(-1) !== dialog || ev.key !== 'Tab' || !window.matchMedia('(max-width: 1023px)').matches) return;
+      const lista = controles(), primero = lista[0], ultimo = lista.at(-1);
+      if (ev.shiftKey && document.activeElement === primero) { ev.preventDefault(); ultimo?.focus(); }
+      else if (!ev.shiftKey && document.activeElement === ultimo) { ev.preventDefault(); primero?.focus(); }
+    };
+    dialog.addEventListener('keydown', atrapar);
+    return () => { dialog.removeEventListener('keydown', atrapar); if (anterior?.isConnected) anterior.focus(); };
+  }, []);
+  return createPortal((
+    <div class={`capa-panel capa-panel--${ancho}`}>
+      <section ref={ref} data-panel-contextual class={`panel panel--${ancho}`} role="region" aria-labelledby={tituloId}>
         <div class="panel__cab">
-          <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">{titulo}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
+          <button type="button" class="redondo panel__volver" aria-label="Volver" onClick={alCerrar}><Ico id="atras" clase="ico--s" /></button>
+          <div class="titulos"><h2 id={tituloId}>{titulo}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
         </div>
         <div class="panel__cuerpo">
           {children}
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
         </div>
         {pie && <div class="panel__pie">{pie}</div>}
-      </dialog>
+      </section>
     </div>
-  );
+  ), document.body);
 }
 
 const MEDIOS: MedioPago[] = ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'];
@@ -63,5 +94,5 @@ const MEDIOS: MedioPago[] = ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'];
 /** «¿Cómo paga?»: efectivo, Nequi o Bancolombia. */
 export function OpcionesMedio({ medio, alElegir }: { medio: MedioPago; alElegir: (m: MedioPago) => void }) {
   return <div class="segmentado">{MEDIOS.map((m) =>
-    <button key={m} type="button" class="opcion" aria-pressed={medio === m} onClick={() => alElegir(m)}>{textoMedio(m)}</button>)}</div>;
+    <button key={m} type="button" class="opcion" aria-pressed={medio === m} onClick={() => alElegir(m)}>{m !== 'EFECTIVO' && <Ico id={m.toLowerCase()} clase="ico--s" />}{textoMedio(m)}</button>)}</div>;
 }

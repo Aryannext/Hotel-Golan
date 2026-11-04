@@ -31,7 +31,7 @@ describe('Inicio: ocupación del hotel', () => {
   });
 
   it('sin habitaciones no divide por cero', () => {
-    assert.deepEqual(ocupacion([]), { ocupadas: 0, disponibles: 0, limpiezaORevision: 0, mantenimiento: 0, total: 0, porcentaje: 0 });
+    assert.deepEqual(ocupacion([]), { ocupadas: 0, disponibles: 0, limpieza: 0, porRevisar: 0, limpiezaORevision: 0, mantenimiento: 0, total: 0, porcentaje: 0 });
   });
 
   it('redondea el porcentaje', () => {

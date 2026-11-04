@@ -1,0 +1,75 @@
+/* Presentación de Caja según el espacio real de cada cuadro, no del viewport.
+   Los cálculos, las operaciones y las lecturas de la API se conservan. */
+.caja-vista { container-type: inline-size; min-width: 0; }
+.caja-columnas { grid-template-columns: minmax(0,1fr); }
+@container (min-width: 980px) {
+  .caja-columnas { grid-template-columns: minmax(0,1.55fr) minmax(300px,1fr); }
+}
+.turno-actual { container-type: inline-size; min-width: 0; height: auto; max-height: none; }
+.turno-actual__cuerpo { grid-template-columns: minmax(0,1fr); min-width: 0; }
+.turno-actual__cab { display: grid; grid-template-columns: 44px minmax(0,1fr); align-items: center; gap: 9px 12px; }
+.turno-actual__cab > .pill { grid-column: 2; justify-self: start; white-space: normal; }
+.turno-actual__titulos h2 { font-size: 17px; line-height: 1.35; }
+.turno-actual__titulos p { line-height: 1.5; }
+.lineas-caja { min-width: 0; }
+.linea-caja { display: grid; grid-template-columns: 28px minmax(0,1fr) max-content; gap: 10px; align-items: center; padding: 12px 10px; }
+.linea-caja__etq { min-width: 0; overflow-wrap: break-word; line-height: 1.45; }
+.linea-caja__valor { justify-self: end; max-width: 100%; font-size: 15px; line-height: 1.4; text-align: right; white-space: nowrap; }
+.linea-caja--destacado .linea-caja__valor { font-size: 17px; }
+.turno-actual__nota { min-width: 0; height: auto; padding: 15px; }
+.turno-actual__nota p { line-height: 1.65; overflow-wrap: break-word; }
+@container (min-width: 620px) {
+  .turno-actual__cuerpo { grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); }
+}
+@container (min-width: 500px) {
+  .turno-actual__cab { grid-template-columns: 44px minmax(0,1fr) auto; }
+  .turno-actual__cab > .pill { grid-column: 3; }
+}
+@container (max-width: 300px) {
+  .linea-caja { grid-template-columns: 28px minmax(0,1fr); gap: 5px 10px; }
+  .linea-caja__valor { grid-column: 2; justify-self: start; text-align: left; }
+  .turno-actual__cab { grid-template-columns: 34px minmax(0,1fr); }
+  .turno-actual__ico { width: 34px; height: 34px; }
+}
+.resumen-turno { container-type: inline-size; min-width: 0; }
+.resumen-turno__cifras { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.resumen-turno__cifra { padding: 10px; }
+.resumen-turno__cifra strong { white-space: nowrap; overflow-wrap: normal; }
+.resumen-turno__cierre li { display: grid; grid-template-columns: minmax(0,1fr) max-content; align-items: center; }
+.resumen-turno__cierre span { min-width: 0; line-height: 1.5; }
+.resumen-turno__cierre strong { white-space: nowrap; }
+@container (min-width: 420px) {
+  .resumen-turno__cifras { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@container (max-width: 280px) {
+  .resumen-turno__cifras { grid-template-columns: minmax(0,1fr); }
+  .resumen-turno__cierre li { grid-template-columns: minmax(0,1fr); gap: 4px; }
+}
+.historial-turnos { min-width: 0; height: auto; max-height: none; }
+.historial-turnos > .tarjeta__cab { flex-wrap: wrap; align-items: center; gap: 10px; }
+.historial-turnos > .tarjeta__cab h2 { margin: 0; }
+.tabla-env-turnos { container-type: inline-size; margin: 0; padding: 0; width: 100%; min-width: 0; overflow: visible; background: none; }
+.tabla-turnos { table-layout: fixed; width: 100%; min-width: 0; }
+.tabla-turnos th, .tabla-turnos td { white-space: normal; padding: 12px 7px; font-size: 11px; overflow-wrap: anywhere; }
+.tabla-turnos .pill { max-width: 100%; white-space: normal; font-size: 10px; }
+@container (max-width: 999px) {
+  .tabla-turnos, .tabla-turnos tbody { display: block; width: 100%; }
+  .tabla-turnos thead { display: none; }
+  .tabla-turnos tbody { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 12px; }
+  .tabla-turnos tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px 14px; padding: 14px; border: 1px solid var(--borde); border-radius: 10px; background: var(--blanco); }
+  .tabla-turnos td, .tabla-turnos td.num { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; padding: 6px 0; border: 0; font-size: 13px; line-height: 1.4; text-align: left; }
+  .tabla-turnos td::before { content: attr(data-label); font-size: 10px; font-weight: 500; color: var(--texto-2); }
+  .tabla-turnos td:nth-child(3) { grid-column: 1/-1; }
+}
+/* Las notificaciones vuelven a flotar bajo la campana, sin reducir el contenido. */
+.campana__panel { width: min(400px,calc(100vw - 32px)); max-height: calc(100dvh - 98px); padding: 14px; border-radius: 12px; box-shadow: 0 12px 36px #4b3f3f24; background: var(--blanco); }
+.campana__cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.campana__cab .campana__titulo { margin: 0; font-size: 15px; font-weight: 600; }
+.campana__cerrar { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 7px; color: var(--texto-2); background: transparent; }
+.campana__cerrar:hover { background: var(--crema-2); }
+.campana__panel .aviso-item { padding: 10px; gap: 8px; }
+.campana__panel .aviso-item__txt b { font-size: 12px; font-weight: 600; line-height: 1.4; }
+.campana__panel .aviso-item__txt span { font-size: 11px; line-height: 1.5; }
+@media (max-width: 600px) {
+  .campana__panel { position: fixed; top: 70px; left: 12px; right: 12px; width: auto; max-height: calc(100dvh - 90px); }
+}

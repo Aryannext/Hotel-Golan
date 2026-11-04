@@ -1,6 +1,6 @@
 // Avisos en pantalla (TICKET-16, FR-23): la campana de la barra superior.
 // La lista repetida al inicio de Habitaciones se quitó: mostraba lo mismo que la campana.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import type { Aviso } from '../avisos.ts';
 import { Ico } from './Ico.tsx';
 import { etiquetaCampana } from '../presentacion.ts';
@@ -30,25 +30,38 @@ export function ListaAvisos({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (
 export function Campana({ avisos, alElegir }: { avisos: Aviso[]; alElegir: (a: Aviso) => void }) {
   const [abierta, setAbierta] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
+  const popupId = useId();
   const urgentes = avisos.filter((a) => a.tono !== 'info').length;
 
   useEffect(() => {
     if (!abierta) return;
-    const fuera = (ev: MouseEvent) => { if (caja.current && !caja.current.contains(ev.target as Node)) setAbierta(false); };
-    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') setAbierta(false); };
-    document.addEventListener('mousedown', fuera);
-    document.addEventListener('keydown', escape);
-    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', escape); };
+    const fuera = (ev: PointerEvent) => {
+      if (caja.current && !caja.current.contains(ev.target as Node)) setAbierta(false);
+    };
+    const escape = (ev: KeyboardEvent) => {
+      if (ev.key !== 'Escape') return;
+      ev.preventDefault(); ev.stopPropagation();
+      setAbierta(false);
+      caja.current?.querySelector<HTMLButtonElement>('.campana__boton')?.focus();
+    };
+    document.addEventListener('pointerdown', fuera);
+    document.addEventListener('keydown', escape, true);
+    return () => {
+      document.removeEventListener('pointerdown', fuera);
+      document.removeEventListener('keydown', escape, true);
+    };
   }, [abierta]);
 
   const etiqueta = etiquetaCampana(avisos.length);
   return <div class="campana" ref={caja}>
-    <button type="button" class="redondo campana__boton" aria-label={etiqueta} aria-expanded={abierta} aria-haspopup="true" onClick={() => setAbierta(!abierta)}>
+    <button type="button" class="redondo campana__boton" aria-label={etiqueta} aria-expanded={abierta} aria-haspopup="dialog" aria-controls={abierta ? popupId : undefined} onClick={() => setAbierta(!abierta)}>
       <Ico id="campana" clase="ico--s" />
       {avisos.length > 0 && <span class={`campana__cuenta${urgentes > 0 ? ' campana__cuenta--urgente' : ''}`} aria-hidden="true">{avisos.length}</span>}
     </button>
-    {abierta && <div class="campana__panel">
-      <p class="campana__titulo">Avisos</p>
+    {abierta && <div id={popupId} class="campana__panel" role="dialog" aria-label="Notificaciones">
+      <div class="campana__cab"><h2 class="campana__titulo">Notificaciones</h2>
+        <button type="button" class="campana__cerrar" aria-label="Cerrar notificaciones" onClick={() => setAbierta(false)}><Ico id="cerrar" clase="ico--s" /></button>
+      </div>
       {avisos.length === 0
         ? <p class="vacio">Todo al día: no hay salidas vencidas, transferencias ni habitaciones pendientes.</p>
         : <ListaAvisos avisos={avisos} alElegir={(a) => { setAbierta(false); alElegir(a); }} />}

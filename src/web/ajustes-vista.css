@@ -1,0 +1,59 @@
+/* Tarifas: consulta breve y edición progresiva, con los mismos valores de la API. */
+.ajustes-vista { max-width: 1120px; margin-inline: auto; }
+.ajustes-vista > .segmentado { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; align-self: flex-start; background: var(--crema-2); border-radius: 12px; }
+.ajustes-vista > .segmentado .opcion { min-width: 100px; min-height: 42px; border-color: transparent; background: transparent; color: var(--texto-2); font-size: 12px; }
+.ajustes-vista > .segmentado .opcion[aria-pressed="true"] { background: var(--blanco); color: var(--marca-a); box-shadow: var(--sombra); }
+.tarifas-vista { display: grid; gap: 18px; margin-top: 4px; }
+.tarifas-vista__cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.tarifas-vista__cab h2 { margin: 0; font-size: 16px; }
+.tarifas-vista__cab > span { font-size: 11px; color: var(--texto-2); }
+.tarifas-tipos { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; align-items: start; }
+.tarifas-tipo { padding: 24px; min-width: 0; margin: 0; border-radius: 16px; box-shadow: 0 4px 16px #4b3f3f06; }
+.tarifas-tipo--editando { border-color: var(--marca-a); }
+.tarifas-tipo__cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 24px; }
+.tarifas-tipo__cab > div { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.tarifas-tipo__icono { display: grid; place-items: center; width: 44px; height: 44px; background: var(--crema-2); color: var(--marca-a); border-radius: 12px; flex-shrink: 0; }
+.tarifas-tipo__cab h3 { margin: 0; font-size: 15px; line-height: 1.5; }
+.tarifas-tipo__cab small { display: block; color: var(--texto-2); font-size: 10px; font-weight: 400; }
+.tarifas-tipo__cab .btn { min-height: 40px; padding: 0 12px; font-size: 11px; flex-shrink: 0; }
+.tarifas-tipo__modalidad { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-size: 11px; color: var(--texto-2); }
+.tarifas-precios { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 0 0 24px; }
+.tarifas-precios > div + div { border-left: 1px solid var(--borde); padding-left: 12px; }
+.tarifas-precios dt { color: var(--texto-2); font-size: 10px; margin-bottom: 7px; }
+.tarifas-precios dd { margin: 0; font-size: clamp(16px,1.6vw,23px); font-weight: 700; color: var(--texto); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tarifas-corta { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--crema); border: 1px solid var(--borde); border-radius: 10px; padding: 14px; }
+.tarifas-corta > div { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.tarifas-corta .ico { color: var(--marca-a); }
+.tarifas-corta small { display: block; color: var(--texto-2); font-size: 10px; margin-top: 2px; }
+.tarifas-corta strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+.tarifas-editor__campos { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.tarifas-editor__campos .campo { min-width: 0; margin: 0; }
+.tarifas-editor__campos label { font-size: 11px; }
+.tarifas-editor__campos input { min-width: 0; width: 100%; }
+.tarifas-editor__acciones { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--borde); padding-top: 16px; margin-top: 20px; }
+.tarifas-editor__acciones .btn { font-size: 12px; }
+.tarifas-vista__pie > p { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 14px; color: var(--texto-2); font-size: 11px; line-height: 1.6; }
+.tarifas-vista__pie > p .ico { flex-shrink: 0; }
+.tarifas-vigencias { font-size: 11px; color: var(--texto-2); }
+.tarifas-vigencias summary { width: fit-content; padding: 10px 0; cursor: pointer; font-weight: 500; }
+.tarifas-vigencias ul { list-style: none; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 24px; padding: 14px 18px; margin: 8px 0 0; background: var(--blanco); border: 1px solid var(--borde); border-radius: 12px; }
+.tarifas-vigencias li { display: grid; gap: 4px; padding: 12px 0; }
+.tarifas-vigencias time { font-size: 10px; }
+@media (max-width: 1100px) {
+  .tarifas-tipos { grid-template-columns: minmax(0,1fr); }
+  .tarifas-precios dd { font-size: 23px; }
+}
+@media (max-width: 480px) {
+  .ajustes-vista > .segmentado { align-self: stretch; gap: 2px; }
+  .ajustes-vista > .segmentado .opcion { min-width: 0; flex: 1 0 28%; font-size: 11px; }
+  .tarifas-vista__cab { display: grid; gap: 5px; }
+  .tarifas-tipo { padding: 18px 14px; }
+  .tarifas-tipo__cab h3 { font-size: 13px; }
+  .tarifas-tipo__cab > div { gap: 8px; }
+  .tarifas-tipo__icono { width: 36px; height: 36px; }
+  .tarifas-precios { gap: 8px; }
+  .tarifas-precios > div + div { padding-left: 8px; }
+  .tarifas-precios dd { font-size: 19px; }
+  .tarifas-editor__campos { grid-template-columns: minmax(0,1fr); }
+  .tarifas-vigencias ul { grid-template-columns: minmax(0,1fr); }
+}

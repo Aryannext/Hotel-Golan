@@ -16,29 +16,30 @@ export function GraficoOcupacion({ ocupadas, libres, limpieza, porcentaje }: Gra
   const { segmentos } = calcularSegmentosDona(ocupadas, libres, limpieza, radio);
 
   return (
-    <section class="tarjeta widget-admin" aria-label="Ocupación de habitaciones">
+    <section class="tarjeta widget-admin widget-ocupacion" aria-label="Ocupación de habitaciones">
       <div class="tarjeta__cab">
-        <h2><Ico id="dona" clase="ico--s" />Ocupación de habitaciones</h2>
+        <h2><Ico id="camara" clase="ico--s" />Ocupación de habitaciones</h2>
       </div>
       <div class="ocupacion-dona">
         <div class="ocupacion-dona__grafico">
           <svg viewBox="0 0 100 100" class="dona-svg" role="img" aria-label={`Ocupación: ${porcentaje}%`}>
             {/* Círculo base de fondo gris claro */}
-            <circle cx="50" cy="50" r={radio} fill="none" stroke="var(--borde)" stroke-width="12" />
+            <circle cx="50" cy="50" r={radio} fill="none" stroke="var(--pared)" stroke-width="16" />
             {/* Segmentos de color rotados -90deg para comenzar en la parte superior */}
             <g transform="rotate(-90 50 50)">
               {segmentos.map((s) => (
                 <circle
                   key={s.clase}
+                  class={`dona-segmento dona-segmento--${s.clase}`}
                   cx="50"
                   cy="50"
                   r={radio}
                   fill="none"
                   stroke={s.color}
-                  stroke-width="12"
+                  stroke-width="16"
                   stroke-dasharray={s.dasharray}
                   stroke-dashoffset={s.dashoffset}
-                  stroke-linecap="round"
+                  stroke-linecap="butt"
                 />
               ))}
             </g>

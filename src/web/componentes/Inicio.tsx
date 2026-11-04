@@ -33,12 +33,14 @@ export function Inicio({
   esAdmin,
   recarga = 0,
   alIrA,
+  alAbrirHabitacion,
 }: {
   habitaciones: Habitacion[];
   porConfirmar: Pago[];
   esAdmin: boolean;
   recarga?: number;
   alIrA: (vista: 'mapa' | 'confirmar' | 'caja') => void;
+  alAbrirHabitacion?: (h: Habitacion) => void;
 }) {
   const [dinero, setDinero] = useState<DineroDelDia | null>(null);
   const [dias, setDias] = useState<ResumenDia[]>([]);
@@ -221,7 +223,7 @@ export function Inicio({
                   key={h.numero}
                   type="button"
                   class={`mini-cuarto mini-cuarto--${claseEstado(h.estado)}`}
-                  onClick={() => alIrA('mapa')}
+                  onClick={() => alAbrirHabitacion ? alAbrirHabitacion(h) : alIrA('mapa')}
                   aria-label={`Habitación ${h.numero}, ${textoEstado(h.estado)}`}
                 >
                   <span class="mini-cuarto__fila">
@@ -231,9 +233,6 @@ export function Inicio({
                   <span class={`pill pill--${claseEstado(h.estado)}`}>{textoEstado(h.estado)}</span>
                 </button>
               ))}
-              <button type="button" class="mini-cuarto mini-cuarto--mas" onClick={() => alIrA('mapa')}>
-                <Ico id="mas" clase="ico--s" />Gestionar habitaciones
-              </button>
             </div>
           </section>
         </div>

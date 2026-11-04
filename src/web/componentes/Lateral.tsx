@@ -30,6 +30,10 @@ export function Lateral<V extends string>({ opciones, vista, alElegir, nombre, i
           </button>
         ))}
       </nav>
+      {/* Solo lo que de verdad no existe: vitrina, lavandería y facturación ya tienen
+          pantalla y ruta, y los informes por día viven en Historial. Reservas no tiene
+          backend, así que es lo único pendiente de entregar. */}
+      <details class="mvp-futuros"><summary>Entregas futuras</summary><p>Reservas · Informes avanzados</p></details>
       <div class="lateral__pie">
         {/* Quién tiene el turno, con el punto de «en línea» (BOCETO 03). */}
         <div class="usuario">

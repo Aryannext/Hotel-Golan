@@ -1,8 +1,9 @@
 // «Entregar turno» (TICKET-11, FR-13; RN-11), como en el prototipo: ¿tomó su pago?, conteo obligatorio y motivo si no cuadra.
 // Al entregar se cierra la sesión; quien llega confirma con un toque lo que recibió.
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { api, ErrorApi, type Turno } from '../api.ts';
 import { avisoTemprano, debeDejar, diferenciaConteo, leerPesos, pesos } from '../logica.ts';
+import { Panel } from './Panel.tsx';
 import { Ico } from './Ico.tsx';
 
 export function EntregarTurno({ turno, alCerrar, alEntregar }: { turno: Turno; alCerrar: () => void; alEntregar: (texto: string) => void }) {
@@ -12,12 +13,6 @@ export function EntregarTurno({ turno, alCerrar, alEntregar }: { turno: Turno; a
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  useEffect(() => {
-    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
-    document.addEventListener('keydown', escape);
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', escape); document.body.style.overflow = ''; };
-  }, []);
 
   const c = turno.caja;
   const dejar = debeDejar(c.debe_haber, c.pago_turno, pagoTomado === true);
@@ -42,15 +37,9 @@ export function EntregarTurno({ turno, alCerrar, alEntregar }: { turno: Turno; a
     }
   }
 
-  return (
-    <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
-      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
-        <div class="panel__cab">
-          <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">Entregar turno</h2><p>Turno {turno.tipo === 'NOCHE' ? 'de noche' : 'de día'} de {turno.responsable}</p></div>
-        </div>
-        <div class="panel__cuerpo">
+  return <Panel titulo={"Entregar turno"} subtitulo={<>Turno {turno.tipo === 'NOCHE' ? 'de noche' : 'de día'} de {turno.responsable}</>} alCerrar={alCerrar} pie={<>
+          <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando} onClick={entregar}><Ico id="check" clase="ico--s" />{enviando ? 'Entregando…' : 'Entregar turno'}</button>
+</>}>
           {temprano && <div class="saldo saldo--aviso"><div><b>Todavía no es hora del relevo</b><p>{temprano}</p></div></div>}
           <section class="tarjeta tarjeta--crema">
             <div class="fila fila--total"><div class="fila__txt"><div class="fila__concepto">En la caja debe haber</div></div><div class="fila__valor">{pesos(c.debe_haber)}</div></div>
@@ -77,11 +66,6 @@ export function EntregarTurno({ turno, alCerrar, alEntregar }: { turno: Turno; a
           </>}
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
           <p class="ayuda">Al entregar se cierra su sesión. Quien llega confirma con un toque que recibió la plata.</p>
-        </div>
-        <div class="panel__pie">
-          <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando} onClick={entregar}><Ico id="check" clase="ico--s" />{enviando ? 'Entregando…' : 'Entregar turno'}</button>
-        </div>
-      </dialog>
-    </div>
-  );
+
+  </Panel>;
 }

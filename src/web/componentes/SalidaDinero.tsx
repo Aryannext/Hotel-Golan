@@ -1,8 +1,9 @@
 // «Salió plata» (TICKET-10, FR-12): compra para el hotel, retiro de la administración, recargo de aseo u otro.
 // Baja el «debe haber» y no cuenta como venta. Las devoluciones se registran desde la estadía (TICKET-09).
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { api, ErrorApi } from '../api.ts';
 import { leerPesos, nuevaClave, pesos, TIPOS_SALIDA, type TipoSalida } from '../logica.ts';
+import { Panel } from './Panel.tsx';
 import { Ico } from './Ico.tsx';
 
 const HABITACIONES = ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '301'];
@@ -16,12 +17,6 @@ export function SalidaDinero({ debeHaber, alCerrar, alRegistrar }: { debeHaber: 
   const [enviando, setEnviando] = useState(false);
   const [clave] = useState(nuevaClave);
 
-  useEffect(() => {
-    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') alCerrar(); };
-    document.addEventListener('keydown', escape);
-    document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', escape); document.body.style.overflow = ''; };
-  }, []);
 
   const t = TIPOS_SALIDA.find((x) => x.tipo === tipo)!;
   const monto = leerPesos(valor) ?? 0;
@@ -49,15 +44,9 @@ export function SalidaDinero({ debeHaber, alCerrar, alRegistrar }: { debeHaber: 
     }
   }
 
-  return (
-    <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-label="Cerrar" tabIndex={-1} onClick={alCerrar} />
-      <dialog open class="panel" aria-modal="true" aria-labelledby="panel-titulo">
-        <div class="panel__cab">
-          <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
-          <div class="titulos"><h2 id="panel-titulo">Salió plata</h2><p>En la caja debe haber {pesos(debeHaber)}</p></div>
-        </div>
-        <div class="panel__cuerpo">
+  return <Panel titulo={"Salió plata"} subtitulo={<>En la caja debe haber {pesos(debeHaber)}</>} alCerrar={alCerrar} pie={<>
+          <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando} onClick={registrar}><Ico id="baja" clase="ico--s" />Registrar salida{monto ? ` de ${pesos(monto)}` : ''}</button>
+</>}>
           <div class="nota"><Ico id="info" clase="ico--s" /><p>Es efectivo que <b>sale de la caja</b> y por eso baja la base. El pago del turno no va aquí: se descuenta al entregar. Una devolución a un cliente se registra desde su habitación.</p></div>
           <section class="tarjeta">
             <div class="tarjeta__cab"><h3>¿Para qué salió?</h3></div>
@@ -75,11 +64,6 @@ export function SalidaDinero({ debeHaber, alCerrar, alRegistrar }: { debeHaber: 
               <p>{quedaria < 0 ? 'Revise el valor: sale más de lo que debería haber.' : 'Después de sacar este dinero.'}</p></div><strong>{pesos(quedaria)}</strong></div>}
           </section>
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
-        </div>
-        <div class="panel__pie">
-          <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando} onClick={registrar}><Ico id="baja" clase="ico--s" />Registrar salida{monto ? ` de ${pesos(monto)}` : ''}</button>
-        </div>
-      </dialog>
-    </div>
-  );
+
+  </Panel>;
 }

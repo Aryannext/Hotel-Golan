@@ -32,6 +32,8 @@ export function TarjetaIngresos({ ingresos, variacion, trazo }: TarjetaIngresosP
           )}
         </div>
 
+        <p class="ingresos-dia__contexto">{ingresos === 0 ? 'Sin ingresos registrados para este día.' : 'Ingresos registrados para este día.'}</p>
+
         {/* Lo cobrado en los últimos días. Antes aquí había una onda fija que subía
             siempre, con ingresos o sin ellos; ahora el trazo sale de /reportes/dias
             y, si no hay al menos dos días para comparar, no se dibuja nada. */}

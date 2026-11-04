@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { EventoVivo } from './logica.ts';
 
 const TIPOS = ['habitacion.actualizada', 'estadia.creada', 'estadia.cerrada', 'pago.por_verificar', 'pago.verificado', 'pago.rechazado',
-  'turno.entregado', 'turno.recibido', 'turno.diferencia', 'caja.movimiento'];
+  'turno.entregado', 'turno.recibido', 'turno.diferencia', 'caja.movimiento', 'foto.actualizada'];
 const RESPALDO_MS = 30_000;
 
 export function useEnVivo(activo: boolean, alEvento: (ev: EventoVivo | null) => void) {

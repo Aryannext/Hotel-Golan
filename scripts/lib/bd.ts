@@ -45,9 +45,9 @@ export function conectarPostgres(url = process.env.DATABASE_URL): Bd {
   return envolverPg(pool, pool);
 }
 
-export async function conectarPglite(): Promise<Bd> {
+export async function conectarPglite(directorio?: string): Promise<Bd> {
   const { PGlite } = await import('@electric-sql/pglite');
-  const db = new PGlite();
+  const db = new PGlite(directorio);
   // PGlite tiene una sola conexión: un candado serializa las transacciones (como haría PostgreSQL con varias
   // conexiones y bloqueos de fila) y las consultas sueltas esperan a que termine la transacción en curso.
   let cola: Promise<unknown> = Promise.resolve();

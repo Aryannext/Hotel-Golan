@@ -13,8 +13,8 @@
   --blanco: #FFFFFF;
 
   /* Textos: marrón/gris del boceto */
-  --puerta: #483F3F;
-  --madera-800: #483F3F;
+  --puerta: #4B3F3F;
+  --madera-800: #4B3F3F;
   --madera-600: #5C5151;
   --arena-700: #6E6262;
   --cuero: #6E6262;
@@ -25,10 +25,8 @@
   --lateral-a: #FAF4EF;
   --lateral-b: #F5ECE5;
 
-  /* Rojo de marca para fondos con texto blanco. Es #D32626 y no el #DC2828
-     plano porque sobre él el texto blanco llega a 5.15 de contraste (el mínimo
-     accesible es 4.5) sin verse menos rojo. */
-  --marca-a: #D32626;
+  /* Rojo de marca aprobado, sin cambiar la identidad visual. */
+  --marca-a: #DC2828;
   --marca-b: #B91C1C;
 
   /* Acento principal */

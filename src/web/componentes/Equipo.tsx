@@ -1,11 +1,13 @@
 // Equipo (TICKET-14, FR-18 y FR-20): la administración agrega personas, cambia un PIN, desbloquea, desactiva
 // y ve quién hizo cada cosa. El PIN nunca se muestra ni se guarda en la pantalla después de enviarlo.
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { api, ErrorApi } from '../api.ts';
 import { horaBogota } from '../logica.ts';
 import { fechaReporte } from '../reportes.ts';
 import { erroresUsuarioNuevo, estadoUsuario, sugerirUsuario, textoActividad, type FormUsuario, type RegistroActividad, type UsuarioAdmin } from '../equipo.ts';
+import { Panel } from './Panel.tsx';
 import { Ico } from './Ico.tsx';
+import { iniciales } from '../logica.ts';
 
 const mensaje = (e: unknown) => e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo.';
 const textoRol = (rol: UsuarioAdmin['rol']) => rol === 'ADMINISTRACION' ? 'Administración' : 'Recepción';
@@ -75,6 +77,16 @@ function Persona({ u, soyYo, alCambiar }: { u: UsuarioAdmin; soyYo: boolean; alC
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
   const estado = estadoUsuario(u);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const fuera = (ev: PointerEvent) => { if (!menu.current?.contains(ev.target as Node)) setMenuAbierto(false); };
+    const escape = (ev: KeyboardEvent) => { if (ev.key === 'Escape') { setMenuAbierto(false); menu.current?.querySelector('button')?.focus(); } };
+    document.addEventListener('pointerdown', fuera); document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('pointerdown', fuera); document.removeEventListener('keydown', escape); };
+  }, [menuAbierto]);
+  const cerrarFormulario = () => { setModo(''); setPin({ pin: '', confirmar: '' }); setError(''); };
 
   async function cambiar(cuerpo: { activo?: boolean; pin?: string; desbloquear?: boolean }, texto: string) {
     setEnviando(true); setError('');
@@ -90,39 +102,42 @@ function Persona({ u, soyYo, alCambiar }: { u: UsuarioAdmin; soyYo: boolean; alC
     void cambiar({ pin: pin.pin }, `PIN de ${u.nombre} cambiado. Si tenía una sesión abierta, tendrá que entrar de nuevo con el PIN nuevo.`);
   }
 
-  return <section class={`tarjeta persona${u.activo ? '' : ' persona--inactiva'}`}>
-    <div class="tarjeta__cab">
-      <div class="persona__txt"><h3>{u.nombre}{soyYo && <span class="ayuda"> (usted)</span>}</h3>
-        <p class="ayuda">{u.usuario} · {textoRol(u.rol)}</p></div>
-      <span class={`pill pill--${estado.tono}`}>{estado.texto}</span>
+  return <section role="listitem" class={`persona equipo-persona${u.activo ? '' : ' persona--inactiva'}`}>
+    <div class="equipo-persona__identidad"><span class="equipo-persona__avatar" aria-hidden="true">{iniciales(u.nombre)}</span>
+      <div class="persona__txt"><h3>{u.nombre}{soyYo && <span class="equipo-persona__yo">Tú</span>}</h3><p>{u.usuario}</p></div>
     </div>
-    {modo === '' && <div class="persona__acciones">
+    <span class="equipo-persona__rol">{textoRol(u.rol)}</span>
+    <span class={`pill pill--${estado.tono} equipo-persona__estado`}>{estado.texto}</span>
+    <div class="equipo-persona__menu" ref={menu}>
+      <button type="button" class="equipo-persona__mas" aria-label={`Acciones de ${u.nombre}`} aria-expanded={menuAbierto} aria-controls={`acciones-${u.id}`} onClick={() => setMenuAbierto(!menuAbierto)} disabled={enviando}><Ico id="puntos-v" clase="ico--s" /></button>
+      {menuAbierto && <div class="equipo-persona__opciones" id={`acciones-${u.id}`} role="group" aria-label={`Opciones de ${u.usuario}`}>
       {u.activo && u.bloqueado_hasta && <button type="button" class="btn btn--exito btn--mini" disabled={enviando}
-        onClick={() => void cambiar({ desbloquear: true }, `${u.nombre} ya puede volver a entrar.`)}><Ico id="check" clase="ico--xs" />Desbloquear</button>}
-      {u.activo && <button type="button" class="btn btn--secundario btn--mini" onClick={() => { setError(''); setModo('pin'); }}>Cambiar PIN</button>}
-      {u.activo && !soyYo && <button type="button" class="btn btn--peligro btn--mini" onClick={() => { setError(''); setModo('desactivar'); }}>Desactivar</button>}
+        onClick={() => { setMenuAbierto(false); void cambiar({ desbloquear: true }, `${u.nombre} ya puede volver a entrar.`); }}><Ico id="check" clase="ico--xs" />Desbloquear</button>}
+      {u.activo && <button type="button" class="btn btn--secundario btn--mini" onClick={() => { setMenuAbierto(false); setError(''); setModo('pin'); }}><Ico id="llave" clase="ico--xs" />Cambiar PIN</button>}
+      {u.activo && !soyYo && <button type="button" class="btn btn--peligro btn--mini" onClick={() => { setMenuAbierto(false); setError(''); setModo('desactivar'); }}><Ico id="salida" clase="ico--xs" />Desactivar</button>}
       {!u.activo && <button type="button" class="btn btn--secundario btn--mini" disabled={enviando}
-        onClick={() => void cambiar({ activo: true }, `${u.nombre} está activo otra vez y puede entrar con su PIN.`)}>Reactivar</button>}
-    </div>}
-    {modo === 'pin' && <form class="persona__form" onSubmit={guardarPin}>
+        onClick={() => { setMenuAbierto(false); void cambiar({ activo: true }, `${u.nombre} está activo otra vez y puede entrar con su PIN.`); }}>Reactivar</button>}
+      </div>}
+    </div>
+    {modo === 'pin' && <Panel titulo={'Cambiar PIN · ' + u.nombre} alCerrar={cerrarFormulario} error={error}><form class="persona__form" onSubmit={guardarPin}>
       <div class="doble doble--igual">
         <CampoPin id={`pin-${u.id}`} etiqueta="PIN nuevo" valor={pin.pin} alCambiar={(v) => setPin({ ...pin, pin: v })} />
         <CampoPin id={`pin2-${u.id}`} etiqueta="Repita el PIN" valor={pin.confirmar} alCambiar={(v) => setPin({ ...pin, confirmar: v })} />
       </div>
       <div class="persona__acciones">
         <button type="submit" class="btn btn--primario btn--mini" disabled={enviando}>Guardar PIN</button>
-        <button type="button" class="btn btn--fantasma btn--mini" onClick={() => setModo('')}>Cancelar</button>
+        <button type="button" class="btn btn--fantasma btn--mini" onClick={cerrarFormulario}>Cancelar</button>
       </div>
-    </form>}
-    {modo === 'desactivar' && <div class="persona__form">
+    </form></Panel>}
+    {modo === 'desactivar' && <Panel titulo={'Desactivar · ' + u.nombre} alCerrar={cerrarFormulario} error={error}><div class="persona__form">
       <div class="nota nota--alerta"><Ico id="alerta" clase="ico--s" /><p>{u.nombre} no podrá entrar y se cerrará su sesión si la tiene abierta. Lo que registró se conserva. Puede reactivarlo cuando quiera.</p></div>
       <div class="persona__acciones">
         <button type="button" class="btn btn--peligro btn--mini" disabled={enviando}
           onClick={() => void cambiar({ activo: false }, `${u.nombre} quedó desactivado.`)}>Sí, desactivar</button>
-        <button type="button" class="btn btn--fantasma btn--mini" onClick={() => setModo('')}>Cancelar</button>
+        <button type="button" class="btn btn--fantasma btn--mini" onClick={cerrarFormulario}>Cancelar</button>
       </div>
-    </div>}
-    {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
+    </div></Panel>}
+    {error && !modo && <div class="nota nota--alerta equipo-persona__error" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
   </section>;
 }
 
@@ -139,8 +154,8 @@ function Actividad({ recarga, nombres }: { recarga: number; nombres: Record<stri
     return () => { vigente = false; };
   }, [pagina, entidad, recarga]);
 
-  return <section class="tarjeta">
-    <div class="tarjeta__cab"><h2><Ico id="reloj" clase="ico--s" />Quién hizo qué</h2></div>
+  return <section class="tarjeta equipo-actividad">
+    <div class="tarjeta__cab"><h2><Ico id="reloj" clase="ico--s" />Actividad del equipo</h2></div>
     <div class="campo"><label htmlFor="act-filtro">Mostrar</label>
       <select id="act-filtro" value={entidad} onChange={(e) => { setEntidad((e.target as HTMLSelectElement).value); setPagina(0); }}>
         {FILTROS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></div>
@@ -165,6 +180,8 @@ export function Equipo({ recarga, yo }: { recarga: number; yo: string }) {
   const [aviso, setAviso] = useState('');
   const [error, setError] = useState('');
   const [propia, setPropia] = useState(0);
+  const [seccion, setSeccion] = useState<'personas' | 'actividad'>('personas');
+  const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
     api.usuarios().then((r) => { setUsuarios(r.items); setError(''); }).catch((e) => setError(mensaje(e)));
@@ -172,16 +189,25 @@ export function Equipo({ recarga, yo }: { recarga: number; yo: string }) {
 
   const listo = (texto: string) => { setAviso(texto); setAgregando(false); setPropia((n) => n + 1); };
   const nombres = Object.fromEntries((usuarios ?? []).map((u) => [u.id, u.usuario]));
+  const consulta = busqueda.trim().toLocaleLowerCase('es');
+  const visibles = (usuarios ?? []).filter(u => `${u.nombre} ${u.usuario}`.toLocaleLowerCase('es').includes(consulta));
 
-  return <div class="historial">
-    <div class="titulo-vista"><div><h1>Equipo</h1><p>Quién puede entrar al sistema y qué hizo cada uno</p></div>
+  return <div class="historial equipo-vista">
+    <div class="titulo-vista"><div><h1>Equipo</h1><p>Gestiona los accesos al hotel.</p></div>
       {!agregando && <button type="button" class="btn btn--primario" onClick={() => { setAviso(''); setAgregando(true); }}><Ico id="mas" clase="ico--s" />Agregar persona</button>}
+    </div>
+    <div class="equipo-pestanas" role="group" aria-label="Sección del equipo">
+      <button type="button" aria-pressed={seccion === 'personas'} onClick={() => setSeccion('personas')}><Ico id="usuarios" clase="ico--s" />Personas{usuarios && <span>{usuarios.length}</span>}</button>
+      <button type="button" aria-pressed={seccion === 'actividad'} onClick={() => setSeccion('actividad')}><Ico id="reloj" clase="ico--s" />Actividad</button>
     </div>
     {aviso && <output class="nota nota--exito"><Ico id="check" clase="ico--s" /><p>{aviso}</p>
       <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso('')}><Ico id="cerrar" clase="ico--xs" /></button></output>}
-    {agregando && <NuevoUsuario alCerrar={() => setAgregando(false)} alCrear={listo} />}
+    {agregando && <Panel titulo="Agregar persona" alCerrar={() => setAgregando(false)}><NuevoUsuario alCerrar={() => setAgregando(false)} alCrear={listo} /></Panel>}
     {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
-    {usuarios && <div class="personas">{usuarios.map((u) => <Persona key={u.id} u={u} soyYo={u.id === yo} alCambiar={listo} />)}</div>}
-    <Actividad recarga={recarga + propia} nombres={nombres} />
+    {seccion === 'personas' ? <section class="equipo-directorio">
+      <header class="equipo-directorio__cab"><h2>Personas del equipo</h2><label class="equipo-buscar"><Ico id="lupa" clase="ico--s" /><input type="search" aria-label="Buscar persona o usuario" placeholder="Buscar persona o usuario…" value={busqueda} onInput={ev => setBusqueda((ev.target as HTMLInputElement).value)} /></label></header>
+      <div class="equipo-columnas" aria-hidden="true"><span>Persona</span><span>Permiso</span><span>Estado</span><span /></div>
+      {usuarios ? <div class="equipo-lista" role="list" aria-label="Personas del equipo">{visibles.map(u => <Persona key={u.id} u={u} soyYo={u.id === yo} alCambiar={listo} />)}{!visibles.length && <p class="vacio">No se encontraron personas.</p>}</div> : !error && <p class="vacio" role="status">Cargando personas…</p>}
+    </section> : <Actividad recarga={recarga + propia} nombres={nombres} />}
   </div>;
 }
