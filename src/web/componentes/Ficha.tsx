@@ -497,7 +497,7 @@ export function Ficha({
         </header>
 
         {/* Pestañas horizontales (Imagen 2) */}
-        <nav class="ficha-pg-tabs" role="tablist">
+        <div class="ficha-pg-tabs" role="tablist">
           <button
             type="button"
             role="tab"
@@ -558,7 +558,7 @@ export function Ficha({
             <Ico id="escoba" clase="ico--xs" />
             <span>Limpieza</span>
           </button>
-        </nav>
+        </div>
 
         {/* Notificación de registro tardío si aplica */}
         {e?.registro_tardio && (

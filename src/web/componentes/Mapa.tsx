@@ -22,12 +22,13 @@ function TarjetaCuarto({
   const clase = claseEstado(h.estado);
   const botones = botonesTarjeta(h);
   const [franja, setFranja] = useState<'dia' | 'noche' | null>(null);
+  const estadiaId = e?.id;
   useEffect(() => {
     let vigente = true;
     setFranja(null);
-    if (e) api.estadia(e.id).then((est) => { if (vigente) setFranja(franjaEntrada(est.entrada_en)); }).catch(() => {});
+    if (estadiaId) api.estadia(estadiaId).then((est) => { if (vigente) setFranja(franjaEntrada(est.entrada_en)); }).catch(() => {});
     return () => { vigente = false; };
-  }, [e?.id]);
+  }, [estadiaId]);
 
   return (
     // Sin clic en toda la tarjeta: cada acción es un botón, que también funciona con el teclado (Sonar S1082).

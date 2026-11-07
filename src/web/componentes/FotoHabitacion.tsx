@@ -8,8 +8,21 @@ interface FotoHabitacionProps { numero: string; estado?: string; claseEstado?: s
 
 function OpcionesFoto({ descripcion, alCerrar, alSubir, alTomar, alEliminar }: { descripcion: string; alCerrar: () => void; alSubir: () => void; alTomar: () => void; alEliminar?: () => void }) {
   const dialogo = useRef<HTMLDialogElement>(null);
-  useEffect(() => { dialogo.current?.showModal(); }, []);
-  return createPortal(<dialog ref={dialogo} class="foto-selector" aria-label={`Cambiar foto de ${descripcion}`} onClose={alCerrar} onKeyDown={(ev) => ev.stopPropagation()} onClick={(ev) => { if (ev.target === ev.currentTarget) alCerrar(); }}>
+  const cerrarRef = useRef(alCerrar);
+  useEffect(() => { cerrarRef.current = alCerrar; });
+  useEffect(() => {
+    const d = dialogo.current;
+    if (!d) return;
+    d.showModal();
+    // Escape lo maneja el propio <dialog>: no debe llegar a la pila de paneles y cerrar también el de atrás.
+    const tecla = (ev: KeyboardEvent) => ev.stopPropagation();
+    // Un clic en el fondo (el propio <dialog>, fuera del contenido) lo cierra.
+    const clic = (ev: MouseEvent) => { if (ev.target === d) cerrarRef.current(); };
+    d.addEventListener('keydown', tecla);
+    d.addEventListener('click', clic);
+    return () => { d.removeEventListener('keydown', tecla); d.removeEventListener('click', clic); };
+  }, []);
+  return createPortal(<dialog ref={dialogo} class="foto-selector" aria-label={`Cambiar foto de ${descripcion}`} onClose={alCerrar}>
     <button type="button" class="foto-selector__cerrar" aria-label="Cerrar opciones de foto" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
     <h2>¿Cómo quieres agregar la foto?</h2><p>{descripcion}</p>
     <div class="foto-selector__opciones">
@@ -24,6 +37,7 @@ function OpcionesFoto({ descripcion, alCerrar, alSubir, alTomar, alEliminar }: {
 export function FotoHabitacion({ numero, claseEstado, textoEstado, altura, editable = true, control = 'camara', etiqueta, vacio = false, fotoInicial }: FotoHabitacionProps) {
   const descripcion = etiqueta ?? `habitación ${numero}`;
   const fotos = useFotosCompartidas();
+  const { esAdmin: fotosAdmin, cargadas: fotosCargadas, guardar: guardarCompartida } = fotos;
   const registro = fotos.items[numero];
   const imagen = registro?.tiene_foto ? `/api/v1/fotos/${encodeURIComponent(numero)}?v=${registro.version}` : fotoInicial || FOTO_DEFECTO;
   const puedeEditar = editable && fotos.esAdmin;
@@ -37,15 +51,15 @@ export function FotoHabitacion({ numero, claseEstado, textoEstado, altura, edita
     setError('');
   }, [numero]);
   useEffect(() => {
-    if (!fotos.esAdmin || !fotos.cargadas || registro || importada.current.has(numero)) return;
+    if (!fotosAdmin || !fotosCargadas || registro || importada.current.has(numero)) return;
     const local = obtenerFotoHabitacion(numero);
     if (local === FOTO_DEFECTO) return;
     importada.current.add(numero); setCargando(true);
-    fotos.guardar(numero, local, true).then(() => {
+    guardarCompartida(numero, local, true).then(() => {
       try { eliminarFotoHabitacion(numero); } catch { /* La copia compartida prevalece. */ }
     }).catch(() => { if (vigente.current === numero) setError('No se pudo compartir la foto guardada en este navegador. Conservamos el original local; vuelve a subirla para reintentar.'); })
       .finally(() => { if (vigente.current === numero) setCargando(false); });
-  }, [numero, fotos.esAdmin, fotos.cargadas, registro]);
+  }, [numero, fotosAdmin, fotosCargadas, registro, guardarCompartida]);
   async function seleccionar(ev: Event) {
     const input = ev.target as HTMLInputElement, file = input.files?.[0]; if (!file) return;
     try { await guardar(file); } catch { /* El error ya queda visible en el editor. */ }

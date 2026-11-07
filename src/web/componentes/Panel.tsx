@@ -95,7 +95,7 @@ export function Panel({ titulo, subtitulo, error, pie, alCerrar, children, ancho
   }, [oculto]);
   return createPortal((
     <div class={`capa-panel capa-panel--${ancho}`} hidden={oculto}>
-      <section ref={ref} data-panel-contextual class={`panel panel--${ancho}`} role="region" aria-labelledby={tituloId}>
+      <section ref={ref} data-panel-contextual class={`panel panel--${ancho}`} aria-labelledby={tituloId}>
         <div class="panel__cab">
           <button type="button" class="redondo panel__volver" aria-label="Volver" onClick={alCerrar}><Ico id="atras" clase="ico--s" /></button>
           <div class="titulos"><h2 id={tituloId}>{titulo}</h2>{subtitulo && <p>{subtitulo}</p>}</div>

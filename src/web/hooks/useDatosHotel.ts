@@ -2,7 +2,7 @@
 // reglas vigentes, reportes a Migración pendientes y existencias. Se vuelve a pedir
 // cuando cambia la sesión o cuando sube `recarga`. Lo que es solo de administración
 // no se pide siquiera para recepción, porque la API responde 403 y no tiene sentido.
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion, type Pago, type SesionActual } from '../api.ts';
 import type { Reglas } from '../ajustes.ts';
 import { marcarFuente, type Existencia, type Fuente, type PendienteMigracion } from '../avisos.ts';
@@ -32,6 +32,8 @@ export function useDatosHotel(
   const [existencias, setExistencias] = useState<Existencia[]>([]);
   const [error, setError] = useState('');
   const [sinRevisar, setSinRevisar] = useState<Fuente[]>([]);
+  const vencerRef = useRef(alVencerSesion);
+  useEffect(() => { vencerRef.current = alVencerSesion; });
   const marcar = (f: Fuente, ok: boolean) => setSinRevisar((xs) => marcarFuente(xs, f, ok));
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function useDatosHotel(
     api.habitaciones()
       .then((r) => { setHabitaciones(r.items); setError(''); marcar('habitaciones', true); })
       .catch((e) => {
-        if (e instanceof ErrorApi && e.estado === 401) { alVencerSesion(); return; }
+        if (e instanceof ErrorApi && e.estado === 401) { vencerRef.current(); return; }
         setError(mensajeDeError(e));
         marcar('habitaciones', false);
       });

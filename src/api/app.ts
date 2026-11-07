@@ -73,7 +73,10 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     if (error instanceof ErrorApi) return rep.code(error.estado).send({ codigo: error.codigo, mensaje: error.message });
     // Violación de una regla del hotel (RN-xx): 422 con el código de la regla.
     if (error instanceof ErrorRegla) return rep.code(422).send({ codigo: error.codigo, mensaje: error.message });
-    if ('code' in error && error.code === 'FST_ERR_CTP_BODY_TOO_LARGE') return rep.code(413).send({ codigo: 'INVALID_PAYLOAD', mensaje: 'La imagen supera el tamaño permitido de 5 MB.' });
+    // Solo las fotos tienen su propio límite; en las demás rutas el mensaje es el general (HAL-12).
+    if ('code' in error && error.code === 'FST_ERR_CTP_BODY_TOO_LARGE' && req.url.startsWith('/api/v1/fotos')) {
+      return rep.code(413).send({ codigo: 'INVALID_PAYLOAD', mensaje: 'La imagen supera el tamaño permitido de 5 MB.' });
+    }
     if ('validation' in error && error.validation) {
       return rep.code(400).send({
         codigo: 'INVALID_PAYLOAD',
@@ -112,7 +115,8 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rep.header('referrer-policy', 'no-referrer');
     rep.header('x-frame-options', 'DENY');
     rep.header('content-security-policy', POLITICA_CONTENIDO);
-    if (req.url.startsWith('/api/')) rep.header('cache-control', 'no-store');
+    // La API no se guarda en caché, salvo que la ruta diga otra cosa: las fotos usan caché privada con versión y ETag.
+    if (req.url.startsWith('/api/') && !rep.hasHeader('cache-control')) rep.header('cache-control', 'no-store');
   });
 
   // Salud (HG-HAL-001 HAL-06): sin sesión, para el monitoreo y el reinicio automático del VPS. No expone datos.

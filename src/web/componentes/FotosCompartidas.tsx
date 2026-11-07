@@ -14,15 +14,15 @@ export const useFotosCompartidas = () => useContext(Contexto);
 export function FotosCompartidas({ esAdmin, recarga, children }: { esAdmin: boolean; recarga: number; children: ComponentChildren }) {
   const [items, setItems] = useState<Record<string, FotoCompartida>>({});
   const [cargadas, setCargadas] = useState(false), [error, setError] = useState('');
-  const secuencia = useRef(0), viva = useRef(true);
+  const secuenciaRef = useRef(0), viva = useRef(true);
   const importaciones = useRef(new Map<string, Promise<void>>());
-  useEffect(() => () => { viva.current = false; secuencia.current++; }, []);
+  useEffect(() => () => { viva.current = false; secuenciaRef.current++; }, []);
   const cargar = useCallback(async () => {
-    const n = ++secuencia.current;
+    const n = ++secuenciaRef.current;
     try {
       const fotos = await api.fotos();
-      if (viva.current && n === secuencia.current) { setItems(Object.fromEntries(fotos.map(f => [f.clave, f]))); setCargadas(true); setError(''); }
-    } catch { if (viva.current && n === secuencia.current) setError('No se pudieron cargar las fotos compartidas. Revisa la conexión y vuelve a intentar.'); }
+      if (viva.current && n === secuenciaRef.current) { setItems(Object.fromEntries(fotos.map(f => [f.clave, f]))); setCargadas(true); setError(''); }
+    } catch { if (viva.current && n === secuenciaRef.current) setError('No se pudieron cargar las fotos compartidas. Revisa la conexión y vuelve a intentar.'); }
   }, []);
   useEffect(() => { void cargar(); }, [recarga, cargar]);
   useEffect(() => {
@@ -31,7 +31,7 @@ export function FotosCompartidas({ esAdmin, recarga, children }: { esAdmin: bool
     return () => { window.removeEventListener('focus', enfocar); document.removeEventListener('visibilitychange', enfocar); };
   }, [cargar]);
   function actualizar(foto: FotoCompartida) {
-    secuencia.current++;
+    secuenciaRef.current++;
     if (viva.current) setItems(antes => ({ ...antes, [foto.clave]: foto }));
   }
   async function guardar(clave: string, imagen: string, importar = false) {
