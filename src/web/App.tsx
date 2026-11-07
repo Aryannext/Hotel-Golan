@@ -58,14 +58,13 @@ export function App() {
     av.limpiar();
   }
 
-  // Cambiar de vista no debe dejar el asistente de entrada a medias detrás.
+  // Cambiar de vista cierra lo que hay abierto, menos la entrada a medias: queda oculta y vuelve al regresar (DEF-002).
   function irA(v: Vista) {
     setMenuMovil(false);
     nav.irA(v);
-    pan.cerrarTodo();
+    pan.cerrarTodo(true);
     setAccionInicio(null);
     setTurnosPanel(null);
-    setAccionInicio(null);
   }
 
   if (sesion === undefined) return null;
@@ -114,7 +113,7 @@ export function App() {
       else pan.revisar(h);
     }} />;
     if (nav.vista === 'confirmar') return <>
-      <PorConfirmar pagos={datos.porConfirmar} alCambiar={rec.recargar} />
+      <PorConfirmar pagos={datos.porConfirmar} sinRevisar={datos.sinRevisar.includes('transferencias')} alCambiar={rec.recargar} />
       {/* Quién pidió factura: se resuelve en la misma pantalla donde se revisan los pagos. */}
       {esAdmin && <SolicitudesFactura recarga={rec.recarga} />}
     </>;
@@ -125,8 +124,9 @@ export function App() {
     if (nav.vista === 'caja') return <Caja recarga={rec.recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={av.exito}
       alVerTodos={() => setTurnosPanel(true)}
       alEntregar={(texto) => { ses.terminar(texto); av.limpiar(); }} />;
-    if (datos.error) return <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{datos.error}</p></div>;
     return <>
+      {/* Si falla una recarga, el aviso va arriba y lo que se estaba viendo no se desmonta (UI-01). */}
+      {datos.error && <div class="nota" role="alert" style="margin-bottom:16px"><Ico id="alerta" clase="ico--s" /><p>{datos.error}</p></div>}
       {pan.viendoHoy && <QuienesHoy alCerrar={() => pan.verHoy(false)} />}
       <Mapa habitaciones={datos.habitaciones} recarga={rec.recarga} esAdmin={esAdmin}
         alVerHoy={() => pan.verHoy(true)}
@@ -165,7 +165,7 @@ export function App() {
               onInput={(ev) => setBusqueda((ev.target as HTMLInputElement).value)} />
           </form>
           <div class="barra-sup__der">
-            <Campana avisos={avisos} alElegir={elegirAviso} />
+            <Campana avisos={avisos} sinRevisar={datos.sinRevisar} alElegir={elegirAviso} />
             <div class="barra-sup__reloj" aria-live="off">
               <span class="reloj__fecha">{fechaFormateada}</span>
               <strong class="reloj__hora">{horaFormateada}</strong>
@@ -187,10 +187,13 @@ export function App() {
                 </button>)}
                 <button type="button" class="pestana" role="tab" aria-selected={['historial','equipo','ajustes'].includes(nav.vista)} onClick={() => setMenuMovil(true)}><Ico id="usuarios" clase="ico--s" />Más</button>
               </div>
-              {av.aviso && !pan.cotizando && <div class={`nota nota--${av.aviso.tono}`} aria-live="polite" style="margin-bottom:16px">
-                <Ico id={icoTono(av.aviso.tono)} clase="ico--s" /><p>{av.aviso.texto}</p>
-                <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={av.limpiar}><Ico id="cerrar" clase="ico--xs" /></button>
-              </div>}
+              {/* La región viva siempre está montada: si naciera junto con el texto, el lector podría no anunciarlo (A11Y-03). */}
+              <div aria-live="polite">
+                {av.aviso && !pan.cotizando && <div class={`nota nota--${av.aviso.tono}`} style="margin-bottom:16px">
+                  <Ico id={icoTono(av.aviso.tono)} clase="ico--s" /><p>{av.aviso.texto}</p>
+                  <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={av.limpiar}><Ico id="cerrar" clase="ico--xs" /></button>
+                </div>}
+              </div>
               {vistaActual()}
               {menuMovil && <Panel titulo="Más opciones" alCerrar={() => setMenuMovil(false)}>
                 <p>{esAdmin ? 'Administración' : 'Recepción'}</p><div class="selector-habitaciones">
@@ -215,10 +218,10 @@ export function App() {
                 {accionInicio === 'mapa' ? <div class="selector-habitaciones">{datos.habitaciones.filter((h) => h.estado === 'DISPONIBLE').map((h) =>
                   <button key={h.numero} type="button" class="btn btn--secundario" onClick={() => { setAccionInicio(null); pan.cotizar(h); }}>Habitación {h.numero} · {h.tipo === 'AIRE' ? 'Aire' : 'Ventilador'}</button>)}
                   {!datos.habitaciones.some((h) => h.estado === 'DISPONIBLE') && <p>No hay habitaciones disponibles.</p>}</div>
-                  : accionInicio === 'confirmar' ? <PorConfirmar pagos={datos.porConfirmar} alCambiar={rec.recargar} />
+                  : accionInicio === 'confirmar' ? <PorConfirmar pagos={datos.porConfirmar} sinRevisar={datos.sinRevisar.includes('transferencias')} alCambiar={rec.recargar} />
                   : <Caja recarga={rec.recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={av.exito} alVerTodos={() => setTurnosPanel(true)} />}
               </Panel>}
-              {pan.cotizando && <Panel ancho="entrada" titulo={'Registrar entrada · Habitación ' + pan.cotizando.numero} alCerrar={() => pan.cotizar(null)}>
+              {pan.cotizando && <Panel ancho="entrada" oculto={!['inicio', 'mapa'].includes(nav.vista)} titulo={'Registrar entrada · Habitación ' + pan.cotizando.numero} alCerrar={() => pan.cotizar(null)}>
                 <Entrada habitacion={pan.cotizando} reglas={datos.reglas} alVolver={() => pan.cotizar(null)} alRegistrar={(est) => {
                   pan.cotizar(null); rec.recargar(); av.exito('Entrada registrada en la habitación ' + est.habitacion_numero + '.');
                 }} />

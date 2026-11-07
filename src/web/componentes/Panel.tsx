@@ -3,77 +3,98 @@
 import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { createPortal } from 'preact/compat';
-import { ErrorApi, type MedioPago } from '../api.ts';
+import type { MedioPago } from '../api.ts';
+import { enviarYReleer } from '../envio.ts';
+import { crearPila } from '../pilaPaneles.ts';
 import { textoMedio } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 
-const SIN_CONEXION = 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.';
+/** En el celular el panel ocupa toda la pantalla: ahí se comporta como modal. En escritorio el fondo sigue usable. */
+const CELULAR = '(max-width: 1023px)';
 
-const abiertos: symbol[] = [];
-/** Solo el contexto superior responde a Escape; el fondo sigue utilizable. */
+const pila = crearPila();
+let escuchandoEscape = false;
+const alTeclear = (ev: KeyboardEvent) => {
+  if (ev.key !== 'Escape' || pila.abiertos() === 0) return;
+  ev.preventDefault();
+  pila.escape();
+};
+
+/** Solo el panel de encima responde a Escape (HG-HAL-001 HAL-13). */
 export function useCerrarConEscape(alCerrar: () => void) {
   const cerrar = useRef(alCerrar);
   cerrar.current = alCerrar;
   useEffect(() => {
-    const identidad = Symbol();
-    abiertos.push(identidad);
-    const escape = (ev: KeyboardEvent) => {
-      if (ev.key === 'Escape' && abiertos.at(-1) === identidad) {
-        ev.preventDefault(); cerrar.current();
-      }
-    };
-    document.addEventListener('keydown', escape);
-    return () => {
-      document.removeEventListener('keydown', escape);
-      const indice = abiertos.indexOf(identidad);
-      if (indice >= 0) abiertos.splice(indice, 1);
-    };
+    const quitar = pila.abrir(() => cerrar.current());
+    if (!escuchandoEscape) { document.addEventListener('keydown', alTeclear); escuchandoEscape = true; }
+    return quitar;
   }, []);
 }
 
-/** Envía una acción una sola vez a la vez; si falla, deja el mensaje de la API (o el de sin conexión) en `error`. */
+/** Vuelve inerte lo que está al lado del panel, hasta el `body`; devuelve lo que marcó para liberarlo al cerrar. */
+function inertizarFondo(panel: HTMLElement | null): HTMLElement[] {
+  const marcados: HTMLElement[] = [];
+  for (let el = panel?.closest('.capa-panel') ?? null; el && el !== document.body; el = el.parentElement) {
+    for (const hermano of Array.from(el.parentElement?.children ?? [])) {
+      if (hermano !== el && hermano instanceof HTMLElement && !hermano.inert) {
+        hermano.inert = true;
+        marcados.push(hermano);
+      }
+    }
+  }
+  return marcados;
+}
+
+/**
+ * Envía una acción una sola vez a la vez; si falla, deja el mensaje de la API (o el de sin conexión) en `error`.
+ * `releer` va aparte: si falla después de que la acción quedó, el aviso dice que no se repita (HAL-09).
+ */
 export function useEnvio() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
-  async function enviar(accion: () => Promise<void>) {
+  async function enviar(accion: () => Promise<void>, releer: () => Promise<void> = async () => undefined) {
     setEnviando(true);
     setError('');
-    try {
-      await accion();
-    } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : SIN_CONEXION);
-    } finally {
-      setEnviando(false);
-    }
+    const r = await enviarYReleer(accion, releer);
+    setError(r.hecho ? r.aviso : r.error);
+    setEnviando(false);
   }
   return { enviando, error, setError, enviar };
 }
 
-export function Panel({ titulo, subtitulo, error, pie, alCerrar, children, ancho = 'normal' }: {
-  titulo: ComponentChildren; subtitulo?: ComponentChildren; error?: string; pie?: ComponentChildren; alCerrar: () => void; children?: ComponentChildren; ancho?: 'normal' | 'detalle' | 'cuenta' | 'entrada';
+/** `oculto` deja el panel montado pero invisible: lo escrito no se pierde al cambiar de pestaña (DEF-002). */
+export function Panel({ titulo, subtitulo, error, pie, alCerrar, children, ancho = 'normal', oculto = false }: {
+  titulo: ComponentChildren; subtitulo?: ComponentChildren; error?: string; pie?: ComponentChildren; alCerrar: () => void; children?: ComponentChildren;
+  ancho?: 'normal' | 'detalle' | 'cuenta' | 'entrada'; oculto?: boolean;
 }) {
   useCerrarConEscape(alCerrar);
   const tituloId = useId();
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
+    if (oculto) return;
     const anterior = document.activeElement as HTMLElement | null;
     const dialog = ref.current;
     if (!dialog) return;
     const controles = () => [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]')]
       .filter((el) => el.getClientRects().length && !el.hidden);
     controles()[0]?.focus();
+    const inertes = window.matchMedia(CELULAR).matches ? inertizarFondo(dialog) : [];
     const atrapar = (ev: KeyboardEvent) => {
       const paneles = [...document.querySelectorAll('[data-panel-contextual]')];
-      if (paneles.at(-1) !== dialog || ev.key !== 'Tab' || !window.matchMedia('(max-width: 1023px)').matches) return;
+      if (paneles.at(-1) !== dialog || ev.key !== 'Tab' || !window.matchMedia(CELULAR).matches) return;
       const lista = controles(), primero = lista[0], ultimo = lista.at(-1);
       if (ev.shiftKey && document.activeElement === primero) { ev.preventDefault(); ultimo?.focus(); }
       else if (!ev.shiftKey && document.activeElement === ultimo) { ev.preventDefault(); primero?.focus(); }
     };
     dialog.addEventListener('keydown', atrapar);
-    return () => { dialog.removeEventListener('keydown', atrapar); if (anterior?.isConnected) anterior.focus(); };
-  }, []);
+    return () => {
+      dialog.removeEventListener('keydown', atrapar);
+      for (const el of inertes) el.inert = false;
+      if (anterior?.isConnected) anterior.focus();
+    };
+  }, [oculto]);
   return createPortal((
-    <div class={`capa-panel capa-panel--${ancho}`}>
+    <div class={`capa-panel capa-panel--${ancho}`} hidden={oculto}>
       <section ref={ref} data-panel-contextual class={`panel panel--${ancho}`} role="region" aria-labelledby={tituloId}>
         <div class="panel__cab">
           <button type="button" class="redondo panel__volver" aria-label="Volver" onClick={alCerrar}><Ico id="atras" clase="ico--s" /></button>

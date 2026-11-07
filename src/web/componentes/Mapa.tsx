@@ -30,8 +30,8 @@ function TarjetaCuarto({
   }, [e?.id]);
 
   return (
-    <article class={`cuarto-card cuarto-card--foto cuarto-card--${clase}${activa ? ' cuarto-card--activa' : ''}`} aria-label={`Habitación ${h.numero} · ${textoEstado(h.estado)}`}
-      onClick={(ev) => { if (!(ev.target as Element).closest('button')) alHacer('DETALLES', h); }}>
+    // Sin clic en toda la tarjeta: cada acción es un botón, que también funciona con el teclado (Sonar S1082).
+    <article class={`cuarto-card cuarto-card--foto cuarto-card--${clase}${activa ? ' cuarto-card--activa' : ''}`} aria-label={`Habitación ${h.numero} · ${textoEstado(h.estado)}`}>
       <div class="cuarto-card__foto"><FotoHabitacion numero={h.numero} editable={false} /><span class="cuarto-card__demo">Demo</span></div>
       <div class="cuarto-card__cabecera">
         <div class="cuarto-card__icono-box">

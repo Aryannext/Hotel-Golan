@@ -2,7 +2,8 @@
 // Encabezado con miniatura y estadía, tablas de cargos y pagos, widget de cargos rápidos y acciones de estadía.
 import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
-import { api, ErrorApi, type Estadia, type Habitacion } from '../api.ts';
+import { api, type Estadia, type Habitacion } from '../api.ts';
+import { enviarYReleer } from '../envio.ts';
 import {
   cambioEfectivo, resumenExtension, devolucionPosible, type CotizacionExtension, diaRelativo, horaBogota, hoyBogota, leerPesos, nuevaClave, pesos, resumenSeleccion, textoMedio,
   valorPago, type Producto,
@@ -11,7 +12,6 @@ import { fechaLarga } from '../habitacion.ts';
 import { Ico } from './Ico.tsx';
 import { Panel } from './Panel.tsx';
 import { FotoHabitacion } from './FotoHabitacion.tsx';
-import { BancosAdicionales } from './BancosAdicionales.tsx';
 import { Anular, type QueAnular } from './Anular.tsx';
 import { SelectorProductos } from './SelectorProductos.tsx';
 import { VistaFactura } from './SolicitudesFactura.tsx';
@@ -32,7 +32,6 @@ type PestanaFicha = 'cuenta' | 'huesped' | 'historial' | 'notas' | 'llave' | 'li
 
 const MODALIDADES_EXT: Array<[ModExt, string]> = [['NOCHE', 'Otra noche'], ['TRES_HORAS', '3 horas'], ['POR_HORAS', 'Por horas']];
 const MEDIOS: Medio[] = ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'];
-const SIN_CONEXION = 'No se pudo conectar con el sistema. Intente de nuevo: no se duplicará.';
 // Originales recuperados: respaldo estático sin depender del almacenamiento del navegador.
 const FOTOS_PRODUCTOS: Record<string, string> = {
   'llave perdida': '/productos/llave.jpg',
@@ -103,7 +102,7 @@ function VistaPago({ medio, alMedio, valor, alValor, saldo, escrito, pago }: {
         <input id="valor-pago" inputmode="numeric" autocomplete="off" placeholder={String(saldo)} value={valor} onInput={(ev) => alValor((ev.target as HTMLInputElement).value)} />
       </div>
       {medio === 'EFECTIVO' ? (
-        <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`}>
+        <div class={`saldo ${cambio.tipo === 'abono' ? 'saldo--aviso' : 'saldo--ok'}`} aria-live="polite" aria-atomic="true">
           <div>
             <b>{textoCambio(cambio.tipo, 'Abono: sigue debiendo')}</b>
             <p>Entran {pesos(pago.valor)} a la caja.</p>
@@ -302,18 +301,28 @@ export function Ficha({
     if (s === 'devolucion') { setMotivoDev('SOLO_MIRO'); setMedioDev('EFECTIVO'); }
   }
 
+  /**
+   * Envía una operación; `alTerminar` decide qué sigue (por defecto, recargar la cuenta y volver a ella). Si la operación
+   * quedó pero la cuenta no se pudo releer, vuelve a la cuenta con el aviso de no repetirla (HAL-09).
+   */
   async function enviar(accion: () => Promise<unknown>, alTerminar?: (r: unknown) => void, alFallar?: () => Promise<void>) {
     setEnviando(true);
     setError('');
     try {
-      const r = await accion();
-      if (alTerminar) { alTerminar(r); return; }
-      alCambiar();
-      setEst(await api.estadia(id));
-      ir('cuenta');
-    } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : SIN_CONEXION);
-      await alFallar?.();
+      const r = await enviarYReleer(accion, async () => {
+        if (alTerminar) return;
+        alCambiar();
+        setEst(await api.estadia(id));
+      });
+      if (!r.hecho) {
+        setError(r.error);
+        await alFallar?.();
+      } else if (alTerminar) {
+        alTerminar(r.resultado);
+      } else {
+        ir('cuenta');
+        setError(r.aviso);
+      }
     } finally {
       setEnviando(false);
     }
@@ -343,7 +352,7 @@ export function Ficha({
               <SelectorProductos catalogo={prendas} cantidades={cantidades} sel={sel} sumar={sumar} />
             </>
           ),
-          pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando} alTocar={() => enviar(() => api.pedirLavanderia(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad }))))}>{texto}</BotonPie>,
+          pie: <BotonPie icono="mas" deshabilitado={!sel.items.length || enviando} alTocar={() => enviar(() => api.pedirLavanderia(id, sel.items.map((x) => ({ producto_id: x.producto.id, cantidad: x.cantidad })), clave))}>{texto}</BotonPie>,
         };
       }
       if (sub === 'cargo') {
@@ -745,7 +754,6 @@ export function Ficha({
                     <span>Bancolombia</span>
                   </button>
                 </div>
-                <BancosAdicionales />
               </div>
 
               {/* Tarjeta: Resumen de cuenta */}
@@ -832,15 +840,19 @@ export function Ficha({
             <h3>Detalles de {pestana}</h3>
             <p class="ayuda">Información y opciones avanzadas de la habitación {habitacion.numero}.</p>
             <div class="ficha-pg-acciones-estadia" style="max-width:400px; margin-top:16px;">
-              <button type="button" class="btn btn--secundario" disabled title="Módulo futuro">
-                <Ico id="lavanderia" clase="ico--s" /> Lavandería · Futuro
+              {/* Lavandería (HU-24), factura (HU-26) y daño (HU-07) ya funcionan: no se muestran como «futuro». */}
+              <button type="button" class="btn btn--secundario" onClick={() => ir('lavanderia')}>
+                <Ico id="lavanderia" clase="ico--s" /> Lavandería
               </button>
               <button type="button" class="btn btn--secundario" onClick={() => ir('cambio')}>
                 <Ico id="habitaciones" clase="ico--s" /> Cambiar de habitación
               </button>
-              <button type="button" class="btn btn--secundario" disabled title="Módulo futuro">
-                <Ico id="facturacion" clase="ico--s" /> Facturación · Futuro
+              <button type="button" class="btn btn--secundario" onClick={() => ir('factura')}>
+                <Ico id="facturacion" clase="ico--s" /> Pedir factura
               </button>
+              {esAdmin && <button type="button" class="btn btn--secundario" onClick={() => ir('dano')}>
+                <Ico id="alerta" clase="ico--s" /> Cobrar un daño
+              </button>}
               <button type="button" class="btn btn--secundario" onClick={() => ir('devolucion')}>
                 <Ico id="devolver" clase="ico--s" /> Desistimiento y devolución
               </button>

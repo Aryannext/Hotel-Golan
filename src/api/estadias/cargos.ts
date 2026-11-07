@@ -5,7 +5,7 @@ import type { Bd } from '../../../scripts/lib/bd.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditarVarios } from '../comun/auditoria.ts';
 import { ErrorApi } from '../comun/errores.ts';
-import { conIdempotencia } from '../comun/idempotencia.ts';
+import { CABECERA_IDEMPOTENCIA, conIdempotencia, type ConClave } from '../comun/idempotencia.ts';
 import { leerEstadia } from './estadias.ts';
 
 interface Cuerpo { items: Array<{ producto_id: string; cantidad: number }> }
@@ -89,10 +89,11 @@ export function rutasCargos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
   });
 
   // Daños (TICKET-27; RN-18): valor de reposición «como nuevo» que pone solo la administración; recepción la llama (V5-06).
-  app.post<{ Params: { id: string }; Body: { descripcion: string; valor: number } }>('/estadias/:id/danos', {
+  app.post<{ Params: { id: string }; Body: { descripcion: string; valor: number }; Headers: ConClave }>('/estadias/:id/danos', {
     preHandler: requiere(bd, ahora, ['ADMINISTRACION']),
     schema: {
       params: PARAMS_ID,
+      headers: CABECERA_IDEMPOTENCIA,
       body: {
         type: 'object', additionalProperties: false, required: ['descripcion', 'valor'],
         properties: {
@@ -103,7 +104,7 @@ export function rutasCargos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     },
   }, async (req, rep) => {
     const u = req.usuario!;
-    const cuerpo = await bd.transaccion(async (tx) => {
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'cobrarDano', async (tx) => {
       const momento = ahora();
       const est = await estadiaActiva(tx, req.params.id);
       const [c] = await tx.consultar<{ id: string }>(
@@ -113,8 +114,8 @@ export function rutasCargos(app: FastifyInstance, bd: Bd, ahora: () => Date) {
       await auditarVarios(tx, [{ usuarioId: u.id, accion: 'CREAR', entidad: 'cargos', entidadId: c.id,
         detalle: { estadia: req.params.id, tipo: 'DANO', valor: String(req.body.valor) }, ocurrido: momento }]);
       await avisarMapa(tx, est.habitacion_numero, req.params.id, momento);
-      return leerEstadia(tx, req.params.id);
+      return { estado: 201, cuerpo: await leerEstadia(tx, req.params.id) };
     });
-    return rep.code(201).send(cuerpo);
+    return rep.code(r.estado).send(r.cuerpo);
   });
 }

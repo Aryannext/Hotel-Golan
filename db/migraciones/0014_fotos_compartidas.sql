@@ -31,6 +31,6 @@ ALTER TABLE eventos_salida ADD CONSTRAINT eventos_salida_tipo_check CHECK (tipo 
 -- Red de seguridad: si sobreviviera una restricción vieja que no conoce el tipo nuevo,
 -- este INSERT falla y revierte la migración entera. Vale más que no se aplique a que
 -- quede a medias y la aplicación empiece a rechazar eventos en caliente.
-INSERT INTO eventos_salida (tipo, payload) VALUES ('foto.actualizada', '{"comprobacion": "0011"}'::jsonb);
-DELETE FROM eventos_salida WHERE tipo = 'foto.actualizada' AND payload->>'comprobacion' = '0011';
+INSERT INTO eventos_salida (tipo, payload) VALUES ('foto.actualizada', '{"comprobacion": "0014"}'::jsonb);
+DELETE FROM eventos_salida WHERE tipo = 'foto.actualizada' AND payload->>'comprobacion' = '0014';
 COMMIT;

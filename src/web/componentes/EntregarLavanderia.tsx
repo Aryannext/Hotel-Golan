@@ -2,7 +2,7 @@
 // autorización de quien entrega (queda registrada y la deuda sigue: nadie sale debiendo, RN-07).
 import { useEffect, useState } from 'preact/hooks';
 import { api, type MedioPago } from '../api.ts';
-import { pesos } from '../logica.ts';
+import { nuevaClave, pesos } from '../logica.ts';
 import { faltaParaEntregar, quienPidio, textoEntrega, type PedidoLavanderia } from '../lavanderia.ts';
 import { Ico } from './Ico.tsx';
 import { OpcionesMedio, Panel, useEnvio } from './Panel.tsx';
@@ -12,6 +12,8 @@ export function EntregarLavanderia({ pedido, alCerrar, alEntregar }: { pedido: P
   const [medio, setMedio] = useState<MedioPago>('EFECTIVO');
   const [autorizo, setAutorizo] = useState(false);
   const { enviando, error, setError, enviar } = useEnvio();
+  // Una clave por envío: un doble toque o un reintento sin señal no lo duplican (Idempotency-Key).
+  const [clave] = useState(nuevaClave);
   const quien = quienPidio(pedido);
 
   useEffect(() => { if (pedido.estadia_id) api.estadia(pedido.estadia_id).then((e) => setSaldo(e.cuenta.saldo)).catch((e: Error) => setError(e.message)); }, []);
@@ -20,7 +22,7 @@ export function EntregarLavanderia({ pedido, alCerrar, alEntregar }: { pedido: P
   const huesped = !!pedido.estadia_id;
 
   const entregar = (sinPago: boolean) => enviar(async () => {
-    await api.entregarLavanderia(pedido.id, sinPago ? { sin_pago_autorizado: true } : { cobro: { medio } });
+    await api.entregarLavanderia(pedido.id, sinPago ? { sin_pago_autorizado: true } : { cobro: { medio } }, clave);
     if (!falta) alEntregar(textoEntrega(quien, 'pagado', 0));
     else alEntregar(textoEntrega(quien, sinPago ? 'sin_pago' : 'cobrado', falta));
   });

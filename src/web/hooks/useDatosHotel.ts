@@ -5,7 +5,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Habitacion, type Pago, type SesionActual } from '../api.ts';
 import type { Reglas } from '../ajustes.ts';
-import type { Existencia, PendienteMigracion } from '../avisos.ts';
+import { marcarFuente, type Existencia, type Fuente, type PendienteMigracion } from '../avisos.ts';
+import { mensajeDeError } from '../envio.ts';
 
 export interface DatosHotel {
   habitaciones: Habitacion[];
@@ -13,8 +14,10 @@ export interface DatosHotel {
   reglas: Reglas | null;
   migracion: PendienteMigracion[];
   existencias: Existencia[];
-  /** Solo el mapa corta la pantalla si falla; lo demás se calla y deja la vista servible. */
+  /** El error del mapa, en palabras; la pantalla lo muestra arriba sin desmontar lo que ya se veía. */
   error: string;
+  /** Lo que no respondió en la última recarga: mientras falte algo, no se dice «Todo al día» (HAL-07). */
+  sinRevisar: Fuente[];
 }
 
 export function useDatosHotel(
@@ -28,24 +31,27 @@ export function useDatosHotel(
   const [migracion, setMigracion] = useState<PendienteMigracion[]>([]);
   const [existencias, setExistencias] = useState<Existencia[]>([]);
   const [error, setError] = useState('');
+  const [sinRevisar, setSinRevisar] = useState<Fuente[]>([]);
+  const marcar = (f: Fuente, ok: boolean) => setSinRevisar((xs) => marcarFuente(xs, f, ok));
 
   useEffect(() => {
     if (!sesion) return;
     api.habitaciones()
-      .then((r) => { setHabitaciones(r.items); setError(''); })
+      .then((r) => { setHabitaciones(r.items); setError(''); marcar('habitaciones', true); })
       .catch((e) => {
-        if (e instanceof ErrorApi && e.estado === 401) alVencerSesion();
-        else setError(e instanceof Error ? e.message : 'No se pudo cargar el mapa.');
+        if (e instanceof ErrorApi && e.estado === 401) { alVencerSesion(); return; }
+        setError(mensajeDeError(e));
+        marcar('habitaciones', false);
       });
-    api.reglas().then(setReglas).catch(() => undefined);
+    api.reglas().then((r) => { setReglas(r); marcar('reglas', true); }).catch(() => marcar('reglas', false));
     // Reportes a Migración (TICKET-37): los ven recepción y la administración.
-    api.migracionPendientes().then((r) => setMigracion(r.items)).catch(() => undefined);
+    api.migracionPendientes().then((r) => { setMigracion(r.items); marcar('migracion', true); }).catch(() => marcar('migracion', false));
     if (sesion.usuario.rol === 'ADMINISTRACION') {
       // Existencias (TICKET-21): solo la administración las ve y recibe sus avisos.
-      api.existencias().then((r) => setExistencias(r.items)).catch(() => undefined);
-      api.pagosPorConfirmar().then((r) => setPorConfirmar(r.items)).catch(() => undefined);
+      api.existencias().then((r) => { setExistencias(r.items); marcar('existencias', true); }).catch(() => marcar('existencias', false));
+      api.pagosPorConfirmar().then((r) => { setPorConfirmar(r.items); marcar('transferencias', true); }).catch(() => marcar('transferencias', false));
     }
   }, [sesion, recarga]);
 
-  return { habitaciones, porConfirmar, reglas, migracion, existencias, error };
+  return { habitaciones, porConfirmar, reglas, migracion, existencias, error, sinRevisar };
 }

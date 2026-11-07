@@ -1,0 +1,64 @@
+{
+  "url": "http://localhost:3001",
+  "fecha": "2026-10-26T18:42:33.381Z",
+  "resultados": [
+    {
+      "caso": "CP-037",
+      "verificacion": "GET / sirve la PWA",
+      "esperado": "200 y HTML con el título del sistema",
+      "obtenido": "200, título Hotel Golán · Sistema de recepción",
+      "estado": "Exitoso"
+    },
+    {
+      "caso": "CP-038",
+      "verificacion": "PIN incorrecto",
+      "esperado": "401 CREDENCIALES_INVALIDAS sin cookie",
+      "obtenido": "401 CREDENCIALES_INVALIDAS, cookie: no",
+      "estado": "Exitoso"
+    },
+    {
+      "caso": "CP-039",
+      "verificacion": "Cookie de sesión",
+      "esperado": "201 con HttpOnly, Secure y SameSite=Strict",
+      "obtenido": "201; banderas: HttpOnly, Secure, SameSite=Strict; Max-Age: 43200",
+      "estado": "Exitoso"
+    },
+    {
+      "caso": "CP-040",
+      "verificacion": "Acceso por rol",
+      "esperado": "sin sesión 401; recepción en /usuarios 403; recepción ve 12 habitaciones",
+      "obtenido": "sin sesión 401; /usuarios 403; habitaciones 200 (12)",
+      "estado": "Exitoso"
+    },
+    {
+      "caso": "CP-041",
+      "verificacion": "Rendimiento p95",
+      "esperado": "p95 < 300 ms en cada API",
+      "obtenido": "GET /habitaciones: p50 15.1 ms, p95 19.1 ms, máx 36.1 ms; GET /turnos/actual: p50 15.1 ms, p95 21 ms, máx 32.4 ms; POST /cotizaciones: p50 15.2 ms, p95 17.2 ms, máx 30 ms",
+      "estado": "Exitoso"
+    }
+  ],
+  "medidas": [
+    {
+      "nombre": "GET /habitaciones",
+      "n": 200,
+      "p50": 15.1,
+      "p95": 19.1,
+      "max": 36.1
+    },
+    {
+      "nombre": "GET /turnos/actual",
+      "n": 200,
+      "p50": 15.1,
+      "p95": 21,
+      "max": 32.4
+    },
+    {
+      "nombre": "POST /cotizaciones",
+      "n": 200,
+      "p50": 15.2,
+      "p95": 17.2,
+      "max": 30
+    }
+  ]
+}

@@ -42,7 +42,8 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
   }, [esAdmin, recarga]);
 
   const { turno } = datos;
-  if (datos.error) return <div class="nota" role="alert"><Ico id="info" clase="ico--s" /><p>{datos.error}</p></div>;
+  // Si falla una recarga con el turno ya en pantalla, el aviso va arriba y la caja no desaparece.
+  if (datos.error && !turno) return <div class="nota" role="alert"><Ico id="info" clase="ico--s" /><p>{datos.error}</p></div>;
   if (!turno) return null;
 
   const c = turno.caja;
@@ -64,8 +65,15 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
             <Ico id="check" clase="ico--s" />Entregar turno
           </button>
         )}
+        {/* HAL-18 [P/V]: un turno trabado (quien lo tenía se fue sin entregarlo) lo cierra la administración, con motivo. */}
+        {turno.estado === 'ABIERTO' && esAdmin && turno.responsable !== usuario && (
+          <button type="button" class="btn btn--secundario btn--l" onClick={() => pan.abrir('entregar-turno')}>
+            <Ico id="alerta" clase="ico--s" />Cerrar el turno de {turno.responsable}
+          </button>
+        )}
       </div>
 
+      {datos.error && <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{datos.error}</p></div>}
       <div class="caja-columnas">
         <div class="caja-columnas__principal">
           <TurnoActual turno={turno} lineas={lineasCaja(turno)} desde={horaBogota(turno.inicio_en)}>
@@ -151,8 +159,12 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
       {pan.ventana === 'vender' && <VentaContado alCerrar={pan.ninguna} alRegistrar={listo} />}
       {pan.ventana === 'salio' && <SalidaDinero debeHaber={c.debe_haber} alCerrar={pan.ninguna} alRegistrar={listo} />}
       {pan.anulando && <Anular que={pan.anulando} alCerrar={pan.ninguna} alAnular={listo} />}
-      {pan.ventana === 'entregar-turno' && <EntregarTurno turno={turno} alCerrar={pan.ninguna}
-        alEntregar={(texto) => { pan.ninguna(); alEntregar?.(texto); }} />}
+      {pan.ventana === 'entregar-turno' && <EntregarTurno turno={turno} porAdministracion={turno.responsable !== usuario} alCerrar={pan.ninguna}
+        alEntregar={(texto) => {
+          // Quien entrega su propio turno sale del sistema; la administración que cierra uno trabado sigue adentro.
+          if (turno.responsable === usuario) { pan.ninguna(); alEntregar?.(texto); }
+          else listo(texto);
+        }} />}
     </div>
   );
 }

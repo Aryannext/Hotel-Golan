@@ -4,6 +4,7 @@
 // algo, que es para lo que sirve `recargar`.
 import { useEffect, useState } from 'preact/hooks';
 import { api, ErrorApi, type Turno } from '../api.ts';
+import { mensajeDeError } from '../envio.ts';
 import { lineasDelTurno, type LineaTurno } from '../logica.ts';
 import type { PedidoLavanderia } from '../lavanderia.ts';
 
@@ -35,8 +36,11 @@ export function useDatosCaja(recarga: number): DatosCaja {
       setLineas(lineasDelTurno(p.items, m.items));
       setLavanderia(l.items);
       setDeudas(d.items);
-    }).catch((e) =>
-      setError(e instanceof ErrorApi && e.estado === 404 ? 'No hay un turno activo en este momento.' : e.message));
+    }).catch((e) => {
+      // Sin turno activo se vacía la pantalla; si solo falló la conexión, lo que ya se veía se queda.
+      if (e instanceof ErrorApi && e.estado === 404) { setTurno(null); setError('No hay un turno activo en este momento.'); }
+      else setError(mensajeDeError(e));
+    });
   }, [recarga, propia]);
 
   return { turno, lineas, lavanderia, deudas, error, recargar: () => setPropia((n) => n + 1) };

@@ -4,11 +4,11 @@
 // Un cambio de precio aplica a los cargos nuevos: cada cargo guarda su valor unitario al registrarse.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { UNICO_VIOLADO } from '../comun/hotel.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { ErrorApi, sinPermiso } from '../comun/errores.ts';
 
-const UNICO_VIOLADO = '23505';
 const COLUMNAS = 'id, nombre, grupo, precio, seccion, pertenece_a, activo';
 
 interface ProductoInput { nombre: string; grupo: string; precio: number; seccion?: number; pertenece_a?: 'HOTEL'; activo: boolean }

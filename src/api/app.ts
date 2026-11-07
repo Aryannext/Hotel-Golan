@@ -44,7 +44,21 @@ export interface OpcionesApp {
   /** Carpeta con la PWA compilada (dist/web). Si existe, la API la sirve. */
   dirWeb?: string;
   registros?: boolean;
+  /** Cada cuánto el SSE manda un latido y revisa la sesión (HAL-25). Las pruebas lo acortan. */
+  latidoMs?: number;
 }
+
+/**
+ * Cabeceras de seguridad sin dependencias (HG-HAL-001 HAL-27). Las fuentes vienen de Google Fonts mientras se definen en
+ * el diseño; los estilos en línea los usa la PWA. Las respuestas de la API no se guardan en caché.
+ */
+const POLITICA_CONTENIDO = [
+  "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com", "img-src 'self' data:", "connect-src 'self'", "frame-ancestors 'none'",
+  "base-uri 'self'", "form-action 'self'", "object-src 'none'",
+].join('; ');
+
+const MENSAJE_4XX: Record<number, string> = { 413: 'El envío es demasiado grande.', 415: 'Envíe los datos en formato JSON.' };
 
 export async function construirApp(o: OpcionesApp): Promise<App> {
   const ahora = o.ahora ?? (() => new Date());
@@ -67,7 +81,14 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
         detalles: error.validation.map((v) => ({ campo: v.instancePath || String(v.params?.missingProperty ?? ''), problema: v.message ?? 'inválido' })),
       });
     }
-    req.log.error(error);
+    // JSON mal formado (400), tipo que no es JSON (415), envío muy grande (413): el error es de quien envía (HAL-12).
+    const estado = (error as FastifyError).statusCode;
+    if (estado && estado >= 400 && estado < 500) {
+      return rep.code(estado).send({ codigo: 'INVALID_PAYLOAD', mensaje: MENSAJE_4XX[estado] ?? 'Los datos enviados no son válidos.' });
+    }
+    // Sin el error completo: el `detail` de PostgreSQL puede traer la fila con datos de un huésped (HAL-12).
+    const pg = error as { code?: string; constraint?: string };
+    req.log.error({ tipo: error.name, mensaje: error.message, codigo: pg.code, restriccion: pg.constraint }, 'Error interno');
     return rep.code(500).send({ codigo: 'ERROR_INTERNO', mensaje: 'Ocurrió un error inesperado. Intente de nuevo.' });
   });
 
@@ -84,6 +105,24 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     for (const cerrar of conexionesVivas) cerrar();
     publicador.cerrar();
     listo();
+  });
+
+  app.addHook('onSend', async (req, rep) => {
+    rep.header('x-content-type-options', 'nosniff');
+    rep.header('referrer-policy', 'no-referrer');
+    rep.header('x-frame-options', 'DENY');
+    rep.header('content-security-policy', POLITICA_CONTENIDO);
+    if (req.url.startsWith('/api/')) rep.header('cache-control', 'no-store');
+  });
+
+  // Salud (HG-HAL-001 HAL-06): sin sesión, para el monitoreo y el reinicio automático del VPS. No expone datos.
+  app.get('/api/v1/salud', async (_req, rep) => {
+    try {
+      await o.bd.consultar('SELECT 1');
+      return { estado: 'ok' };
+    } catch {
+      return rep.code(503).send({ estado: 'sin_base' });
+    }
   });
 
   // El registro de rutas es síncrono: plugin con callback, sin async.
@@ -115,7 +154,7 @@ export async function construirApp(o: OpcionesApp): Promise<App> {
     rutasCambioHabitacion(api, o.bd, ahora);
     rutasHuespedesHoy(api, o.bd, ahora);
     rutasProductosVendidos(api, o.bd, ahora);
-    rutasEventos(api, o.bd, ahora, publicador, conexionesVivas);
+    rutasEventos(api, o.bd, ahora, publicador, conexionesVivas, o.latidoMs);
     listo();
   }, { prefix: '/api/v1' });
 

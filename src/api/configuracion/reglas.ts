@@ -4,6 +4,14 @@ import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
+import { ErrorApi } from '../comun/errores.ts';
+
+/** Valor de una regla del hotel (tabla `reglas`). La usan estadías, caja, migración y privacidad (HG-HAL-001 HAL-41). */
+export async function regla(bd: Bd, clave: string): Promise<number> {
+  const [r] = await bd.consultar<{ valor: number }>('SELECT valor FROM reglas WHERE clave = $1', [clave]);
+  if (!r) throw new Error(`Falta la regla ${clave}`);
+  return r.valor;
+}
 
 const LIMITES = {
   valor_hora: { minimum: 0, maximum: 1000000 },
@@ -39,10 +47,13 @@ export function rutasReglas(app: FastifyInstance, bd: Bd, ahora: () => Date) {
     const momento = ahora();
     const cambios = Object.entries(req.body) as Array<[Clave, number]>;
     await bd.transaccion(async (tx) => {
-      await tx.consultar(
+      const hechas = await tx.consultar<{ clave: string }>(
         `UPDATE reglas r SET valor = c.valor, actualizado_por = $3, actualizado_en = $4
-           FROM unnest($1::text[], $2::int[]) AS c(clave, valor) WHERE r.clave = c.clave`,
+           FROM unnest($1::text[], $2::int[]) AS c(clave, valor) WHERE r.clave = c.clave RETURNING r.clave`,
         [cambios.map(([clave]) => clave), cambios.map(([, valor]) => valor), req.usuario!.id, momento]);
+      // HAL-22: si falta una regla en la base (una migración sin correr), no se responde 200 como si se hubiera guardado.
+      const falta = cambios.find(([clave]) => !hechas.some((h) => h.clave === clave));
+      if (falta) throw new ErrorApi(409, 'CONFLICTO', `Falta la regla «${falta[0]}» en la base. Hay que correr las migraciones (npm run db:migrar).`);
       await auditar(tx, {
         usuarioId: req.usuario!.id, accion: 'ACTUALIZAR', entidad: 'reglas', entidadId: 'reglas', ocurrido: momento,
         detalle: Object.fromEntries(cambios.map(([k, v]) => [k, String(v)])),

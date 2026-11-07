@@ -1,12 +1,13 @@
 // POST /cotizaciones (FR-04): calcula precio y salida sin guardar nada. El servidor recalcula siempre (no confía en el cliente).
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { HABITACIONES } from '../comun/hotel.ts';
+import { regla } from '../configuracion/reglas.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
 import { cotizar, type ModalidadCotizable, type Tarifa, type TipoHabitacion } from '../reglas/reglas.ts';
 
-const HABITACIONES = ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '301'];
 
 /** Tarifas vigentes en un momento dado: la fila más reciente de cada combinación con vigente_desde ≤ momento. */
 export async function tarifasVigentes(bd: Bd, momento: Date): Promise<Tarifa[]> {
@@ -14,12 +15,6 @@ export async function tarifasVigentes(bd: Bd, momento: Date): Promise<Tarifa[]> 
     `SELECT DISTINCT ON (tipo_habitacion, modalidad, personas) tipo_habitacion, modalidad, personas, valor
        FROM tarifas WHERE vigente_desde <= $1
       ORDER BY tipo_habitacion, modalidad, personas, vigente_desde DESC`, [momento]);
-}
-
-export async function regla(bd: Bd, clave: string): Promise<number> {
-  const [r] = await bd.consultar<{ valor: number }>('SELECT valor FROM reglas WHERE clave = $1', [clave]);
-  if (!r) throw new Error(`Falta la regla ${clave}`);
-  return r.valor;
 }
 
 /**

@@ -19,7 +19,8 @@ export interface Paneles {
   revisar: (h: Habitacion | null) => void;
   verHoy: (abierto: boolean) => void;
   reportar: (a: AvisoPendiente | null) => void;
-  cerrarTodo: () => void;
+  /** Con `conservarEntrada`, la entrada a medias no se pierde (DEF-002). */
+  cerrarTodo: (conservarEntrada?: boolean) => void;
 }
 
 export function usePaneles(): Paneles {
@@ -37,8 +38,8 @@ export function usePaneles(): Paneles {
     revisar: setRevisando,
     verHoy: setViendoHoy,
     reportar: setReportando,
-    cerrarTodo: () => {
-      setCotizando(null);
+    cerrarTodo: (conservarEntrada = false) => {
+      if (!conservarEntrada) setCotizando(null);
       setFicha(null);
       setRevisando(null);
       setReportando(null);

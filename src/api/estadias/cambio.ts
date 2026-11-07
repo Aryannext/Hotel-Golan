@@ -7,6 +7,8 @@
 // La habitación que deja pasa a «Por revisar» (FR-02). La cotización usa la misma regla sin guardar nada.
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { HABITACIONES } from '../comun/hotel.ts';
+import { CABECERA_IDEMPOTENCIA, conIdempotencia, type ConClave } from '../comun/idempotencia.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota, horaTexto } from '../comun/tiempo.ts';
@@ -14,7 +16,8 @@ import { ErrorApi } from '../comun/errores.ts';
 import { publicarEventos, type Evento } from '../comun/eventos.ts';
 import { turnoAbiertoId } from '../caja/turnos.ts';
 import { calcularSalida, calcularTarifa, type ModalidadCotizable, type TipoHabitacion } from '../reglas/reglas.ts';
-import { regla, tarifasVigentes } from './cotizaciones.ts';
+import { tarifasVigentes } from './cotizaciones.ts';
+import { regla } from '../configuracion/reglas.ts';
 import { conceptoAlojamiento, leerEstadia } from './estadias.ts';
 
 type Tipo = 'SIN_USO' | 'NOCHE_NUEVA';
@@ -31,7 +34,7 @@ const ESQUEMA = {
   params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
   body: {
     type: 'object', additionalProperties: false, required: ['habitacion_numero'],
-    properties: { habitacion_numero: { type: 'string', pattern: '^(20[1-9]|21[01]|301)$' } },
+    properties: { habitacion_numero: { type: 'string', enum: HABITACIONES } },
   },
 };
 
@@ -136,16 +139,17 @@ export function rutasCambioHabitacion(app: FastifyInstance, bd: Bd, ahora: () =>
     preHandler: turno, schema: ESQUEMA,
   }, async (req) => bd.transaccion(async (tx) => respuestaCotizacion(await planear(tx, req.params.id, req.body.habitacion_numero, ahora()))));
 
-  app.post<{ Params: { id: string }; Body: { habitacion_numero: string } }>('/estadias/:id/cambio-habitacion', {
-    preHandler: turno, schema: ESQUEMA,
-  }, async (req) => {
+  app.post<{ Params: { id: string }; Body: { habitacion_numero: string }; Headers: ConClave }>('/estadias/:id/cambio-habitacion', {
+    preHandler: turno, schema: { ...ESQUEMA, headers: CABECERA_IDEMPOTENCIA },
+  }, async (req, rep) => {
     const u = req.usuario!;
-    await bd.transaccion(async (tx) => {
+    const r = await conIdempotencia(bd, req.headers['idempotency-key'], u.id, 'cambiarHabitacion', async (tx) => {
       const momento = ahora();
       await turnoAbiertoId(tx);
       const plan = await planear(tx, req.params.id, req.body.habitacion_numero, momento);
       await publicarEventos(tx, await aplicar(tx, plan, u, momento), momento);
+      return { estado: 200, cuerpo: await leerEstadia(tx, req.params.id) };
     });
-    return leerEstadia(bd, req.params.id);
+    return rep.code(r.estado).send(r.cuerpo);
   });
 }

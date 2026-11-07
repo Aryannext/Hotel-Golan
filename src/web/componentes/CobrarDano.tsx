@@ -2,6 +2,7 @@
 // Queda como un cargo más de la cuenta: sube el saldo y la salida espera a que se pague (RN-07).
 import { useState } from 'preact/hooks';
 import { api } from '../api.ts';
+import { nuevaClave } from '../logica.ts';
 import { leerDano } from '../danos.ts';
 import { Ico } from './Ico.tsx';
 import { useEnvio } from './Panel.tsx';
@@ -10,11 +11,13 @@ export function VistaDano({ estadiaId, alListo }: { estadiaId: string; alListo: 
   const [descripcion, setDescripcion] = useState('');
   const [valor, setValor] = useState('');
   const { enviando, error, setError, enviar } = useEnvio();
+  // Una clave por envío: un doble toque o un reintento sin señal no lo duplican (Idempotency-Key).
+  const [clave] = useState(nuevaClave);
 
   function cobrar() {
     const d = leerDano(descripcion, valor);
     if (!d.ok) { setError(d.error); return; }
-    void enviar(async () => { await api.cobrarDano(estadiaId, d.descripcion, d.valor); await alListo(); });
+    void enviar(async () => { await api.cobrarDano(estadiaId, d.descripcion, d.valor, clave); }, alListo);
   }
 
   return <>

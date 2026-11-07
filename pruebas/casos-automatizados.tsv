@@ -1,0 +1,35 @@
+CP-001	PIN correcto: 201 y cookie HttpOnly, Secure, SameSite=Strict de 12 horas
+CP-002	PIN incorrecto y usuario inexistente responden igual: 401 CREDENCIALES_INVALIDAS
+CP-003	bloqueo tras 5 intentos fallidos durante 15 minutos, aunque el PIN sea correcto
+CP-004	devuelve las 12 habitaciones en orden, con tipo y estado
+CP-005	noche con aire, 3 personas, entrando a las 3:00 p. m.: $95.000 y sale mañana a las 12 m.
+CP-006	3 personas en tres horas: 422 CAPACIDAD_EXCEDIDA
+CP-007	entrada pagada en efectivo: estadía ACTIVA, cargo de 55.000, pago EN_CAJA y habitación OCUPADA
+CP-008	sin autorización de datos no se registra: 422 AUTORIZACION_REQUERIDA y nada cambia
+CP-009	reenviar con la misma Idempotency-Key devuelve la misma estadía y existe un solo pago
+CP-010	varios productos con cantidad y la llave perdida: cada cargo guarda precio unitario y cantidad
+CP-011	un pago por Nequi queda POR_VERIFICAR: baja el saldo, no entra a la caja y avisa a la administración
+CP-012	la recepción suscrita recibe pago.verificado en menos de 5 s cuando la administradora confirma
+CP-013	5 hora(s) → cargo EXTENSION de $60000 y nueva salida 2026-10-13T12:00:00-05:00
+CP-014	salida bloqueada por saldo: 409 SALDO_PENDIENTE y la estadía sigue ACTIVA
+CP-015	salida con la cuenta al día: CERRADA con hora real y la habitación queda POR_REVISAR
+CP-016	solo miró la habitación y pagó en efectivo: se devuelven 45.000 con un movimiento DEVOLUCION en el turno abierto
+CP-017	caja del ejemplo real del relevo: 208.500 + 26.000 = 234.500; transferencias 85.000 aparte
+CP-018	compra para el hotel de $10.000: «debe haber» pasa de 234.500 a 224.500 y el efectivo cobrado sigue en 26.000
+CP-019	entrega que cuadra: CERRADO con esperado 184.500 y diferencia 0; el turno de día queda por recibir con 184.500
+CP-020	recibir el turno con un toque: queda ABIERTO con la base contada y el usuario como responsable
+CP-021	Resumen del día 12 de octubre: 195.000 + 26.000 = 221.000, sin sumar la base
+CP-022	anular un cobro en efectivo: sigue visible como anulado, deja de sumar a la caja y la cuenta vuelve a deber
+CP-023	recepción no anula: 403 SIN_PERMISO
+CP-024	Escenario «Usuario desactivado»: no puede entrar y sus sesiones anteriores quedan revocadas
+CP-025	no expone datos de huéspedes ni PIN
+CP-026	Escenario «Anonimizar a los 90 días»: salida el 10-07-2026, tarea el 09-10-2026
+CP-027	cambiar un precio no altera un cargo anterior; los cargos nuevos usan el precio nuevo
+CP-028	211 con transferencia por verificar, 207 por revisar y 204 en limpieza; sin nombres de huéspedes
+CP-029	2 aguas y 1 Gatorade en efectivo: 201, $10.000, suma a la caja y descuenta existencias
+CP-030	2 busos y 1 pantalón para la 205: 201, $7.000, cargado a la cuenta y por entregar
+CP-031	201: queda PENDIENTE, con quién la registró y la fecha prevista (viernes → lunes)
+CP-032	de ventilador (206) a aire (201) a los 3 minutos: paga la diferencia de $15.000
+CP-033	cada consulta queda en la auditoría con quién la hizo, sin nombres ni documentos
+CP-034	la entrada de un extranjero deja pendiente su llegada; la de un colombiano no
+CP-035	una entrada de hace 3 horas calcula la salida con la hora real (3:10 a. m. → 12 m. del mismo día)

@@ -3,7 +3,7 @@
 **ID:** TICKET-19
 **Requisitos:** ADR-002, ADR-007; NFR de seguridad y recuperación; FR-21 (anonimización programada) (docs/PRD.md; contrato en docs/CONTRATO_API.yaml; criterios en docs/TESTS_ACEPTACION.feature; auditoría HG-AUD-001, H-05)
 
-**What to build:** El sistema completo (primera y segunda entrega, migraciones 0001 a 0006) corre en el VPS de Cristian con Docker Compose. Solo se entra desde los equipos autorizados de Tailscale, con HTTPS (`tailscale serve`), y se instala como PWA en el celular. Arranca sin la semilla ficticia: con la cuenta de la administración y la configuración inicial del hotel. La anonimización programada corre en el servidor y la copia diaria cifrada funciona.
+**What to build:** El sistema completo (primera y segunda entrega, todas las migraciones de `db/migraciones/`: hoy de la 0001 a la 0011; antes decía «0001 a 0006») corre en el VPS de Cristian con Docker Compose. Solo se entra desde los equipos autorizados de Tailscale, con HTTPS (`tailscale serve`), y se instala como PWA en el celular. Arranca sin la semilla ficticia: con la cuenta de la administración y la configuración inicial del hotel. La anonimización programada corre en el servidor y la copia diaria cifrada funciona.
 
 **Blocked by:** TICKET-01 (Iniciar sesión y ver el mapa de habitaciones). Antes de empezar, la revisión del VPS en solo lectura, cuando el usuario avise.
 
@@ -35,6 +35,11 @@
 ## Trabajo previo existente
 - La rama local `ticket-19-despliegue-vps` (commit «arranque de producción y dirección de escucha») trae la carga inicial sin semilla, la dirección de escucha y `arranque.test.ts`.
 - Esa rama sale de una versión vieja de main y choca con los cambios de la semilla de los TICKETS 20 a 25.
+- **Actualización 27-10-2026 (HG-HAL-001):** el arranque sin semilla se hizo por otro camino, en el PR #47 (pendiente de integrar). Con ese PR:
+  - `npm run db:iniciar` hace la carga inicial, y la semilla y `db:reiniciar` exigen `HOTEL_ENTORNO=desarrollo`;
+  - existen `GET /api/v1/salud` y `npm start` para el servicio con reinicio automático.
+
+  La rama `ticket-19-despliegue-vps` se puede descartar; lo que falta aquí es la infraestructura del VPS, las copias y el RUNBOOK.
 - Primero hay que actualizarla desde main y revisar que la carga inicial incluya los grupos de la segunda entrega.
 
 ## Criterios de aceptación

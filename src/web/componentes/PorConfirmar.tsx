@@ -1,20 +1,24 @@
 import { useState } from 'preact/hooks';
-import { api, ErrorApi, type Pago } from '../api.ts';
+import { api, type Pago } from '../api.ts';
+import { mensajeDeError } from '../envio.ts';
+import { TRANSFERENCIAS_SIN_REVISAR } from '../avisos.ts';
 import { diaRelativo, horaBogota, hoyBogota, nuevaClave, pesos, textoMedio } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 import { Panel } from './Panel.tsx';
 import { origenPago } from '../ventas.ts';
 
-export function PorConfirmar({ pagos, alCambiar }: { pagos: Pago[]; alCambiar: () => void }) {
+export function PorConfirmar({ pagos, sinRevisar = false, alCambiar }: { pagos: Pago[]; sinRevisar?: boolean; alCambiar: () => void }) {
   const [elegido, setElegido] = useState<Pago | null>(null);
   const [dudando, setDudando] = useState(false), [enviando, setEnviando] = useState(false), [error, setError] = useState('');
+  // Una clave por pago y por decisión: repetir la misma no la aplica dos veces, y tocar la otra después no devuelve en
+  // silencio la primera: el sistema responde que ese pago ya no está por confirmar (HAL-19).
   const [claves] = useState(() => new Map<string, string>());
   const clave = (id: string) => claves.get(id) ?? (claves.set(id, nuevaClave()), claves.get(id)!);
   async function decidir(p: Pago, resultado: 'LLEGO' | 'NO_LLEGO') {
     if (enviando) return;
     setEnviando(true); setError('');
-    try { await api.verificarPago(p.id, resultado, clave(p.id)); setElegido(null); setDudando(false); alCambiar(); }
-    catch (e) { setError(e instanceof ErrorApi ? e.message : 'No se pudo conectar. Intente de nuevo.'); alCambiar(); }
+    try { await api.verificarPago(p.id, resultado, clave(`${p.id}:${resultado}`)); setElegido(null); setDudando(false); alCambiar(); }
+    catch (e) { setError(mensajeDeError(e)); alCambiar(); }
     finally { setEnviando(false); }
   }
   const hoy = hoyBogota(), total = pagos.reduce((s,p) => s + p.valor, 0);
@@ -24,10 +28,11 @@ export function PorConfirmar({ pagos, alCambiar }: { pagos: Pago[]; alCambiar: (
       <section class="tarjeta"><b>{pagos.length}</b>Por verificar</section>
       <section class="tarjeta"><b>{pagos.filter(p => p.medio === 'NEQUI').length}</b>Nequi</section>
       <section class="tarjeta"><b>{pagos.filter(p => p.medio === 'BANCOLOMBIA').length}</b>Bancolombia</section>
-      <section class="tarjeta transferencias-resumen__futuro" aria-label="Otro banco, pendiente de conexión al backend"><Ico id="banco" /><span>Otro banco</span><small>Pendiente de conexión</small></section>
     </div>
     <section class="tarjeta"><div class="tarjeta__cab"><h2>Pagos pendientes · {pesos(total)}</h2></div>
-      {pagos.length === 0 ? <p class="vacio"><Ico id="check" clase="ico--s" />Todo al día: no hay transferencias pendientes.</p>
+      {/* Sin respuesta del sistema, una lista vacía no quiere decir que no haya transferencias (HAL-07). */}
+      {sinRevisar && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{TRANSFERENCIAS_SIN_REVISAR}</p></div>}
+      {pagos.length === 0 && !sinRevisar ? <p class="vacio"><Ico id="check" clase="ico--s" />Todo al día: no hay transferencias pendientes.</p>
         : <div class="confirmar-tabla-scroll"><table class="confirmar-tabla"><thead><tr><th>Origen</th><th>Valor</th><th>Método</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
           {pagos.map(p => <tr key={p.id}>
             <td data-label="Origen">{origenPago(p)}</td>

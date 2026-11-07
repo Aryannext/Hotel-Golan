@@ -13,7 +13,7 @@ npm run web:build
 npm run api:dev
 ```
 
-Usar la configuración `.env` habitual del servidor. La migración `0011_fotos_compartidas.sql` agrega una tabla independiente y amplía la lista de eventos con `foto.actualizada`; no cambia importes ni reglas de caja, pagos o estadías. Reiniciar la API para registrar las nuevas rutas. Incluir la tabla en la copia habitual de PostgreSQL (`pg_dump` ya la incluye).
+Usar la configuración `.env` habitual del servidor. La migración `0014_fotos_compartidas.sql` agrega una tabla independiente y amplía la lista de eventos con `foto.actualizada`; no cambia importes ni reglas de caja, pagos o estadías. Reiniciar la API para registrar las nuevas rutas. Incluir la tabla en la copia habitual de PostgreSQL (`pg_dump` ya la incluye).
 
 ## Demo local aislada y persistente
 
@@ -24,7 +24,7 @@ npm run web:build
 npm run demo:persistente
 ```
 
-Abrir `http://127.0.0.1:3000/`. Usuarios exclusivamente de ejemplo: `admin`, `duena`, `recepcion2`; PIN de demo inicial `135790` (o el valor `SEMILLA_PIN_PRUEBA` al crearla). Su base se conserva en `.pglite/demo-compartida/`, excluida de Git. No borrar esa carpeta si se quieren conservar las fotos y movimientos de esta demo. No usar estas credenciales en producción. Se hizo una copia de la base cerrada antes del traslado en `copias/demo-antes-traslado-20261030-164812/`.
+Abrir `http://127.0.0.1:3000/`. Los usuarios y el PIN de la demo salen de la semilla (`SEMILLA_PIN_PRUEBA`); no se escriben aquí porque el repositorio es público. Su base se conserva en `.pglite/demo-compartida/`, excluida de Git. No borrar esa carpeta si se quieren conservar las fotos y movimientos de esta demo. No usar estas credenciales en producción. Se hizo una copia de la base cerrada antes del traslado en `copias/demo-antes-traslado-20261030-164812/`.
 
 El puerto 3000 escucha solo en el equipo local. Para acceso desde otros equipos, desplegar el sistema en el servidor/red privada configurada para el hotel, con la misma base, usando el procedimiento habitual de acceso seguro del proyecto. `localhost` y `127.0.0.1` siempre se refieren al equipo desde el que se abre el navegador.
 

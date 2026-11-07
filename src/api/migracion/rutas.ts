@@ -8,7 +8,7 @@ import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { ErrorApi } from '../comun/errores.ts';
-import { regla } from '../estadias/cotizaciones.ts';
+import { regla } from '../configuracion/reglas.ts';
 
 export type TipoReporte = 'LLEGADA' | 'SALIDA';
 export interface Pendiente { estadia_id: string; habitacion_numero: string; tipo: TipoReporte; desde: string; atrasado: boolean }
@@ -31,7 +31,10 @@ async function candidatas(bd: Bd, estadiaId?: string): Promise<Fila[]> {
             coalesce(bool_or(r.tipo = 'LLEGADA'), false) AS llegada, coalesce(bool_or(r.tipo = 'SALIDA'), false) AS salida
        FROM estadias e JOIN huespedes h ON h.id = e.huesped_id LEFT JOIN reportes_migracion r ON r.estadia_id = e.id
       WHERE e.estado IN ('ACTIVA', 'CERRADA', 'DESISTIDA') AND ($1::uuid IS NULL OR e.id = $1)
-      GROUP BY e.id, h.nacionalidad`, [estadiaId ?? null]);
+        -- HAL-23: de un huésped anonimizado ya no hay datos que reportar; y lo ya reportado del todo no se revisa.
+        AND h.anonimizado_en IS NULL AND h.nacionalidad IS NOT NULL
+      GROUP BY e.id, h.nacionalidad
+     HAVING NOT (coalesce(bool_or(r.tipo = 'LLEGADA'), false) AND coalesce(bool_or(r.tipo = 'SALIDA'), false))`, [estadiaId ?? null]);
 }
 
 /** Lo que falta reportar de una estadía. Si desistió antes de reportar la llegada, no hay nada que reportar. */

@@ -1,0 +1,14 @@
+
+> hotel-golan-sistema@0.1.0 web:build
+> vite build --config src/web/vite.config.ts
+
+[36mvite v8.3.4 [32mbuilding client environment for production...[36m[39m
+transforming...
+✓ 58 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/web/index.html                   8.71 kB │ gzip:  2.66 kB
+dist/web/assets/index-DuJmFMg4.css   38.93 kB │ gzip:  8.62 kB
+dist/web/assets/index-CDhC5J_-.js   171.24 kB │ gzip: 48.98 kB
+
+[32m✓ built in 102ms[39m

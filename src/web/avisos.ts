@@ -100,3 +100,29 @@ export function avisosMigracion(pendientes: PendienteMigracion[]): Aviso[] {
     detalle: 'Es un huésped extranjero. Repórtelo en la página de Migración Colombia (SIRE) y marque «Ya lo reporté».',
   }));
 }
+
+/**
+ * Lo que no se pudo consultar en la última recarga (HG-HAL-001 HAL-07). Mientras falte algo, la pantalla no dice
+ * «Todo al día»: una lista vacía por falta de señal no es lo mismo que no tener pendientes.
+ */
+export type Fuente = 'habitaciones' | 'reglas' | 'migracion' | 'existencias' | 'transferencias';
+const NOMBRE_FUENTE: Record<Fuente, string> = {
+  habitaciones: 'las habitaciones', reglas: 'las salidas vencidas', migracion: 'los reportes a Migración',
+  existencias: 'las existencias', transferencias: 'las transferencias por confirmar',
+};
+export const TODO_AL_DIA = 'Todo al día: no hay salidas vencidas, transferencias ni habitaciones pendientes.';
+export const TRANSFERENCIAS_SIN_REVISAR = 'No se pudieron consultar las transferencias. Revise el internet: el sistema vuelve a intentar solo.';
+
+export function marcarFuente(sinRevisar: Fuente[], fuente: Fuente, ok: boolean): Fuente[] {
+  if (ok) return sinRevisar.filter((f) => f !== fuente);
+  return sinRevisar.includes(fuente) ? sinRevisar : [...sinRevisar, fuente];
+}
+
+export function textoSinRevisar(sinRevisar: Fuente[]): string {
+  if (sinRevisar.length === 0) return '';
+  const nombres = sinRevisar.map((f) => NOMBRE_FUENTE[f]);
+  const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`;
+  return `No se pudieron revisar ${lista}. Revise el internet: el sistema vuelve a intentar solo.`;
+}
+
+export const textoVacioAvisos = (sinRevisar: Fuente[]) => textoSinRevisar(sinRevisar) || TODO_AL_DIA;

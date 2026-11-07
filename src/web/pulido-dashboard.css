@@ -6,20 +6,9 @@
 .transferencias-vista { width: 100%; max-width: 960px; margin-inline: auto; min-width: 0; }
 .transferencias-vista > .titulo-vista { justify-content: center; text-align: center; }
 .transferencias-vista .transferencias-resumen { grid-template-columns: repeat(4,minmax(0,1fr)); }
-.transferencias-vista .transferencias-resumen__futuro { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; }
-.transferencias-resumen__futuro > .ico { width: 28px; height: 28px; color: var(--texto); }
-.transferencias-resumen__futuro small { font-size: 10px; color: var(--texto-2); line-height: 1.4; }
 @media (max-width: 600px) {
   .transferencias-vista .transferencias-resumen { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
-.bancos-adicionales { margin-top: 8px; }
-.bancos-adicionales__opciones { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; }
-.bancos-adicionales__registrar { width: 100%; margin-top: 12px; }
-.bancos-adicionales .metodo-pago-pill { width: 100%; }
-.bancos-adicionales .metodo-pago-pill[aria-pressed="true"] { border-color: var(--rojo); background: var(--crema-2); }
-.bancos-adicionales .campo { margin-top: 14px; }
-.bancos-adicionales .campo input { min-width: 0; width: 100%; font-size: 12px; }
-.bancos-adicionales__estado { font-size: 10px; color: var(--texto-2); line-height: 1.6; margin: 10px 0 0; }
 .segmentado .opcion .ico--banco { width: 24px; height: 24px; margin-right: 6px; vertical-align: middle; }
 .pago-item__ico:has(.ico--banco) { background: var(--blanco); }
 .producto-rapido { min-width: 0; border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; background: var(--blanco); }

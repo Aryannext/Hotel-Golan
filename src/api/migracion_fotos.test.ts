@@ -1,10 +1,10 @@
-// La migración 0011 reemplaza la restricción de tipos de `eventos_salida`, que es una
+// La migración 0014 reemplaza la restricción de tipos de `eventos_salida`, que es una
 // tabla del núcleo y ya tiene filas en cualquier base que lleve tiempo andando.
 //
 // El resto de las pruebas aplica las once migraciones de una vez sobre una base vacía,
-// así que nunca recorre el camino real: una base con datos que recibe la 0011 encima.
-// Esto lo recorre: aplica hasta la 0010, guarda un evento de cada tipo y solo entonces
-// aplica la 0011.
+// así que nunca recorre el camino real: una base con datos que recibe la 0014 encima.
+// Esto lo recorre: aplica hasta la 0013, guarda un evento de cada tipo y solo entonces
+// aplica la 0014.
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { cp, mkdtemp, readdir, rm } from 'node:fs/promises';
@@ -20,21 +20,21 @@ const TIPOS_ANTERIORES = [
   'turno.entregado', 'turno.recibido', 'turno.diferencia', 'caja.movimiento',
 ];
 
-/** Copia a una carpeta aparte solo las migraciones anteriores a la 0011. */
-async function dirHastaLa0010(): Promise<string> {
+/** Copia a una carpeta aparte solo las migraciones anteriores a la 0014. */
+async function dirHastaLa0013(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'golan-migraciones-'));
   for (const nombre of (await readdir(DIR_MIGRACIONES)).filter((n) => /^\d{4}_.+\.sql$/.test(n))) {
-    if (nombre < '0011') await cp(join(DIR_MIGRACIONES, nombre), join(dir, nombre));
+    if (nombre < '0014') await cp(join(DIR_MIGRACIONES, nombre), join(dir, nombre));
   }
   return dir;
 }
 
-describe('migración 0011 sobre una base que ya tiene datos', () => {
+describe('migración 0014 sobre una base que ya tiene datos', () => {
   let bd: Bd;
   let dirParcial: string;
 
   before(async () => {
-    dirParcial = await dirHastaLa0010();
+    dirParcial = await dirHastaLa0013();
     bd = await conectarPglite();
     await aplicarMigraciones(bd, dirParcial);
     // Una fila de cada tipo anterior: es lo que habría en la base de Cristian.
@@ -50,7 +50,7 @@ describe('migración 0011 sobre una base que ya tiene datos', () => {
 
   it('la aplica sin perder ninguno de los eventos que ya estaban', async () => {
     const aplicadas = await aplicarMigraciones(bd);
-    assert.deepEqual(aplicadas, ['0011_fotos_compartidas.sql']);
+    assert.deepEqual(aplicadas, ['0014_fotos_compartidas.sql']);
 
     const filas = await bd.consultar<{ tipo: string }>('SELECT tipo FROM eventos_salida ORDER BY id');
     assert.deepEqual(filas.map((f) => f.tipo), TIPOS_ANTERIORES);

@@ -1,0 +1,5 @@
+Exitoso  CP-037 GET / sirve la PWA: 200, título Hotel Golán · Sistema de recepción
+Exitoso  CP-038 PIN incorrecto: 401 CREDENCIALES_INVALIDAS, cookie: no
+Exitoso  CP-039 Cookie de sesión: 201; banderas: HttpOnly, Secure, SameSite=Strict; Max-Age: 43200
+Exitoso  CP-040 Acceso por rol: sin sesión 401; /usuarios 403; habitaciones 200 (12)
+Exitoso  CP-041 Rendimiento p95: GET /habitaciones: p50 15.1 ms, p95 19.1 ms, máx 36.1 ms; GET /turnos/actual: p50 15.1 ms, p95 21 ms, máx 32.4 ms; POST /cotizaciones: p50 15.2 ms, p95 17.2 ms, máx 30 ms

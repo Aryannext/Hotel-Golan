@@ -2,13 +2,13 @@
 // Las devoluciones no se crean aquí: salen de /estadias/{id}/devoluciones (TICKET-09).
 import type { FastifyInstance } from 'fastify';
 import type { Bd } from '../../../scripts/lib/bd.ts';
+import { HABITACIONES } from '../comun/hotel.ts';
 import { requiere } from '../identidad/sesiones.ts';
 import { auditar } from '../comun/auditoria.ts';
 import { aBogota } from '../comun/tiempo.ts';
 import { conIdempotencia } from '../comun/idempotencia.ts';
-import { turnoAbiertoId } from './turnos.ts';
+import { turnoAbiertoId } from './abierto.ts';
 
-const HABITACIONES = ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '301'];
 
 interface Fila {
   id: string; turno_id: string; tipo: string; detalle: string; valor: number; habitacion_numero: string | null;
