@@ -2,10 +2,14 @@
 // Al entregar se cierra la sesión; quien llega confirma con un toque lo que recibió.
 // HAL-18 [P/V]: si quien lo tenía se fue sin entregarlo, la administración lo cierra con el motivo y su sesión sigue.
 import { useState } from 'preact/hooks';
-import { api, ErrorApi, type Turno } from '../api.ts';
+import { api, type Turno } from '../api.ts';
+import { mensajeDeError } from '../envio.ts';
 import { avisoTemprano, debeDejar, diferenciaConteo, leerPesos, pesos } from '../logica.ts';
+import { Panel } from './Panel.tsx';
 import { Ico } from './Ico.tsx';
-import { useModal } from './Panel.tsx';
+
+/** El texto del botón, sin ternario anidado. */
+const textoBoton = (porAdministracion: boolean) => (porAdministracion ? 'Cerrar el turno' : 'Entregar turno');
 
 export function EntregarTurno({ turno, porAdministracion = false, alCerrar, alEntregar }: {
   turno: Turno; porAdministracion?: boolean; alCerrar: () => void; alEntregar: (texto: string) => void;
@@ -16,8 +20,6 @@ export function EntregarTurno({ turno, porAdministracion = false, alCerrar, alEn
   const [motivo, setMotivo] = useState('');
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
-
-  const { ref, tituloId } = useModal(alCerrar);
 
   const c = turno.caja;
   const dejar = debeDejar(c.debe_haber, c.pago_turno, pagoTomado === true);
@@ -43,21 +45,14 @@ export function EntregarTurno({ turno, porAdministracion = false, alCerrar, alEn
         ? `Cerró el turno de ${turno.responsable ?? 'recepción'} con ${pesos(valor)} en la caja. El turno ${siguiente} queda por recibir.`
         : `Turno entregado con ${pesos(valor)} en la caja. Ahora inicia sesión quien recibe el turno ${siguiente}.`);
     } catch (e) {
-      setError(e instanceof ErrorApi ? e.message : 'No se pudo conectar con el sistema. Intente de nuevo.');
+      setError(mensajeDeError(e));
       setEnviando(false);
     }
   }
 
-  return (
-    <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-hidden="true" tabIndex={-1} onClick={alCerrar} />
-      <dialog open ref={ref} tabIndex={-1} class="panel" aria-modal="true" aria-labelledby={tituloId}>
-        <div class="panel__cab">
-          <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
-          <div class="titulos"><h2 id={tituloId}>{porAdministracion ? 'Cerrar un turno sin entregar' : 'Entregar turno'}</h2>
-            <p>Turno {turno.tipo === 'NOCHE' ? 'de noche' : 'de día'} de {turno.responsable}</p></div>
-        </div>
-        <div class="panel__cuerpo">
+  return <Panel titulo={porAdministracion ? 'Cerrar un turno sin entregar' : 'Entregar turno'} subtitulo={<>Turno {turno.tipo === 'NOCHE' ? 'de noche' : 'de día'} de {turno.responsable}</>} alCerrar={alCerrar} pie={<>
+          <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando} onClick={entregar}><Ico id="check" clase="ico--s" />{enviando ? 'Guardando…' : textoBoton(porAdministracion)}</button>
+</>}>
           {porAdministracion && <div class="campo"><label htmlFor="motivo-cierre">¿Por qué lo cierra usted? <span class="req">*</span></label>
             <input id="motivo-cierre" autocomplete="off" maxLength={300} placeholder={`Ej. ${turno.responsable ?? 'la recepcionista'} se fue sin entregar`} value={motivoCierre}
               onInput={(e) => setMotivoCierre((e.target as HTMLInputElement).value)} />
@@ -90,11 +85,6 @@ export function EntregarTurno({ turno, porAdministracion = false, alCerrar, alEn
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
           <p class="ayuda">{porAdministracion ? 'Su sesión sigue abierta. Quien llega confirma con un toque que recibió la plata.'
             : 'Al entregar se cierra su sesión. Quien llega confirma con un toque que recibió la plata.'}</p>
-        </div>
-        <div class="panel__pie">
-          <button type="button" class="btn btn--primario btn--l btn--bloque" disabled={enviando} onClick={entregar}><Ico id="check" clase="ico--s" />{enviando ? 'Guardando…' : porAdministracion ? 'Cerrar el turno' : 'Entregar turno'}</button>
-        </div>
-      </dialog>
-    </div>
-  );
+
+  </Panel>;
 }

@@ -63,6 +63,12 @@ const PISTA: Record<AccionCuarto, string> = {
 };
 export const pistaCuarto = (a: AccionCuarto | null) => (a ? PISTA[a] : '');
 
+/** Texto del botón de la tarjeta (BOCETO 04: la acción se ve, no se adivina). */
+const BOTON: Record<AccionCuarto, string> = {
+  ENTRADA: 'Nueva entrada', CUENTA: 'Ver la cuenta', ESTADO: 'Cambiar estado',
+};
+export const botonCuarto = (a: AccionCuarto | null) => (a ? BOTON[a] : null);
+
 const TITULO_FICHA: Record<string, string> = {
   devolucion: 'Devolución por desistimiento', extender: 'Extender estadía', cargo: 'Agregar cargos', pago: 'Registrar pago', salida: 'Dar salida',
   lavanderia: 'Recibir lavandería', factura: 'Solicitud de factura', cambio: 'Cambiar de habitación', dano: 'Cobrar un daño',
@@ -94,5 +100,38 @@ export const nombreTipoDocumento = (tipo: string) => TIPOS_DOCUMENTO.find(([v]) 
 export const textoDocumento = (t: { tipo_documento: string | null; numero_documento: string | null }) =>
   t.numero_documento ? `${t.tipo_documento ? nombreTipoDocumento(t.tipo_documento) : ''} ${t.numero_documento}`.trim() : 'Sin documento';
 
-/** Los avisos del inicio, en una sola línea: «1 cosa por atender», «3 cosas por atender». */
-export const textoPendientes = (n: number) => `${n} ${n === 1 ? 'cosa' : 'cosas'} por atender`;
+// ── Botones de la tarjeta de habitación (BOCETO 04) ──────────────────────────
+// El boceto le pone dos botones a una habitación con huésped —ver sus datos y
+// darle salida— y uno sola a las demás. `accionCuarto` sigue como estaba porque
+// responde otra pregunta (cuál es LA acción de la tarjeta); esto se agrega al lado
+// en vez de cambiarla, para no tocar lo que ya depende de ella.
+export type AccionTarjeta = 'ENTRADA' | 'DETALLES' | 'SALIDA' | 'ESTADO';
+
+export interface BotonTarjeta {
+  accion: AccionTarjeta;
+  texto: string;
+  /** El que resuelve lo que se suele venir a hacer; va en rojo. */
+  principal: boolean;
+}
+
+/**
+ * Los botones de una tarjeta, en el orden en que se leen.
+ *
+ * El boceto rotula «Marcar libre» las habitaciones en limpieza o por revisar,
+ * pero ese botón abre un panel donde se elige el estado: decir «Marcar libre»
+ * prometería algo que no hace, así que conserva «Cambiar estado».
+ */
+export function botonesTarjeta(h: Habitacion): BotonTarjeta[] {
+  if (h.estado === 'DISPONIBLE') return [{ accion: 'ENTRADA', texto: 'Nueva entrada', principal: true }];
+  if (h.estadia_activa) {
+    return [
+      { accion: 'DETALLES', texto: 'Ver detalles', principal: false },
+      { accion: 'SALIDA', texto: 'Registrar salida', principal: true },
+    ];
+  }
+  const textoPrincipal = (h.estado === 'LIMPIEZA' || h.estado === 'POR_REVISAR') ? 'Marcar libre' : 'Cambiar estado';
+  return [
+    { accion: 'DETALLES', texto: 'Ver detalles', principal: false },
+    { accion: 'ESTADO', texto: textoPrincipal, principal: true },
+  ];
+}

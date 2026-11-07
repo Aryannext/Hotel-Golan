@@ -1,18 +1,37 @@
-// Panel lateral (abajo en el celular) común: velo, <dialog>, encabezado con «Cerrar», cuerpo con el error y pie.
+// Columna contextual común: junto al contenido en escritorio; completa en móvil.
 // También los ganchos de los paneles: cerrar con Escape y enviar una acción mostrando el error en palabras.
 import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
+import { createPortal } from 'preact/compat';
 import type { MedioPago } from '../api.ts';
 import { enviarYReleer } from '../envio.ts';
 import { crearPila } from '../pilaPaneles.ts';
 import { textoMedio } from '../logica.ts';
 import { Ico } from './Ico.tsx';
 
+/** En el celular el panel ocupa toda la pantalla: ahí se comporta como modal. En escritorio el fondo sigue usable. */
+const CELULAR = '(max-width: 1023px)';
+
 const pila = crearPila();
 let escuchandoEscape = false;
-const alTeclear = (ev: KeyboardEvent) => { if (ev.key === 'Escape') pila.escape(); };
+const alTeclear = (ev: KeyboardEvent) => {
+  if (ev.key !== 'Escape' || pila.abiertos() === 0) return;
+  ev.preventDefault();
+  pila.escape();
+};
 
-/** Vuelve inerte todo lo que no es el panel ni sus ancestros; devuelve lo que marcó, para liberarlo al cerrar. */
+/** Solo el panel de encima responde a Escape (HG-HAL-001 HAL-13). */
+export function useCerrarConEscape(alCerrar: () => void) {
+  const cerrar = useRef(alCerrar);
+  cerrar.current = alCerrar;
+  useEffect(() => {
+    const quitar = pila.abrir(() => cerrar.current());
+    if (!escuchandoEscape) { document.addEventListener('keydown', alTeclear); escuchandoEscape = true; }
+    return quitar;
+  }, []);
+}
+
+/** Vuelve inerte lo que está al lado del panel, hasta el `body`; devuelve lo que marcó para liberarlo al cerrar. */
 function inertizarFondo(panel: HTMLElement | null): HTMLElement[] {
   const marcados: HTMLElement[] = [];
   for (let el = panel?.closest('.capa-panel') ?? null; el && el !== document.body; el = el.parentElement) {
@@ -24,33 +43,6 @@ function inertizarFondo(panel: HTMLElement | null): HTMLElement[] {
     }
   }
   return marcados;
-}
-
-/**
- * Panel modal (HG-HAL-001 HAL-13): lo de atrás queda inerte (no se toca ni se enfoca), el foco entra al panel y vuelve
- * a donde estaba al cerrarlo, Escape cierra solo el panel de encima y la página de atrás no se desplaza.
- * Devuelve la referencia del <dialog> (con tabIndex={-1}) y un id único para su título.
- */
-export function useModal(alCerrar: () => void) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const tituloId = useId();
-  const cerrar = useRef(alCerrar);
-  cerrar.current = alCerrar;
-  useEffect(() => {
-    const previo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const quitar = pila.abrir(() => cerrar.current());
-    if (!escuchandoEscape) { document.addEventListener('keydown', alTeclear); escuchandoEscape = true; }
-    document.body.style.overflow = 'hidden';
-    const inertes = inertizarFondo(ref.current);
-    ref.current?.focus();
-    return () => {
-      quitar();
-      for (const el of inertes) el.inert = false;
-      if (pila.abiertos() === 0) document.body.style.overflow = '';
-      if (previo?.isConnected) previo.focus();
-    };
-  }, []);
-  return { ref, tituloId };
 }
 
 /**
@@ -70,16 +62,42 @@ export function useEnvio() {
   return { enviando, error, setError, enviar };
 }
 
-export function Panel({ titulo, subtitulo, error, pie, alCerrar, children }: {
+/** `oculto` deja el panel montado pero invisible: lo escrito no se pierde al cambiar de pestaña (DEF-002). */
+export function Panel({ titulo, subtitulo, error, pie, alCerrar, children, ancho = 'normal', oculto = false }: {
   titulo: ComponentChildren; subtitulo?: ComponentChildren; error?: string; pie?: ComponentChildren; alCerrar: () => void; children?: ComponentChildren;
+  ancho?: 'normal' | 'detalle' | 'cuenta' | 'entrada'; oculto?: boolean;
 }) {
-  const { ref, tituloId } = useModal(alCerrar);
-  return (
-    <div class="capa-panel">
-      <button type="button" class="velo velo--visible" aria-hidden="true" tabIndex={-1} onClick={alCerrar} />
-      <dialog open ref={ref} tabIndex={-1} class="panel" aria-modal="true" aria-labelledby={tituloId}>
+  useCerrarConEscape(alCerrar);
+  const tituloId = useId();
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (oculto) return;
+    const anterior = document.activeElement as HTMLElement | null;
+    const dialog = ref.current;
+    if (!dialog) return;
+    const controles = () => [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]')]
+      .filter((el) => el.getClientRects().length && !el.hidden);
+    controles()[0]?.focus();
+    const inertes = window.matchMedia(CELULAR).matches ? inertizarFondo(dialog) : [];
+    const atrapar = (ev: KeyboardEvent) => {
+      const paneles = [...document.querySelectorAll('[data-panel-contextual]')];
+      if (paneles.at(-1) !== dialog || ev.key !== 'Tab' || !window.matchMedia(CELULAR).matches) return;
+      const lista = controles(), primero = lista[0], ultimo = lista.at(-1);
+      if (ev.shiftKey && document.activeElement === primero) { ev.preventDefault(); ultimo?.focus(); }
+      else if (!ev.shiftKey && document.activeElement === ultimo) { ev.preventDefault(); primero?.focus(); }
+    };
+    dialog.addEventListener('keydown', atrapar);
+    return () => {
+      dialog.removeEventListener('keydown', atrapar);
+      for (const el of inertes) el.inert = false;
+      if (anterior?.isConnected) anterior.focus();
+    };
+  }, [oculto]);
+  return createPortal((
+    <div class={`capa-panel capa-panel--${ancho}`} hidden={oculto}>
+      <section ref={ref} data-panel-contextual class={`panel panel--${ancho}`} aria-labelledby={tituloId}>
         <div class="panel__cab">
-          <button type="button" class="redondo" aria-label="Cerrar" onClick={alCerrar}><Ico id="cerrar" clase="ico--s" /></button>
+          <button type="button" class="redondo panel__volver" aria-label="Volver" onClick={alCerrar}><Ico id="atras" clase="ico--s" /></button>
           <div class="titulos"><h2 id={tituloId}>{titulo}</h2>{subtitulo && <p>{subtitulo}</p>}</div>
         </div>
         <div class="panel__cuerpo">
@@ -87,9 +105,9 @@ export function Panel({ titulo, subtitulo, error, pie, alCerrar, children }: {
           {error && <div class="nota nota--alerta" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
         </div>
         {pie && <div class="panel__pie">{pie}</div>}
-      </dialog>
+      </section>
     </div>
-  );
+  ), document.body);
 }
 
 const MEDIOS: MedioPago[] = ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'];
@@ -97,5 +115,5 @@ const MEDIOS: MedioPago[] = ['EFECTIVO', 'NEQUI', 'BANCOLOMBIA'];
 /** «¿Cómo paga?»: efectivo, Nequi o Bancolombia. */
 export function OpcionesMedio({ medio, alElegir }: { medio: MedioPago; alElegir: (m: MedioPago) => void }) {
   return <div class="segmentado">{MEDIOS.map((m) =>
-    <button key={m} type="button" class="opcion" aria-pressed={medio === m} onClick={() => alElegir(m)}>{textoMedio(m)}</button>)}</div>;
+    <button key={m} type="button" class="opcion" aria-pressed={medio === m} onClick={() => alElegir(m)}>{m !== 'EFECTIVO' && <Ico id={m.toLowerCase()} clase="ico--s" />}{textoMedio(m)}</button>)}</div>;
 }

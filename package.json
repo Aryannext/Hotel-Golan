@@ -8,6 +8,7 @@
     "node": ">=24"
   },
   "scripts": {
+    "demo:persistente": "node scripts/demo-persistente.ts",
     "db:migrar": "node --env-file=.env scripts/migrar.ts",
     "db:sembrar": "node --env-file=.env scripts/sembrar.ts",
     "db:reiniciar": "node --env-file=.env scripts/sembrar.ts --reiniciar",
@@ -31,7 +32,8 @@
     "@node-rs/argon2": "^2.0.2",
     "fastify": "^5.12.7",
     "pg": "^8.13.0",
-    "preact": "^11.0.1"
+    "preact": "^11.0.1",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",
@@ -45,5 +47,8 @@
     "typescript": "^5.8.0",
     "typescript-eslint": "8.72.0",
     "vite": "^8.3.4"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }

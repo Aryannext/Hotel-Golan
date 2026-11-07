@@ -26,6 +26,7 @@ function Tarifas({ alGuardar }: { alGuardar: (texto: string) => void }) {
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [editando, setEditando] = useState<Tarifa['tipo_habitacion'] | null>(null);
   const cargar = () => api.tarifas().then((r) => {
     setTarifas(r.items);
     setTextos(Object.fromEntries(r.items.map((t) => [t.id, String(t.valor)])));
@@ -34,7 +35,7 @@ function Tarifas({ alGuardar }: { alGuardar: (texto: string) => void }) {
 
   async function guardar(ev: Event) {
     ev.preventDefault();
-    if (!tarifas) return;
+    if (!tarifas || !editando || enviando) return;
     const { items, errores: e } = tarifasCambiadas(tarifas, textos);
     setErrores(e);
     if (Object.keys(e).length) return;
@@ -43,6 +44,7 @@ function Tarifas({ alGuardar }: { alGuardar: (texto: string) => void }) {
     try {
       await api.guardarTarifas(items);
       await cargar();
+      setEditando(null);
       const cuantas = items.length === 1 ? 'una tarifa cambiada' : `${items.length} tarifas cambiadas`;
       alGuardar(`Listo: ${cuantas}. Aplica a las entradas desde ahora; las ya registradas conservan su valor.`);
     } catch (err) { setError(mensaje(err)); }
@@ -50,18 +52,40 @@ function Tarifas({ alGuardar }: { alGuardar: (texto: string) => void }) {
   }
 
   if (!tarifas) return <><AvisoError texto={error} />{!error && <p><output>Cargando tarifas…</output></p>}</>;
-  return <form class="tarjeta" onSubmit={(ev) => void guardar(ev)}>
-    <div class="tarjeta__cab"><h2><Ico id="habitaciones" clase="ico--s" />Tarifas</h2></div>
-    <div class="ajustes__rejilla">{tarifas.map((t) => <div class="campo" key={t.id}>
-      <label htmlFor={`tarifa-${t.id}`}>{etiquetaTarifa(t)}</label>
-      <input id={`tarifa-${t.id}`} inputmode="numeric" autocomplete="off" value={textos[t.id] ?? ''} aria-invalid={!!errores[t.id]}
-        onInput={(e) => setTextos({ ...textos, [t.id]: (e.target as HTMLInputElement).value })} />
-      {errores[t.id] ? <span class="campo__error">{errores[t.id]}</span>
-        : <span class="ayuda">{pesos(leerPesos(textos[t.id] ?? '') ?? 0)} · desde {fechaReporte(t.vigente_desde)}, {horaBogota(t.vigente_desde)}</span>}
-    </div>)}</div>
-    <p class="ayuda">Tres horas tiene un solo precio para 1 o 2 personas.</p>
+  return <form class="tarifas-vista" onSubmit={(ev) => void guardar(ev)}>
+    <div class="tarifas-vista__cab"><h2>Tarifas de alojamiento</h2><span>Precios en pesos colombianos</span></div>
+    <div class="tarifas-tipos">{(['AIRE', 'VENTILADOR'] as const).map(tipo => {
+      const grupo = tarifas.filter(t => t.tipo_habitacion === tipo);
+      const nombre = tipo === 'AIRE' ? 'Aire acondicionado' : 'Ventilador';
+      const corta = grupo.find(t => t.modalidad === 'TRES_HORAS');
+      const activo = editando === tipo;
+      return <section key={tipo} class={`tarjeta tarifas-tipo${activo ? ' tarifas-tipo--editando' : ''}`} aria-label={`Tarifas de ${nombre.toLowerCase()}`}>
+        <header class="tarifas-tipo__cab">
+          <div><span class="tarifas-tipo__icono"><Ico id={tipo === 'AIRE' ? 'aire' : 'ventilador'} /></span><h3>{nombre}<small>{activo ? 'Editar precios' : 'Tarifas vigentes'}</small></h3></div>
+          {!activo && <button type="button" class="btn btn--secundario" aria-label={`Editar tarifas de ${nombre.toLowerCase()}`} disabled={!!editando} onClick={() => { setEditando(tipo); setError(''); setErrores({}); }}><Ico id="editar" clase="ico--s" />Editar</button>}
+        </header>
+        {activo ? <div class="tarifas-editor">
+          <div class="tarifas-editor__campos">{grupo.map(t => <div class="campo" key={t.id}>
+            <label htmlFor={`tarifa-${t.id}`}>{t.modalidad === 'TRES_HORAS' ? 'Tres horas · 1 o 2 personas' : `Noche · ${t.personas} persona${t.personas === 1 ? '' : 's'}`}</label>
+            <input id={`tarifa-${t.id}`} aria-label={etiquetaTarifa(t)} inputmode="numeric" autocomplete="off" value={textos[t.id] ?? ''} aria-invalid={!!errores[t.id]} aria-describedby={errores[t.id] ? `error-tarifa-${t.id}` : undefined} disabled={enviando}
+              onInput={e => setTextos({ ...textos, [t.id]: (e.target as HTMLInputElement).value })} />
+            {errores[t.id] && <span id={`error-tarifa-${t.id}`} class="campo__error">{errores[t.id]}</span>}
+          </div>)}</div>
+          <div class="tarifas-editor__acciones">
+            <button type="button" class="btn btn--secundario" disabled={enviando} onClick={() => { setEditando(null); setTextos(Object.fromEntries(tarifas.map(t => [t.id, String(t.valor)]))); setErrores({}); setError(''); }}>Cancelar</button>
+            <button type="submit" class="btn btn--primario" disabled={enviando}><Ico id="check" clase="ico--s" />{enviando ? 'Guardando…' : 'Guardar cambios'}</button>
+          </div>
+        </div> : <>
+          <p class="tarifas-tipo__modalidad"><Ico id="luna" clase="ico--s" />Por noche</p>
+          <dl class="tarifas-precios">{grupo.filter(t => t.modalidad === 'NOCHE').sort((a, b) => a.personas - b.personas).map(t => <div key={t.id}><dt>{t.personas} persona{t.personas === 1 ? '' : 's'}</dt><dd>{pesos(t.valor)}</dd></div>)}</dl>
+          {corta && <div class="tarifas-corta"><div><Ico id="reloj" clase="ico--s" /><span>Tres horas<small>1 o 2 personas</small></span></div><strong>{pesos(corta.valor)}</strong></div>}
+        </>}
+      </section>;
+    })}</div>
+    <div class="tarifas-vista__pie"><p><Ico id="info" clase="ico--s" />Los cambios aplican a nuevas entradas. Las estadías registradas conservan su tarifa.</p>
+      <details class="tarifas-vigencias"><summary>Ver vigencias</summary><ul>{tarifas.map(t => <li key={t.id}><span>{etiquetaTarifa(t)}</span><time dateTime={t.vigente_desde}>{fechaReporte(t.vigente_desde)} · {horaBogota(t.vigente_desde)}</time></li>)}</ul></details>
+    </div>
     <AvisoError texto={error} />
-    <button type="submit" class="btn btn--primario btn--l btn--bloque" disabled={enviando}><Ico id="check" clase="ico--s" />Guardar tarifas</button>
   </form>;
 }
 
@@ -298,8 +322,8 @@ export function Ajustes({ inicial = 'tarifas', alCambiar }: { inicial?: Seccion;
   const [seccion, setSeccion] = useState<Seccion>(inicial);
   const [aviso, setAviso] = useState('');
   const elegir = (s: Seccion) => { setSeccion(s); setAviso(''); };
-  return <div class="historial">
-    <div class="titulo-vista"><div><h1>Ajustes</h1><p>Precios y reglas del hotel. Los cambios aplican a lo nuevo: lo ya cobrado no cambia.</p></div></div>
+  return <div class="historial ajustes-vista">
+    <div class="titulo-vista"><div><h1>Configuración</h1><p>Administra los precios y las preferencias del hotel.</p></div></div>
     <div class="segmentado" aria-label="Qué ajustar">
       <button type="button" class="opcion" aria-pressed={seccion === 'tarifas'} onClick={() => elegir('tarifas')}>Tarifas</button>
       <button type="button" class="opcion" aria-pressed={seccion === 'reglas'} onClick={() => elegir('reglas')}>Reglas</button>

@@ -1,198 +1,246 @@
-// Raíz de la PWA: inicio de sesión, recibir el turno si está por recibir (TICKET-03), las vistas Habitaciones y Caja,
-// «Por confirmar» para la administración y la actualización en vivo (TICKET-05); Historial (TICKET-13), Equipo (TICKET-14) y Ajustes (TICKET-15).
-import { useEffect, useState } from 'preact/hooks';
-import { api, ErrorApi, type Habitacion, type Pago, type SesionActual } from './api.ts';
+// Raíz de la PWA: arma las piezas y reparte lo que cada pantalla necesita.
+// El estado no vive aquí: cada responsabilidad tiene su hook en `hooks/` —
+// quién entró (useSesion), qué se lee del hotel (useDatosHotel), cuándo se vuelve
+// a pedir (useRecarga), dónde está la pantalla (useNavegacion), qué hay abierto
+// encima (usePaneles) y el aviso de una línea (useAviso).
+import { useState } from 'preact/hooks';
+import { Panel } from './componentes/Panel.tsx';
 import { Acceso } from './componentes/Acceso.tsx';
 import { Mapa } from './componentes/Mapa.tsx';
 import { Entrada } from './componentes/Entrada.tsx';
 import { RecibirTurno } from './componentes/RecibirTurno.tsx';
 import { Caja } from './componentes/Caja.tsx';
 import { Historial } from './componentes/Historial.tsx';
+import { HistorialCaja } from './componentes/HistorialCaja.tsx';
 import { Equipo } from './componentes/Equipo.tsx';
-import { Ajustes, type Seccion } from './componentes/Ajustes.tsx';
-import { Campana, Pendientes, useAhora } from './componentes/Avisos.tsx';
-import {
-  avisosExistencias, avisosMigracion, calcularAvisos, marcarFuente, ordenarAvisos, type Aviso as AvisoPendiente, type Existencia, type Fuente, type PendienteMigracion,
-} from './avisos.ts';
-import type { Reglas } from './ajustes.ts';
+import { Ajustes } from './componentes/Ajustes.tsx';
+import { Campana, useAhora } from './componentes/Avisos.tsx';
+import { avisosExistencias, avisosMigracion, calcularAvisos, ordenarAvisos, type Aviso as AvisoPendiente } from './avisos.ts';
 import { PorConfirmar } from './componentes/PorConfirmar.tsx';
 import { SolicitudesFactura } from './componentes/SolicitudesFactura.tsx';
-import { AccionesRapidas } from './componentes/AccionesRapidas.tsx';
+import { QuienesHoy } from './componentes/QuienesHoy.tsx';
 import { ReportarMigracion } from './componentes/ReportarMigracion.tsx';
 import { Ficha } from './componentes/Ficha.tsx';
 import { PanelEstado } from './componentes/PanelEstado.tsx';
 import { Ico } from './componentes/Ico.tsx';
-import { avisoEvento, iniciales } from './logica.ts';
-import { useEnVivo } from './enVivo.ts';
+import { Inicio } from './componentes/Inicio.tsx';
+import { Lateral } from './componentes/Lateral.tsx';
+import { iniciales } from './logica.ts';
 import { icoTono } from './presentacion.ts';
-import { mensajeDeError } from './envio.ts';
-
-type Vista = 'confirmar' | 'mapa' | 'caja' | 'historial' | 'equipo' | 'ajustes';
-interface Aviso { tono: 'exito' | 'alerta' | 'info'; texto: string }
+import { useSesion } from './hooks/useSesion.ts';
+import { useAviso } from './hooks/useAviso.ts';
+import { useRecarga } from './hooks/useRecarga.ts';
+import { useDatosHotel } from './hooks/useDatosHotel.ts';
+import { useNavegacion, type Vista } from './hooks/useNavegacion.ts';
+import { usePaneles } from './hooks/usePaneles.ts';
+import { FotosCompartidas } from './componentes/FotosCompartidas.tsx';
 
 export function App() {
-  const [sesion, setSesion] = useState<SesionActual | null | undefined>(undefined);
-  const [habitaciones, setHabitaciones] = useState<Habitacion[]>([]);
-  const [porConfirmar, setPorConfirmar] = useState<Pago[]>([]);
-  const [mensaje, setMensaje] = useState<string | undefined>();
-  const [error, setError] = useState('');
-  const [cotizando, setCotizando] = useState<Habitacion | null>(null);
-  const [ficha, setFicha] = useState<Habitacion | null>(null);
-  const [revisando, setRevisando] = useState<Habitacion | null>(null);
-  const [migracion, setMigracion] = useState<PendienteMigracion[]>([]);
-  const [reportando, setReportando] = useState<AvisoPendiente | null>(null);
-  const [aviso, setAviso] = useState<Aviso | null>(null);
-  const [recarga, setRecarga] = useState(0);
-  const [vista, setVista] = useState<Vista>('mapa');
-  const [reglas, setReglas] = useState<Reglas | null>(null);
-  const [existencias, setExistencias] = useState<Existencia[]>([]);
-  const [ajustesInicial, setAjustesInicial] = useState<Seccion>('tarifas');
-  // Lo que no respondió en la última recarga: mientras falte algo, no se dice «Todo al día» (HAL-07).
-  const [sinRevisar, setSinRevisar] = useState<Fuente[]>([]);
-  const marcar = (f: Fuente, ok: boolean) => setSinRevisar((xs) => marcarFuente(xs, f, ok));
+  const [busqueda, setBusqueda] = useState('');
+  const [buscando, setBuscando] = useState(false);
+  const [menuMovil, setMenuMovil] = useState(false);
+  const [accionInicio, setAccionInicio] = useState<'mapa' | 'confirmar' | 'caja' | null>(null);
+  const [turnosPanel, setTurnosPanel] = useState<boolean | null>(null);
+  const ses = useSesion();
+  const av = useAviso();
+  const rec = useRecarga(!!ses.sesion, ses.esAdmin, av.mostrar);
+  const datos = useDatosHotel(ses.sesion, rec.recarga, ses.vencida);
+  const nav = useNavegacion(ses.sesion?.usuario.id);
+  const pan = usePaneles();
   const ahora = useAhora();
-  const esAdmin = sesion?.usuario.rol === 'ADMINISTRACION';
-
-  useEffect(() => {
-    api.sesionActual().then(setSesion).catch(() => setSesion(null));
-  }, []);
-
-  // La administración empieza en «Por confirmar»; recepción, en el mapa.
-  useEffect(() => { if (sesion) setVista(sesion.usuario.rol === 'ADMINISTRACION' ? 'confirmar' : 'mapa'); }, [sesion?.usuario.id]);
-
-  useEffect(() => {
-    document.body.classList.toggle('sin-sesion', !sesion);
-    if (!sesion) return;
-    api.habitaciones()
-      .then((r) => { setHabitaciones(r.items); setError(''); marcar('habitaciones', true); })
-      .catch((e) => {
-        if (e instanceof ErrorApi && e.estado === 401) { setSesion(null); setMensaje('Su sesión venció. Inicie sesión de nuevo.'); return; }
-        setError(mensajeDeError(e));
-        marcar('habitaciones', false);
-      });
-    api.reglas().then((r) => { setReglas(r); marcar('reglas', true); }).catch(() => marcar('reglas', false));
-    // Reportes a Migración (TICKET-37): los ven recepción y la administración.
-    api.migracionPendientes().then((r) => { setMigracion(r.items); marcar('migracion', true); }).catch(() => marcar('migracion', false));
-    // Existencias (TICKET-21): solo la administración las ve y recibe sus avisos.
-    if (sesion.usuario.rol === 'ADMINISTRACION') {
-      api.existencias().then((r) => { setExistencias(r.items); marcar('existencias', true); }).catch(() => marcar('existencias', false));
-      api.pagosPorConfirmar().then((r) => { setPorConfirmar(r.items); marcar('transferencias', true); }).catch(() => marcar('transferencias', false));
-    }
-  }, [sesion, recarga]);
-
-  // Cualquier evento (o la consulta de respaldo) vuelve a pedir el estado; los de transferencias además avisan.
-  useEnVivo(!!sesion, (ev) => {
-    setRecarga((n) => n + 1);
-    const a = ev && avisoEvento(ev);
-    // A la administración le interesa lo nuevo por confirmar; a recepción, si llegó o no.
-    if (a && (esAdmin ? ['pago.por_verificar', 'turno.diferencia'].includes(ev.tipo) : ev.tipo !== 'pago.por_verificar')) setAviso(a);
-  });
+  const { sesion, esAdmin } = ses;
 
   async function salir() {
-    await api.cerrarSesion().catch(() => undefined);
-    setSesion(null);
-    setCotizando(null);
-    setFicha(null);
-    setRevisando(null);
-    setAviso(null);
-    setMensaje('Sesión cerrada.');
+    await ses.cerrar();
+    pan.cerrarTodo();
+    setAccionInicio(null);
+    setTurnosPanel(null);
+    av.limpiar();
+  }
+
+  // Cambiar de vista cierra lo que hay abierto, menos la entrada a medias: queda oculta y vuelve al regresar (DEF-002).
+  function irA(v: Vista) {
+    setMenuMovil(false);
+    nav.irA(v);
+    pan.cerrarTodo(true);
+    setAccionInicio(null);
+    setTurnosPanel(null);
   }
 
   if (sesion === undefined) return null;
-  if (!sesion) return <div id="acceso"><Acceso mensaje={mensaje} alEntrar={(s) => { setMensaje(undefined); setSesion(s); }} /></div>;
+  if (!sesion) return <div id="acceso"><Acceso mensaje={ses.mensaje} alEntrar={ses.entrar} /></div>;
 
   const u = sesion.usuario;
   const vistas: Array<[Vista, string, string]> = [
-    ...(esAdmin ? [['confirmar', 'Por confirmar', 'transferencia'] as [Vista, string, string]] : []),
-    ['mapa', 'Habitaciones', 'habitaciones'], ['caja', 'Caja', 'caja'],
-    ...(esAdmin ? [['historial', 'Historial', 'calendario'], ['equipo', 'Equipo', 'huespedes'], ['ajustes', 'Ajustes', 'configuracion']] as Array<[Vista, string, string]> : []),
+    ['inicio', 'Inicio', 'inicio'],
+    ['mapa', 'Habitaciones', 'habitaciones'],
+    // El nombre del menú es el de la vista que abre: pagos por confirmar, no reservas.
+    ...(esAdmin ? [['confirmar', 'Transferencias', 'transferencia'] as [Vista, string, string]] : []),
+    ['caja', 'Caja', 'caja'],
+    ...(esAdmin ? [
+      // Turnos cerrados, día del hotel y productos vendidos: las tres consultas que
+      // solo la administración puede pedir. El panel de caja lista turnos y nada más.
+      ['historial', 'Historial', 'calendario'],
+      ['equipo', 'Usuarios', 'usuarios'],
+      ['ajustes', 'Configuración', 'configuracion'],
+    ] as Array<[Vista, string, string]> : []),
   ];
   // Avisos (TICKET-16): se recalculan con cada evento en vivo (recarga) y cada 30 s (hora actual).
-  const avisos = ordenarAvisos([...calcularAvisos(habitaciones, reglas, ahora), ...avisosMigracion(migracion), ...(esAdmin ? avisosExistencias(existencias) : [])]);
+  // Tres fuentes: lo que se ve en el mapa, los pendientes de migración y, solo para
+  // administración, lo que se está acabando en la nevera. `elegirAviso` ya atendía los
+  // tres tipos; lo que faltaba era que la campana los recibiera.
+  const avisos = ordenarAvisos([
+    ...calcularAvisos(datos.habitaciones, datos.reglas, ahora),
+    ...avisosMigracion(datos.migracion),
+    ...(esAdmin ? avisosExistencias(datos.existencias) : []),
+  ]);
   function elegirAviso(a: AvisoPendiente) {
-    const h = habitaciones.find((x) => x.numero === a.habitacion);
-    if (a.tipo === 'POR_VERIFICAR' && esAdmin) { setVista('confirmar'); return; }
-    if (a.tipo === 'EXISTENCIAS') { setAjustesInicial('existencias'); setVista('ajustes'); return; }
-    if (a.tipo === 'MIGRACION') { setReportando(a); return; }
-    setVista('mapa');
-    if (h && (a.tipo === 'POR_REVISAR' || a.tipo === 'LIMPIEZA')) setRevisando(h);
-    else if (h) setFicha(h);
+    const h = datos.habitaciones.find((x) => x.numero === a.habitacion);
+    pan.cotizar(null);
+    if (a.tipo === 'POR_VERIFICAR' && esAdmin) { setAccionInicio('confirmar'); return; }
+    if (a.tipo === 'EXISTENCIAS') { nav.abrirAjustes('existencias'); return; }
+    if (a.tipo === 'MIGRACION') { pan.reportar(a); return; }
+    nav.irA('mapa');
+    if (h && (a.tipo === 'POR_REVISAR' || a.tipo === 'LIMPIEZA')) pan.revisar(h);
+    else if (h) pan.abrirFicha(h);
   }
 
   // Lo que se ve debajo de las pestañas: una vista por pestaña; en Habitaciones, el asistente de entrada o el mapa.
   function vistaActual() {
-    if (vista === 'confirmar') return <>
-      <PorConfirmar pagos={porConfirmar} sinRevisar={sinRevisar.includes('transferencias')} alCambiar={() => setRecarga((n) => n + 1)} />
-      {esAdmin && <SolicitudesFactura recarga={recarga} />}
+    if (nav.vista === 'inicio') return <Inicio habitaciones={datos.habitaciones} porConfirmar={datos.porConfirmar} esAdmin={esAdmin} recarga={rec.recarga} alIrA={(v) => { if (v === 'confirmar') irA('confirmar'); else setAccionInicio(v); }} alAbrirHabitacion={(h) => {
+      if (h.estado === 'DISPONIBLE') pan.cotizar(h);
+      else if (h.estadia_activa) pan.abrirFicha(h);
+      else pan.revisar(h);
+    }} />;
+    if (nav.vista === 'confirmar') return <>
+      <PorConfirmar pagos={datos.porConfirmar} sinRevisar={datos.sinRevisar.includes('transferencias')} alCambiar={rec.recargar} />
+      {/* Quién pidió factura: se resuelve en la misma pantalla donde se revisan los pagos. */}
+      {esAdmin && <SolicitudesFactura recarga={rec.recarga} />}
     </>;
-    if (vista === 'historial' && esAdmin) return <Historial recarga={recarga} />;
-    if (vista === 'equipo' && esAdmin) return <Equipo recarga={recarga} yo={u.id} />;
-    if (vista === 'ajustes' && esAdmin) return <Ajustes key={ajustesInicial} inicial={ajustesInicial} alCambiar={() => setRecarga((n) => n + 1)} />;
-    if (vista === 'caja') return <Caja recarga={recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={(texto) => setAviso({ tono: 'exito', texto })}
-      alEntregar={(texto) => { setSesion(null); setAviso(null); setMensaje(texto); }} />;
-    // El asistente de entrada va aparte (abajo): sigue montado aunque se cambie de pestaña (DEF-002).
-    if (cotizando) return null;
+
+    if (nav.vista === 'historial' && esAdmin) return <Historial recarga={rec.recarga} />;
+    if (nav.vista === 'equipo' && esAdmin) return <Equipo recarga={rec.recarga} yo={u.id} />;
+    if (nav.vista === 'ajustes' && esAdmin) return <Ajustes key={nav.ajustesInicial} inicial={nav.ajustesInicial} alCambiar={rec.recargar} />;
+    if (nav.vista === 'caja') return <Caja recarga={rec.recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={av.exito}
+      alVerTodos={() => setTurnosPanel(true)}
+      alEntregar={(texto) => { ses.terminar(texto); av.limpiar(); }} />;
     return <>
-      {/* Inicio más simple: lo del día a un toque, los avisos en una línea y enseguida las habitaciones. */}
-      <AccionesRapidas alAvisar={(texto, tono = 'exito') => setAviso({ tono, texto })} alCambiar={() => setRecarga((n) => n + 1)} />
-      <Pendientes avisos={avisos} sinRevisar={sinRevisar} alElegir={elegirAviso} />
-      <Mapa habitaciones={habitaciones} alElegir={(hab) => { setAviso(null); setCotizando(hab); }} alAbrir={setFicha} alRevisar={setRevisando} />
+      {/* Si falla una recarga, el aviso va arriba y lo que se estaba viendo no se desmonta (UI-01). */}
+      {datos.error && <div class="nota" role="alert" style="margin-bottom:16px"><Ico id="alerta" clase="ico--s" /><p>{datos.error}</p></div>}
+      {pan.viendoHoy && <QuienesHoy alCerrar={() => pan.verHoy(false)} />}
+      <Mapa habitaciones={datos.habitaciones} recarga={rec.recarga} esAdmin={esAdmin}
+        alVerHoy={() => pan.verHoy(true)}
+        alElegir={(hab) => { av.limpiar(); pan.cotizar(hab); }} alAbrir={pan.abrirFicha} alRevisar={pan.revisar} />
     </>;
   }
 
+  const fechaActual = new Date(ahora);
+  const diaTexto = fechaActual.toLocaleDateString('es-CO', {
+    timeZone: 'America/Bogota',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const fechaFormateada = diaTexto.charAt(0).toUpperCase() + diaTexto.slice(1);
+  const horaFormateada = fechaActual.toLocaleTimeString('es-CO', {
+    timeZone: 'America/Bogota',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
   return (
+    <FotosCompartidas esAdmin={esAdmin} recarga={rec.recarga}>
     <div class="app">
+      <Lateral opciones={vistas.map(([v, t, ico]) => ({ vista: v, texto: t, ico, cuenta: v === 'confirmar' ? datos.porConfirmar.length : undefined }))}
+        vista={nav.vista} alElegir={irA}
+        nombre={u.nombre} iniciales={iniciales(u.nombre)} rol={esAdmin ? 'Administración' : 'Recepción'} alSalir={salir} />
       <div class="contenido">
         <header class="barra-sup">
           <svg class="barra-sup__marca" role="img" aria-label="Hotel Golán"><use href="#logo-golan" /></svg>
+          <form class="barra-sup__busqueda" role="search" onSubmit={(ev) => { ev.preventDefault(); setBuscando(true); }}>
+            <button type="submit" aria-label="Buscar habitación o huésped"><Ico id="lupa" clase="ico--s" /></button>
+            <input aria-label="Buscar huésped o habitación" placeholder="Buscar huésped o habitación…" value={busqueda}
+              onInput={(ev) => setBusqueda((ev.target as HTMLInputElement).value)} />
+          </form>
           <div class="barra-sup__der">
-            <Campana avisos={avisos} sinRevisar={sinRevisar} alElegir={elegirAviso} />
+            <Campana avisos={avisos} sinRevisar={datos.sinRevisar} alElegir={elegirAviso} />
+            <div class="barra-sup__reloj" aria-live="off">
+              <span class="reloj__fecha">{fechaFormateada}</span>
+              <strong class="reloj__hora">{horaFormateada}</strong>
+            </div>
             <span class="barra-sup__usuario" title={u.nombre}>
               <span class="barra-sup__iniciales" aria-hidden="true">{iniciales(u.nombre)}</span>
               <span class="barra-sup__nombre">{u.nombre} · {esAdmin ? 'Administración' : 'Recepción'}</span>
             </span>
-            <button type="button" class="btn btn--secundario" onClick={salir}><Ico id="salida" clase="ico--s" />Cerrar sesión</button>
+            <button type="button" class="btn btn--secundario barra-sup__salir" onClick={salir}><Ico id="salida" clase="ico--s" />Cerrar sesión</button>
           </div>
         </header>
         <main class="vista" id="vista" tabIndex={-1}>
-          {sesion.turno_por_recibir ? <RecibirTurno alRecibir={() => { setSesion({ ...sesion, turno_por_recibir: false }); setVista('caja'); }} />
+          {sesion.turno_por_recibir ? <RecibirTurno alRecibir={() => { ses.recibirTurno(); nav.irA('caja'); }} />
             : <>
               <div class="pestanas" role="tablist" style="margin-bottom:16px">
-                {vistas.map(([v, t, ico]) => <button key={v} type="button" class="pestana" role="tab" aria-selected={vista === v}
-                  onClick={() => { setVista(v); if (v === 'ajustes') setAjustesInicial('tarifas'); }}><Ico id={ico} clase="ico--s" /> {t}
-                  {v === 'confirmar' && porConfirmar.length > 0 && <span class="pestana__cuenta" aria-label={`${porConfirmar.length} por confirmar`}>{porConfirmar.length}</span>}
+                {vistas.filter(([v]) => ['inicio', 'mapa', 'confirmar', 'caja'].includes(v)).map(([v, t, ico]) => <button key={v} type="button" class="pestana" role="tab" aria-selected={nav.vista === v}
+                  onClick={() => { irA(v); if (v === 'ajustes') nav.abrirAjustes('tarifas'); }}><Ico id={ico} clase="ico--s" /> {t}
+                  {v === 'confirmar' && datos.porConfirmar.length > 0 && <span class="pestana__cuenta" aria-label={`${datos.porConfirmar.length} por confirmar`}>{datos.porConfirmar.length}</span>}
                 </button>)}
+                <button type="button" class="pestana" role="tab" aria-selected={['historial','equipo','ajustes'].includes(nav.vista)} onClick={() => setMenuMovil(true)}><Ico id="usuarios" clase="ico--s" />Más</button>
               </div>
               {/* La región viva siempre está montada: si naciera junto con el texto, el lector podría no anunciarlo (A11Y-03). */}
               <div aria-live="polite">
-                {aviso && !cotizando && <div class={`nota nota--${aviso.tono}`} style="margin-bottom:16px">
-                  <Ico id={icoTono(aviso.tono)} clase="ico--s" /><p>{aviso.texto}</p>
-                  <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={() => setAviso(null)}><Ico id="cerrar" clase="ico--xs" /></button>
+                {av.aviso && !pan.cotizando && <div class={`nota nota--${av.aviso.tono}`} style="margin-bottom:16px">
+                  <Ico id={icoTono(av.aviso.tono)} clase="ico--s" /><p>{av.aviso.texto}</p>
+                  <button type="button" class="enlace nota__cerrar" aria-label="Cerrar aviso" onClick={av.limpiar}><Ico id="cerrar" clase="ico--xs" /></button>
                 </div>}
               </div>
-              {/* Si falla una recarga, el aviso va arriba y lo que se estaba haciendo no se desmonta (UI-01). */}
-              {error && vista === 'mapa' && <div class="nota" role="alert" style="margin-bottom:16px"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
               {vistaActual()}
-              {cotizando && <div hidden={vista !== 'mapa'}>
-                <Entrada key={cotizando.numero} habitacion={cotizando} reglas={reglas} alVolver={() => setCotizando(null)} alRegistrar={(est) => {
-                  setCotizando(null);
-                  setRecarga((n) => n + 1);
-                  setAviso({ tono: 'exito', texto: `Entrada registrada en la habitación ${est.habitacion_numero}: ${est.huesped.nombre_mostrado}.` });
+              {menuMovil && <Panel titulo="Más opciones" alCerrar={() => setMenuMovil(false)}>
+                <p>{esAdmin ? 'Administración' : 'Recepción'}</p><div class="selector-habitaciones">
+                {vistas.filter(([v]) => ['historial','equipo','ajustes'].includes(v)).map(([v,t,ico]) => <button key={v} type="button" class="btn btn--secundario" onClick={() => irA(v)}><Ico id={ico} clase="ico--s" />{t}</button>)}
+                <button type="button" class="btn btn--secundario" onClick={() => { setMenuMovil(false); pan.verHoy(true); }}>Quiénes se quedan hoy</button>
+                <button type="button" class="btn btn--secundario" onClick={salir}><Ico id="salida" clase="ico--s" />Cerrar sesión</button>
+                </div></Panel>}
+              {buscando && <Panel titulo="Buscar habitación o huésped" alCerrar={() => setBuscando(false)}>
+                <div class="campo"><label htmlFor="buscar-panel">Habitación o huésped</label><input id="buscar-panel" value={busqueda}
+                  onInput={(ev) => setBusqueda((ev.target as HTMLInputElement).value)} /></div>
+                <div class="selector-habitaciones">{datos.habitaciones.filter((h) => `${h.numero} ${h.estadia_activa?.nombre_corto ?? ''}`.toLocaleLowerCase('es').includes(busqueda.trim().toLocaleLowerCase('es'))).map((h) =>
+                  <button key={h.numero} type="button" class="btn btn--secundario" onClick={() => {
+                    setBuscando(false);
+                    if (h.estadia_activa) pan.abrirFicha(h);
+                    else if (h.estado === 'DISPONIBLE') pan.cotizar(h);
+                    else pan.revisar(h);
+                  }}>Habitación {h.numero} · {h.estadia_activa?.nombre_corto ?? (h.tipo === 'AIRE' ? 'Aire' : 'Ventilador')}</button>)}
+                {!datos.habitaciones.some((h) => `${h.numero} ${h.estadia_activa?.nombre_corto ?? ''}`.toLocaleLowerCase('es').includes(busqueda.trim().toLocaleLowerCase('es'))) && <p class="vacio">No hay coincidencias.</p>}</div>
+              </Panel>}
+              {turnosPanel && <HistorialCaja alCerrar={() => setTurnosPanel(null)} />}
+              {accionInicio && <Panel titulo={accionInicio === 'mapa' ? 'Nueva entrada' : accionInicio === 'confirmar' ? 'Transferencias' : 'Actividad de caja'} alCerrar={() => setAccionInicio(null)}>
+                {accionInicio === 'mapa' ? <div class="selector-habitaciones">{datos.habitaciones.filter((h) => h.estado === 'DISPONIBLE').map((h) =>
+                  <button key={h.numero} type="button" class="btn btn--secundario" onClick={() => { setAccionInicio(null); pan.cotizar(h); }}>Habitación {h.numero} · {h.tipo === 'AIRE' ? 'Aire' : 'Ventilador'}</button>)}
+                  {!datos.habitaciones.some((h) => h.estado === 'DISPONIBLE') && <p>No hay habitaciones disponibles.</p>}</div>
+                  : accionInicio === 'confirmar' ? <PorConfirmar pagos={datos.porConfirmar} sinRevisar={datos.sinRevisar.includes('transferencias')} alCambiar={rec.recargar} />
+                  : <Caja recarga={rec.recarga} usuario={u.usuario} esAdmin={esAdmin} alAvisar={av.exito} alVerTodos={() => setTurnosPanel(true)} />}
+              </Panel>}
+              {pan.cotizando && <Panel ancho="entrada" oculto={!['inicio', 'mapa'].includes(nav.vista)} titulo={'Registrar entrada · Habitación ' + pan.cotizando.numero} alCerrar={() => pan.cotizar(null)}>
+                <Entrada habitacion={pan.cotizando} reglas={datos.reglas} alVolver={() => pan.cotizar(null)} alRegistrar={(est) => {
+                  pan.cotizar(null); rec.recargar(); av.exito('Entrada registrada en la habitación ' + est.habitacion_numero + '.');
                 }} />
-              </div>}
-              {ficha && <Ficha habitacion={ficha} recarga={recarga} reglas={reglas} esAdmin={esAdmin} alCerrar={() => setFicha(null)} alCambiar={() => setRecarga((n) => n + 1)}
-                alSalir={(texto) => { setFicha(null); setRecarga((n) => n + 1); setAviso({ tono: 'exito', texto }); }} />}
-              {revisando && <PanelEstado habitacion={revisando} alCerrar={() => setRevisando(null)}
-                alCambiar={(texto) => { setRevisando(null); setRecarga((n) => n + 1); setAviso({ tono: texto.includes('Recuerde') ? 'info' : 'exito', texto }); }} />}
-              {reportando?.estadiaId && reportando.reporte && <ReportarMigracion estadiaId={reportando.estadiaId} tipo={reportando.reporte}
-                alCerrar={() => setReportando(null)} alReportar={() => {
-                  setReportando(null);
-                  setRecarga((n) => n + 1);
-                  setAviso({ tono: 'exito', texto: `Quedó anotado el reporte a Migración de la habitación ${reportando.habitacion}.` });
+              </Panel>}
+              {pan.ficha && <Ficha inicio={pan.fichaInicio} habitacion={pan.ficha} recarga={rec.recarga} reglas={datos.reglas} esAdmin={esAdmin} alCerrar={() => pan.abrirFicha(null)} alCambiar={rec.recargar}
+                alSalir={(texto) => { pan.abrirFicha(null); rec.recargar(); av.exito(texto); }} />}
+              {pan.revisando && <PanelEstado habitacion={pan.revisando} alCerrar={() => pan.revisar(null)}
+                alCambiar={(texto) => { pan.revisar(null); rec.recargar(); av.mostrar({ tono: texto.includes('Recuerde') ? 'info' : 'exito', texto }); }} />}
+              {pan.reportando?.estadiaId && pan.reportando.reporte && <ReportarMigracion estadiaId={pan.reportando.estadiaId} tipo={pan.reportando.reporte}
+                alCerrar={() => pan.reportar(null)} alReportar={() => {
+                  const habitacion = pan.reportando?.habitacion;
+                  pan.reportar(null);
+                  rec.recargar();
+                  av.exito(`Quedó anotado el reporte a Migración de la habitación ${habitacion}.`);
                 }} />}
             </>}
         </main>
       </div>
     </div>
+    </FotosCompartidas>
   );
 }

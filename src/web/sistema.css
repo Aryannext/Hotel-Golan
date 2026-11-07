@@ -104,6 +104,19 @@
 .producto__error { flex-basis: 100%; }
 .mov__der .btn--mini { margin-left: 6px; }
 
+/* Barra lateral en computador: desde 1024 px navega la barra y las pestañas sobran.
+   El margen de 248 px que .contenido ya reservaba en estilos.css queda ocupado. */
+@media (min-width: 1024px) {
+  .pestanas { display: none; }
+  /* Quién tiene el turno y el botón de salir viven en el pie de la barra lateral,
+     así que arriba se repetirían. En celular, donde no hay barra, sí salen. */
+  .barra-sup__usuario, .barra-sup__salir { display: none; }
+}
+
+/* Pie del menú: avatar, rol y el punto de «en línea» (BOCETO 03). */
+.usuario__estado { display: flex; align-items: center; gap: 6px; }
+.usuario__punto { width: 7px; height: 7px; border-radius: 50%; background: var(--verde-ico); flex: none; }
+
 /* Avisos (TICKET-16): campana con contador en la barra superior y lista de pendientes. */
 .campana { position: relative; }
 .campana__boton { position: relative; background: var(--blanco); color: var(--madera-600, #5A4632); border: 1px solid var(--pared, #D4C9B5); }
@@ -126,7 +139,6 @@
 .aviso-item__txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .aviso-item__txt b { font: 700 14px/1.3 var(--f-ui); }
 .aviso-item__txt span { font: 500 12.5px/1.4 var(--f-ui); color: var(--texto-2); }
-.pendientes { margin-bottom: 16px; }
 @media (max-width: 600px) {
   .campana__panel { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; }
 }
@@ -143,39 +155,318 @@
 .politica h3:first-child { margin-top: 0; }
 .politica p { margin: 0 0 6px; font: 500 13.5px/1.5 var(--f-ui); color: var(--texto-2); overflow-wrap: anywhere; }
 
-/* Inicio de recepción más simple (19-10-2026): lo del día a un toque, los avisos en una línea. */
-.rapidas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 12px; }
-.rapida { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 104px; padding: 14px 8px 12px;
-  background: var(--blanco); border: 1px solid var(--borde); border-radius: var(--r-lg); box-shadow: var(--sombra);
-  font: inherit; color: var(--texto); text-align: center; cursor: pointer; transition: transform .15s ease-out, border-color .15s ease-out; }
-.rapida:hover { border-color: var(--bronce); transform: translateY(-1px); }
-.rapida:active { transform: translateY(0); }
-.rapida:focus-visible { outline: 3px solid var(--bronce); outline-offset: 2px; }
-.rapida__ico { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 2px; border-radius: 50%; background: var(--crema-2); color: var(--bronce); }
-.rapida__ico .ico { width: 24px; height: 24px; }
-.rapida__titulo { font: 700 15px/1.2 var(--f-ui); }
-.rapida__detalle { font: 500 12px/1.3 var(--f-ui); color: var(--texto-2); }
-@media (max-width: 520px) { .rapidas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* ---- Rediseño ---- */
 
-.pendientes__resumen { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border: 1px solid #F1DEAE; border-radius: var(--r-md, 12px);
-  background: var(--ambar-bg); color: var(--ambar); font: inherit; text-align: left; cursor: pointer; }
-.pendientes__resumen--urgente { background: var(--rojo-bg); border-color: var(--rojo); color: var(--rojo); }
-.pendientes__resumen:focus-visible { outline: 3px solid var(--bronce); outline-offset: 2px; }
-.pendientes__texto { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
-.pendientes__texto b { font: 700 15px/1.3 var(--f-ui); }
-.pendientes__texto span { font: 500 12.5px/1.3 var(--f-ui); opacity: .85; }
-.pendientes__flecha { transition: transform .2s ease-out; }
-.pendientes__flecha--abierta { transform: rotate(90deg); }
-#pendientes-lista { margin-top: 8px; }
+/* ---- Lenguaje visual del BOCETO 01 y 03 ----
+   Las tarjetas son claras y el color vive en el ícono y en la pastilla de estado,
+   no en el fondo. estilos.css las traía rellenas de color. */
 
-/* Encabezado del mapa: una línea de leyenda con los colores de las habitaciones (reemplaza los cuatro contadores grandes). */
-.mapa__cab { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 12px; }
-.mapa__cab h2 { margin: 0; font: 700 18px/1.25 var(--f-ui); }
-.mapa__cab h2 span { display: block; margin-top: 2px; font: 500 13px/1.4 var(--f-ui); color: var(--texto-2); }
-.leyenda { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; }
-.leyenda__item { display: inline-flex; align-items: center; gap: 6px; font: 600 13px/1.3 var(--f-ui); color: var(--texto); font-variant-numeric: tabular-nums; }
-.leyenda__item::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--gris-ico); }
-.leyenda__item--libre::before { background: var(--verde-ico); }
-.leyenda__item--ocupada::before { background: var(--rojo-ico); }
-.leyenda__item--limpieza::before { background: var(--ambar-ico); }
-.leyenda__item--fuera::before { background: var(--gris-ico); }
+/* Indicadores: tarjeta blanca y solo el ícono en su color.
+   Las columnas van por tramos, no automáticas: así nunca quedan cinco huecos
+   para cuatro tarjetas, ni se parte «Mantenimiento» a la mitad. */
+.stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 760px) { .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* Desde 1024 px aparece la barra lateral y el contenido pierde 248 px. */
+@media (min-width: 1024px) { .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* Cinco en fila: las cuatro de habitaciones y el dinero del día. Con cinco
+   columnas cada tarjeta baja a ~130 px, así que el ícono y la letra se achican
+   para que «Limpieza o revisión» no se parta en tres líneas. */
+@media (min-width: 1240px) {
+  .stats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .stats .stat { padding: 12px 10px; gap: 9px; }
+  .stats .stat__ico { width: 34px; height: 34px; }
+  .stats .stat__ico .ico { width: 20px; height: 20px; }
+  .stats .stat strong { font-size: 22px; }
+  .stats .stat > span:last-child > span { font-size: 11.5px; line-height: 1.25; }
+}
+.stat--dinero { background: var(--blanco); }
+.stat--dinero .stat__ico { background: var(--rojo-bg); color: var(--bronce); }
+.stat--dinero strong { font-size: 22px; overflow-wrap: anywhere; }
+.stat { background: var(--blanco); border: 1px solid var(--borde); }
+.stat strong { color: var(--texto); }
+.stat > span:last-child > span { color: var(--texto-2); }
+.stat--libre, .stat--ocupada, .stat--limpieza, .stat--fuera { background: var(--blanco); }
+.stat--libre .stat__ico { background: var(--verde-bg); color: var(--verde-ico); }
+.stat--ocupada .stat__ico { background: var(--rojo-bg); color: var(--rojo-ico); }
+.stat--limpieza .stat__ico { background: var(--ambar-bg); color: var(--ambar-ico); }
+.stat--fuera .stat__ico { background: var(--gris-bg); color: var(--gris-ico); }
+
+/* ---- Barra lateral fiel al diseño de referencia ---- */
+.lateral { padding: 24px 14px 20px; border-right: 1px solid #EBE0D5; }
+.lateral .logo { padding: 0 4px 14px; margin-bottom: 14px; border-bottom: none; }
+.lateral .logo__svg { width: 132px; height: 58px; color: var(--bronce); margin: 0 auto; display: block; }
+.lateral .logo__sub { font: 700 8.5px/1.3 var(--f-ui); letter-spacing: 1.5px; color: var(--bronce); margin-top: 8px; text-transform: uppercase; }
+.lateral .logo__barra { width: 28px; height: 2.5px; background: var(--bronce); border-radius: 2px; margin: 8px auto 0; }
+
+.lateral .nav { gap: 4px; }
+.lateral .nav__item {
+  min-height: 44px; padding: 10px 14px; border-radius: 12px; gap: 14px;
+  font-size: 14px; font-weight: 500; color: #2D2424; transition: background 0.15s ease, color 0.15s ease;
+}
+.lateral .nav__item .ico { width: 20px; height: 20px; color: var(--bronce); flex: none; stroke: currentColor; }
+.lateral .nav__item[aria-current="page"] {
+  background: #FCE8E4; color: var(--bronce); font-weight: 600;
+}
+.lateral .nav__item[aria-current="page"]::before { display: none; }
+.lateral .nav__item:hover:not([aria-current="page"]) {
+  background: rgba(220, 40, 40, 0.05); color: #111827;
+}
+
+.lateral__pie { border-top: none; padding-top: 14px; margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
+.lateral__pie .usuario { gap: 12px; padding: 4px 6px; }
+.lateral__pie .avatar {
+  width: 44px; height: 44px; font-size: 15px; font-weight: 700;
+  background: #FFFFFF; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  color: #7A1212; display: grid; place-items: center; border-radius: 50%;
+}
+.lateral__pie .usuario strong { font-size: 14px; font-weight: 600; color: #1F2937; margin-bottom: 2px; }
+.lateral__pie .usuario span { font-size: 12px; }
+.lateral__pie .usuario__estado { font-size: 12px; font-weight: 500; color: #4B5563; }
+.lateral__pie .usuario__punto { width: 8px; height: 8px; background: #10B981; }
+
+/* Migas de pan bajo el título (BOCETO 04). */
+.migas { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font: 500 13px/1.3 var(--f-ui); color: var(--texto-2); }
+.migas .ico { color: var(--pared); }
+
+/* Filtros en pastilla: el activo en rojo lleno, los demás en blanco con borde. */
+.filtros { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 16px; }
+.filtros__grupo { display: flex; flex-wrap: wrap; gap: 8px; }
+.filtro { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--pared); background: var(--blanco); color: var(--texto-2); font: 600 13px/1.2 var(--f-ui); }
+.filtro:hover { background: var(--crema-2); }
+.filtro__cuenta { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--texto); }
+/* Punto del color del estado antes del nombre, como en el boceto. */
+.filtro--libre::before, .filtro--ocupada::before, .filtro--limpieza::before, .filtro--fuera::before {
+  content: ""; width: 9px; height: 9px; border-radius: 50%; flex: none;
+}
+.filtro--libre::before { background: var(--verde-ico); }
+.filtro--ocupada::before { background: var(--rojo-ico); }
+.filtro--limpieza::before { background: var(--ambar-ico); }
+.filtro--fuera::before { background: var(--gris-ico); }
+.filtro[aria-pressed="true"]::before { background: var(--blanco); }
+/* --marca-a y no --bronce: sobre el rojo plano el texto blanco se queda en 4.29. */
+.filtro[aria-pressed="true"] { background: var(--marca-a); border-color: var(--marca-a); color: var(--blanco); }
+.filtro[aria-pressed="true"] .filtro__cuenta { color: var(--blanco); }
+
+/* Tarjetas de habitación: fondo claro, ícono en color, estado en pastilla. */
+.cuarto { background: var(--blanco); border-color: var(--borde); gap: 6px; }
+.cuarto:hover, .cuarto:focus-visible { border-color: var(--bronce); box-shadow: 0 0 0 1px var(--bronce), 0 12px 26px rgba(72, 63, 63, .12); }
+.cuarto__num { font-size: 20px; }
+.cuarto--libre { background: #F7FCF9; border-color: #DCF2E4; }
+.cuarto--ocupada { background: #FEF8F8; border-color: #F8DCDC; }
+.cuarto--limpieza { background: #FFFCF3; border-color: #F6E6BE; }
+.cuarto--revisar { background: #F7FAFE; border-color: #D9E4F7; }
+.cuarto--fuera { background: #FAFAFA; border-color: #E6E4E4; }
+.cuarto__vencida { font: 700 11px/1.3 var(--f-ui); color: var(--rojo); }
+/* La acción deja de adivinarse: va escrita en un botón al pie de la tarjeta. */
+.cuarto__accion { margin-top: auto; width: 100%; }
+.cuarto { cursor: default; }
+.cuarto:hover { transform: none; box-shadow: none; border-color: var(--borde); }
+.cuarto:has(.cuarto__accion:hover), .cuarto:has(.cuarto__accion:focus-visible) { border-color: var(--bronce); }
+
+/* Acceso (BOCETO 02): la foto es el fondo de toda la pantalla y el formulario
+   es una tarjeta blanca que flota encima, a la derecha. La marca va sobre la foto,
+   sin panel propio. */
+.acceso-pant {
+  padding: 24px 16px; display: grid; place-items: center;
+  background-color: var(--marca-b);
+  /* El velo OSCURECE, no tiñe: un rojo claro encima lava la foto y la deja rosada.
+     Con un rojo casi negro y poca opacidad, los rojos siguen profundos y la ropa
+     de cama sigue viéndose blanca. */
+  background-image: linear-gradient(180deg, rgba(35, 4, 4, .72) 0%, rgba(42, 5, 5, .60) 55%, rgba(52, 6, 6, .52) 100%),
+    var(--acceso-foto, none);
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+}
+.acceso__caja { width: min(1500px, 100%); display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: center; }
+.acceso__marca { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 0; background: none; }
+.acceso__logo { width: 210px; height: 111px; }
+/* Especificidad extra: estilos.css define «.acceso__marca p» en mayúsculas diminutas. */
+.acceso__marca .acceso__lema { font: 700 29px/1.2 var(--f-marca); margin: 14px 0 0; color: var(--blanco);
+  letter-spacing: -.3px; text-transform: none; max-width: 16ch; }
+.acceso__marca .acceso__sub { font: 400 15.5px/1.5 var(--f-ui); margin: 8px 0 0; color: rgba(255, 255, 255, .9);
+  letter-spacing: 0; text-transform: none; max-width: 30ch; }
+.acceso__lista { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 10px; text-align: left; }
+.acceso__lista li { display: flex; align-items: center; gap: 11px; font: 500 15.5px/1.3 var(--f-ui); color: var(--blanco); }
+
+/* La columna derecha: el aviso encima, la tarjeta debajo. */
+.acceso__columna { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+/* El aviso flota centrado arriba, fuera del flujo: dentro de la columna se estiraba
+   de lado a lado y partía el formulario en dos. */
+.acceso__aviso {
+  /* Flota arriba y se quita solo a los 5 s (lo hace Acceso.tsx), así que un
+     solape pasajero no estorba. */
+  position: fixed; top: calc(18px + env(safe-area-inset-top)); left: 50%; z-index: 60;
+  display: inline-flex; align-items: center; gap: 10px; margin: 0;
+  width: max-content; max-width: calc(100% - 32px);
+  animation: aviso-entra .22s ease-out both;
+  padding: 11px 20px 11px 12px; border-radius: 999px;
+  background: var(--blanco); box-shadow: var(--sombra-alta);
+  font: 600 13.5px/1.4 var(--f-ui); color: var(--texto);
+}
+.acceso__aviso .ico { box-sizing: content-box; width: 16px; height: 16px; padding: 5px; flex: none;
+  border-radius: 50%; background: var(--verde-bg); color: var(--verde); }
+@keyframes aviso-entra {
+  from { opacity: 0; transform: translate(-50%, -12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+/* Sin animación, pero centrado igual: el translate -50 % hace de centrado. */
+@media (prefers-reduced-motion: reduce) { .acceso__aviso { transform: translateX(-50%); } }
+
+/* La tarjeta del formulario: blanca, redondeada por los cuatro lados, flotando. */
+.acceso__tarjeta { background: var(--blanco); border-radius: 22px; box-shadow: var(--sombra-alta);
+  padding: 32px 28px; justify-content: center; }
+.acceso__tarjeta h1 { font-size: 28px; }
+/* Campos del acceso: el nombre va dentro y el ícono a la izquierda, como el BOCETO 02. */
+.campo__conicono { position: relative; display: flex; }
+.campo__conicono input { flex: 1; min-height: 52px; padding-left: 46px; border-radius: 12px; }
+.campo__icono { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--texto-2); pointer-events: none; }
+.campo__conicono input::placeholder { color: var(--texto-2); opacity: 1; }
+/* El PIN centrado y muy espaciado no deja leer su texto de ayuda. */
+.acceso__tarjeta .campo input.pin { letter-spacing: 6px; text-align: left; font: 600 17px/1 var(--f-ui); }
+.acceso__tarjeta .campo input.pin::placeholder { letter-spacing: 0; font: 400 14.5px/1 var(--f-ui); }
+/* Chrome pinta de azul lo autorrellenado; aquí se mantiene blanco. */
+.acceso__tarjeta input:-webkit-autofill,
+.acceso__tarjeta input:-webkit-autofill:hover,
+.acceso__tarjeta input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--texto);
+  box-shadow: 0 0 0 1000px var(--blanco) inset;
+  caret-color: var(--texto);
+}
+
+.campo__conojo { position: relative; display: flex; }
+.campo__conojo input { flex: 1; padding-right: 46px; }
+.campo__ojo { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px;
+  display: grid; place-items: center; border: 0; background: none; border-radius: 10px; color: var(--texto-2); }
+.campo__ojo:hover { background: var(--crema-2); }
+.campo__ojo[aria-pressed="true"] { color: var(--bronce-osc); }
+/* En el boceto es un enlace rojo. Aquí no hay recuperación por cuenta propia, así
+   que la pregunta va en rojo y la respuesta debajo, sin fingir que se puede pulsar. */
+.acceso__olvido { margin: 16px 0 0; font: 500 12.5px/1.55 var(--f-ui); color: var(--texto-2); text-align: center; }
+.acceso__olvido b { display: block; color: var(--bronce-osc); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+/* Encabezado centrado con su texto, y el pie separado por una línea. */
+.acceso__tarjeta h1, .acceso__tarjeta > .ayuda { text-align: center; }
+.acceso__tarjeta > .ayuda { margin: 6px auto 18px; max-width: 30ch; font-size: 13.5px; }
+.acceso__pie { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--borde);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font: 500 12.5px/1.5 var(--f-ui); color: var(--texto-2); text-align: center; }
+.acceso__pie .ico { color: var(--bronce); flex: none; }
+/* En celular solo el logo y la tarjeta: el lema y la lista alargaban la pantalla
+   y empujaban el formulario fuera de la vista. */
+@media (max-width: 859px) {
+  .acceso__lema, .acceso__sub, .acceso__lista { display: none; }
+  .acceso__marca { padding: 0 0 22px; }
+  .acceso__caja { gap: 0; }
+}
+
+@media (min-width: 860px) {
+  /* En ancho el velo va de izquierda a derecha: denso donde está el texto y casi
+     limpio sobre la cama, como en el boceto. */
+  /* Margen derecho corto a propósito: la tarjeta, ya más ancha, tapaba el borde
+     de la lámpara de la foto. */
+  .acceso-pant { padding: 40px 28px 40px clamp(36px, 5.5vw, 80px);
+    background-image: linear-gradient(95deg, rgba(28, 3, 3, .72) 0%, rgba(36, 4, 4, .58) 32%, rgba(48, 5, 5, .32) 60%, rgba(58, 7, 7, .12) 100%),
+      var(--acceso-foto, none); }
+  /* La tarjeta se pega a la derecha y se queda estrecha: centrada tapaba justo la
+     lámpara y las almohadas, que es lo que da vida a la foto. */
+  .acceso__caja { grid-template-columns: minmax(0, 1fr) minmax(400px, 452px); gap: 44px; }
+  /* El bloque no va pegado al borde: se corre hacia el centro de la mitad izquierda,
+     que es donde queda bien sobre la pared de la foto. */
+  .acceso__marca { align-items: flex-start; text-align: left; padding-left: clamp(0px, 8vw, 150px); }
+  /* estilos.css centra el logo con «margin: 0 auto»; aquí va alineado con el texto. */
+  /* El dibujo del logo arranca a 28/240 del ancho de su viewBox, o sea deja ~11,7 %
+     en blanco a la izquierda. Sin compensarlo, el logo queda corrido respecto al
+     titular. 292 × 0,117 ≈ 34 px lo deja a plomo con el texto. */
+  .acceso__marca .acceso__logo { width: 292px; height: 154px; margin: 0 0 0 -34px; }
+  .acceso__marca .acceso__lema { font-size: 42px; margin-top: 20px; max-width: 17ch; }
+  .acceso__tarjeta { padding: 34px 32px; border-radius: 24px; }
+  .acceso__tarjeta h1 { font-size: 30px; }
+  .acceso__marca .acceso__sub { font-size: 16.5px; max-width: 32ch; }
+  .acceso__lista li { font-size: 16.5px; gap: 12px; }
+  .acceso__lista { margin-top: 24px; gap: 13px; }
+}
+
+
+/* Pantalla de Inicio (BOCETO 03): contenido a la izquierda, acciones en columna
+   estrecha a la derecha. En pantallas angostas se apila. */
+/* En el marcado las acciones van antes del resto, para que al apilarse queden
+   justo después de los indicadores, que es lo que más se usa desde el celular.
+   En ancho, las áreas las devuelven a la columna derecha. */
+.inicio__columnas { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.inicio__principal, .inicio__lateral { min-width: 0; }
+.inicio__lateral { display: flex; flex-direction: column; gap: 16px; }
+@media (min-width: 1100px) {
+  .inicio__columnas {
+    grid-template-columns: minmax(0, 1fr) 320px; gap: 20px;
+    grid-template-areas: "titulo lateral" "stats lateral" "principal lateral";
+  }
+  .inicio__titulo { grid-area: titulo; }
+  .inicio__stats { grid-area: stats; }
+  .inicio__lateral { grid-area: lateral; }
+  .inicio__principal { grid-area: principal; }
+}
+/* Acciones rápidas: ícono, título, explicación y botón (BOCETO 03). */
+.inicio__acciones { display: flex; flex-direction: column; gap: 18px; }
+.accion { display: flex; flex-direction: column; gap: 6px; }
+.accion h3 { margin: 4px 0 0; font: 700 16px/1.3 var(--f-ui); }
+.accion p { margin: 0 0 8px; font: 500 13px/1.5 var(--f-ui); color: var(--texto-2); }
+.accion__ico { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; }
+.accion__ico--marca { background: var(--rojo-bg); color: var(--bronce); }
+.accion__ico--oscuro { background: var(--gris-bg); color: var(--madera-800); }
+.accion__ico--suave { background: var(--crema-2); color: var(--madera-600); }
+
+/* Mini mapa del inicio: la habitación en pequeño, solo número y estado. */
+.inicio__cuartos { margin-top: 16px; }
+.inicio__cuartos .tarjeta__cab { align-items: flex-start; }
+/* Fichas más angostas para que las 12 habitaciones quepan en dos filas y el
+   inicio entre en pantalla sin desplazar. */
+.mini-mapa { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+/* Ícono y número en una línea, y el estado debajo, alineados a la izquierda. */
+.mini-cuarto { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 9px 8px;
+  border: 1px solid var(--borde); border-radius: var(--r-md); background: var(--blanco); text-align: left; }
+.mini-cuarto__fila { display: flex; align-items: center; gap: 6px; font: 700 15px/1.1 var(--f-ui); color: var(--texto); }
+.mini-cuarto .pill { padding: 2px 7px; font-size: 11px; }
+.mini-cuarto--mas { font-size: 11.5px; }
+.mini-cuarto--libre { background: #F7FCF9; border-color: #DCF2E4; } .mini-cuarto--libre .ico { color: var(--verde-ico); }
+.mini-cuarto--ocupada { background: #FEF8F8; border-color: #F8DCDC; } .mini-cuarto--ocupada .ico { color: var(--rojo-ico); }
+.mini-cuarto--limpieza { background: #FFFCF3; border-color: #F6E6BE; } .mini-cuarto--limpieza .ico { color: var(--ambar-ico); }
+.mini-cuarto--revisar { background: #F7FAFE; border-color: #D9E4F7; } .mini-cuarto--revisar .ico { color: var(--azul); }
+.mini-cuarto--fuera { background: #FAFAFA; border-color: #E6E4E4; } .mini-cuarto--fuera .ico { color: var(--gris-ico); }
+.mini-cuarto--mas { border-style: dashed; color: var(--texto-2); font: 600 12.5px/1.3 var(--f-ui); justify-content: center; }
+.mini-cuarto:hover { border-color: var(--bronce); }
+.inicio__cifra { margin: 4px 0 0; font: 700 34px/1.1 var(--f-ui); font-variant-numeric: tabular-nums; }
+.inicio__desglose { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 0 0; }
+.inicio__desglose dt { font: 500 12.5px/1.3 var(--f-ui); color: var(--texto-2); }
+.inicio__desglose dd { margin: 2px 0 0; font: 700 16px/1.3 var(--f-ui); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* Estados de formulario que el prototipo no traía (BOCETO 01). */
+.campo--error input:focus, .campo--error select:focus, .campo--error textarea:focus {
+  border-color: var(--rojo); box-shadow: 0 0 0 3px rgba(200, 30, 30, .22);
+}
+/* Un campo deshabilitado se veía igual que uno activo (mismo fondo, borde y
+   letra), así que nada avisaba que estaba bloqueado. Por ejemplo «Documento»
+   mientras no se elige el tipo. */
+.campo input[disabled], .campo select[disabled], .campo textarea[disabled] {
+  background: var(--gris-bg); color: var(--gris); cursor: not-allowed;
+}
+
+/* Filtros del inicio en una sola fila: en dos robaban 40 px de alto. */
+.inicio__cuartos .filtro { min-height: 32px; padding: 0 11px; font-size: 12px; gap: 6px; }
+.inicio__cuartos .filtro::before { width: 8px; height: 8px; }
+.inicio__cuartos .filtros__grupo { gap: 6px; flex-wrap: wrap; }
+
+/* Acciones más bajas: su columna era la que pasaba de pantalla en el inicio. */
+.inicio__acciones { gap: 14px; }
+.accion__ico { width: 38px; height: 38px; border-radius: 10px; }
+.accion__ico .ico { width: 22px; height: 22px; }
+.accion h3 { margin: 2px 0 0; font-size: 15px; }
+.accion p { margin: 0 0 6px; }
+
+/* Desplazamiento sin barra a la vista. Se sigue pudiendo rodar la rueda,
+   arrastrar en pantalla táctil y moverse con el teclado; lo único que
+   desaparece es la barra gris. Son tres declaraciones porque cada navegador
+   la oculta a su manera: scrollbar-width en Firefox, -ms-overflow-style en el
+   Edge viejo y ::-webkit-scrollbar en Chrome, Edge y Safari. */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ===================================================================

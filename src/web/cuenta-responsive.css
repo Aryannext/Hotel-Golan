@@ -1,0 +1,112 @@
+/* Cuenta ampliada dentro de la misma pantalla; conserva el menú y la cabecera. */
+.panel__titulo-accesible { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.panel--entrada { width: calc(100vw - var(--ancho-lateral)); top: 76px; height: calc(100dvh - 76px); max-height: calc(100dvh - 76px); background: var(--crema); }
+body:has(> .capa-panel--entrada) .contenido { margin-right: 0; }
+.panel--entrada .panel__cuerpo { padding: 24px; }
+.panel--entrada .panel__cab { border-bottom: 0; box-shadow: none; background: var(--crema); }
+.panel--entrada .selector-habitaciones { display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: 14px; }
+.panel--entrada .asistente { width: 100%; max-width: 1000px; margin-inline: auto; }
+.panel--cuenta { width: calc(100vw - var(--ancho-lateral)); top: 76px; height: calc(100dvh - 76px); max-height: calc(100dvh - 76px); background: var(--crema); }
+body:has(> .capa-panel--cuenta) .contenido { margin-right: 0; }
+.panel--cuenta .panel__cab { min-height: 52px; padding: 7px 20px; }
+.panel--cuenta .panel__cuerpo { padding: 16px 22px; container: cuenta / inline-size; }
+.panel--cuenta .ficha-pantalla-grande { gap: 12px; }
+.panel--cuenta .ficha-pg-header { display: grid; grid-template-columns: 140px minmax(160px,1.3fr) repeat(3,minmax(100px,1fr)); gap: 14px; padding: 12px; }
+.panel--cuenta .ficha-pg-header__foto { width: 140px; }
+.panel--cuenta .ficha-pg-header__info-principal { min-width: 0; }
+.panel--cuenta .ficha-pg-header__hab-titulo { flex-wrap: wrap; gap: 6px; }
+.panel--cuenta .ficha-pg-header__hab-titulo h2 { font-size: 17px; }
+.panel--cuenta .ficha-pg-header__datos-huesped { gap: 5px; }
+.panel--cuenta .ficha-pg-huesped-fila { font-size: 11px; overflow-wrap: anywhere; }
+.panel--cuenta .ficha-pg-header__columna { padding-left: 12px; border-left: 1px solid var(--borde); }
+.panel--cuenta .ficha-pg-col-fecha { flex-wrap: wrap; font-size: 12px; }
+.panel--cuenta .ficha-pg-col-label,.panel--cuenta .ficha-pg-col-hora { font-size: 10px; }
+.panel--cuenta .ficha-pg-tabs { flex-wrap: wrap; overflow: visible; gap: 8px; }
+.panel--cuenta .ficha-pg-tab { font-size: 11px; padding: 9px 12px; }
+.panel--cuenta .ficha-pg-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; align-items: start; }
+.panel--cuenta .ficha-pg-col-izq,.panel--cuenta .ficha-pg-col-der { display: contents; }
+.panel--cuenta .ficha-pg-col-izq > :first-child { grid-column: 1/3; grid-row: 1/3; align-self: stretch; }
+.panel--cuenta .ficha-pg-col-izq > :nth-child(2) { grid-column: 1; grid-row: 3; }
+.panel--cuenta .ficha-pg-col-der > :first-child { grid-column: 3; grid-row: 1; }
+.panel--cuenta .ficha-pg-col-der > :nth-child(2) { grid-column: 3; grid-row: 2; }
+.panel--cuenta .ficha-pg-col-der > :nth-child(3) { grid-column: 2; grid-row: 3; }
+.panel--cuenta .ficha-pg-col-der > :nth-child(4) { grid-column: 3; grid-row: 3; }
+.panel--cuenta .ficha-pg-card { padding: 12px; border-radius: 10px; }
+.panel--cuenta .ficha-pg-card__cabecera { gap: 8px; margin-bottom: 10px; }
+.panel--cuenta .ficha-pg-card__cabecera h3 { font-size: 13px; }
+.panel--cuenta .ficha-btn-rojo-sm { font-size: 10px; padding: 7px; min-height: 32px; }
+.panel--cuenta .ficha-pg-metodos-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }
+.panel--cuenta .metodo-pago-pill { padding: 8px 3px; font-size: 9px; flex-wrap: wrap; justify-content: center; }
+.panel--cuenta .ficha-pg-cargos-rapidos-grid { gap: 6px; }
+.panel--cuenta .cargo-rapido-btn { min-width: 0; padding: 8px 4px; }
+.panel--cuenta .cargo-rapido-nombre,.panel--cuenta .cargo-rapido-precio { font-size: 10px; }
+.panel--cuenta .ayuda { font-size: 10px; line-height: 1.5; }
+.panel--cuenta .ficha-pg-acciones-estadia { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.panel--cuenta .accion-estadia-btn { padding: 9px 6px; gap: 5px; min-width: 0; }
+.panel--cuenta .accion-estadia-txt strong { font-size: 10px; }
+.panel--cuenta .accion-estadia-txt span { font-size: 9px; }
+.panel--cuenta .resumen-fila { gap: 8px; font-size: 12px; }
+.panel--cuenta .resumen-saldo-destacado { font-size: 19px; }
+.cargo-detalle { position: relative; }
+.cargo-detalle summary { display: grid; place-items: center; min-height: 36px; cursor: pointer; list-style: none; }
+.cargo-detalle summary::-webkit-details-marker { display: none; }
+.cargo-detalle p { position: absolute; right: 0; z-index: 2; width: min(240px,60vw); padding: 12px; border: 1px solid var(--borde); border-radius: 8px; background: var(--blanco); box-shadow: 0 4px 16px #4b3f3f18; line-height: 1.6; text-align: left; }
+.ficha-pg-tabla-wrapper { container: tabla-cuenta / inline-size; overflow: visible; }
+.ficha-pg-tabla { table-layout: fixed; }
+.ficha-pg-tabla td,.ficha-pg-tabla th { padding: 9px 5px; font-size: 10px; white-space: normal; overflow-wrap: anywhere; }
+.ficha-pg-tabla--cargos th:nth-child(1) { width: 15%; }
+.ficha-pg-tabla--cargos th:nth-child(2) { width: 26%; }
+.ficha-pg-tabla--cargos th:nth-child(3) { width: 19%; }
+.ficha-pg-tabla--cargos th:nth-child(4) { width: 6%; }
+.ficha-pg-tabla--cargos th:nth-child(5) { width: 14%; }
+.ficha-pg-tabla--cargos th:nth-child(6) { width: 13%; }
+.ficha-pg-tabla--cargos th:nth-child(7) { width: 7%; }
+.panel--cuenta .ficha-pg-cat-badge { font-size: 10px; padding: 5px; }
+@container tabla-cuenta (max-width: 430px) {
+  .ficha-pg-tabla,.ficha-pg-tabla tbody { display: block; width: 100%; }
+  .ficha-pg-tabla thead { display: none; }
+  .ficha-pg-tabla tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--borde); }
+  .ficha-pg-tabla td { display: flex; flex-direction: column; align-items: start; text-align: left; gap: 4px; border: 0; min-width: 0; width: auto; padding: 3px; font-size: 11px; }
+  .ficha-pg-tabla td[data-label]::before { content: attr(data-label); font-size: 9px; color: var(--texto-2); }
+  .ficha-pg-tabla .td--desc,.ficha-pg-tabla .td--vacio { grid-column: 1/-1; }
+}
+@container cuenta (max-width: 850px) {
+  .panel--cuenta .ficha-pg-header { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .panel--cuenta .ficha-pg-header__foto { width: 100%; }
+  .panel--cuenta .ficha-pg-header__info-principal { grid-column: 2/4; }
+  .panel--cuenta .ficha-pg-header__columna { border: 0; padding: 0; }
+  .panel--cuenta .ficha-pg-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .panel--cuenta .ficha-pg-col-izq > .ficha-pg-card,.panel--cuenta .ficha-pg-col-der > .ficha-pg-card { grid-column: auto; grid-row: auto; }
+  .panel--cuenta .ficha-pg-col-izq > :first-child { grid-column: 1/-1; }
+}
+@media (max-width: 1023px) {
+  .panel.panel--cuenta,.panel.panel--entrada { top: 0; width: 100vw; height: 100dvh; max-height: 100dvh; }
+}
+@media (min-width: 1024px) {
+  /* Las acciones conservan la cuenta que les dio origen como contexto visible. */
+  .capa-panel--cuenta:has(~ .capa-panel) { display: block; }
+  .capa-panel--cuenta:has(~ .capa-panel) > .panel--cuenta { right: var(--ancho-contextual); width: calc(100vw - var(--ancho-lateral) - var(--ancho-contextual)); }
+}
+@container cuenta (max-width: 500px) {
+  .panel--cuenta .ficha-pg-grid { grid-template-columns: minmax(0,1fr); }
+  .panel--cuenta .ficha-pg-header { grid-template-columns: minmax(0,1fr); }
+  .panel--cuenta .ficha-pg-header__foto { width: 100%; }
+  .panel--cuenta .ficha-pg-header__info-principal { grid-column: auto; }
+}
+/* El historial tiene su propio contenedor, incluso dentro de un panel estrecho. */
+@container tabla-cuenta (min-width: 330px) and (max-width: 430px) {
+  .ficha-pg-tabla--pagos { display: table; }
+  .ficha-pg-tabla--pagos thead { display: table-header-group; }
+  .ficha-pg-tabla--pagos tbody { display: table-row-group; }
+  .ficha-pg-tabla--pagos tr { display: table-row; }
+  .ficha-pg-tabla--pagos td { display: table-cell; padding: 8px 4px; }
+  .ficha-pg-tabla--pagos td::before { display: none; }
+}
+.tabla-env-turnos { container-name: historial-tabla; }
+.panel--cuenta > .panel__cab { border-bottom: 0; box-shadow: none; background: var(--crema); }
+@container historial-tabla (max-width: 999px) {
+  .historial-turnos .tabla-turnos { display: block; width: 100%; }
+  .historial-turnos .tabla-turnos thead { display: none; }
+  .historial-turnos .tabla-turnos tbody { display: grid; grid-template-columns: minmax(0,1fr); }
+  .historial-turnos .tabla-turnos tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+}

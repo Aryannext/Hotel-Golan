@@ -36,9 +36,37 @@ export function diaRelativo(iso: string, hoy: string): string {
   return `${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`;
 }
 
+/** Grupos del mapa: cada contador del encabezado filtra por los mismos estados. */
+const ESTADOS_GRUPO = {
+  disponibles: ['DISPONIBLE'],
+  ocupadas: ['OCUPADA'],
+  limpiezaORevision: ['LIMPIEZA', 'POR_REVISAR'],
+  mantenimiento: ['MANTENIMIENTO'],
+} as const;
+
+export type GrupoEstado = keyof typeof ESTADOS_GRUPO;
+export type FiltroMapa = GrupoEstado | 'todas' | 'limpieza' | 'porRevisar';
+export const GRUPOS_ESTADO = Object.keys(ESTADOS_GRUPO) as GrupoEstado[];
+
+/** Habitaciones del grupo pedido; «todas» no filtra. */
+export function filtrarPorGrupo<T extends { estado: string }>(items: T[], filtro: FiltroMapa): T[] {
+  if (filtro === 'todas') return items;
+  if (filtro === 'limpieza') return items.filter((h) => h.estado === 'LIMPIEZA');
+  if (filtro === 'porRevisar') return items.filter((h) => h.estado === 'POR_REVISAR');
+  const estados: readonly string[] = ESTADOS_GRUPO[filtro];
+  return items.filter((h) => estados.includes(h.estado));
+}
+
 export function contarEstados(items: Array<{ estado: string }>) {
-  const n = (...e: string[]) => items.filter((h) => e.includes(h.estado)).length;
-  return { disponibles: n('DISPONIBLE'), ocupadas: n('OCUPADA'), limpiezaORevision: n('LIMPIEZA', 'POR_REVISAR'), mantenimiento: n('MANTENIMIENTO') };
+  const n = (g: FiltroMapa) => filtrarPorGrupo(items, g).length;
+  return {
+    disponibles: n('disponibles'),
+    ocupadas: n('ocupadas'),
+    limpieza: n('limpieza'),
+    porRevisar: n('porRevisar'),
+    limpiezaORevision: n('limpiezaORevision'),
+    mantenimiento: n('mantenimiento'),
+  };
 }
 
 /** Fecha de hoy en Bogotá (UTC−5), AAAA-MM-DD. */

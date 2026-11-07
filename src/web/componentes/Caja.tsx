@@ -1,105 +1,138 @@
-// Caja del turno (TICKET-03, FR-11): el número que importa es cuánta plata debe haber ahora en la caja (RN-10).
-// TICKET-10: «Salió plata» y «Lo de este turno» (cobros y salidas por hora). TICKET-11: «Entregar turno».
+// Caja del turno (TICKET-03, FR-11): el número que importa es cuánta plata debe haber
+// ahora en la caja (RN-10). TICKET-10: «Salió plata» y «Lo de este turno». TICKET-11:
+// «Entregar turno». Presentación del BOCETO 06.
+//
+// Esta pantalla arma piezas: el estado vive en dos hooks (los datos del turno y qué
+// ventana está abierta) y las cifras las calcula `caja.ts`, que se prueba sin navegador.
 import { useEffect, useState } from 'preact/hooks';
-import { api, ErrorApi, type Turno } from '../api.ts';
-import { horaBogota, lineasDelTurno, nombreTurno, pesos, puedeAnular, type LineaTurno } from '../logica.ts';
+import { api, type Turno } from '../api.ts';
+import { horaBogota, pesos, puedeAnular } from '../logica.ts';
+import { filaTurno, horarioTurno, lineasCaja, ultimoDeCadaTipo, type FilaTurno } from '../caja.ts';
+import { quienPidio } from '../lavanderia.ts';
+import { useDatosCaja } from '../hooks/useDatosCaja.ts';
+import { usePanelesCaja } from '../hooks/usePanelesCaja.ts';
 import { SalidaDinero } from './SalidaDinero.tsx';
 import { VentaContado } from './VentaContado.tsx';
 import { EntregarLavanderia } from './EntregarLavanderia.tsx';
 import { LavanderiaExterna } from './LavanderiaExterna.tsx';
 import { CobrarDeudaLavanderia } from './CobrarDeudaLavanderia.tsx';
-import { quienPidio, type PedidoLavanderia } from '../lavanderia.ts';
 import { EntregarTurno } from './EntregarTurno.tsx';
-import { Anular, type QueAnular } from './Anular.tsx';
+import { Anular } from './Anular.tsx';
+import { TurnoActual } from './TurnoActual.tsx';
+import { ResumenTurno } from './ResumenTurno.tsx';
+import { HistorialTurnos } from './HistorialTurnos.tsx';
 import { Ico } from './Ico.tsx';
-import { mensajeDeError } from '../envio.ts';
 import { icoMovimiento } from '../presentacion.ts';
 
-/** `recarga` cambia con cada evento en vivo: la caja se vuelve a pedir sin recargar la página. */
 const salioTexto = (salidas: number) => (salidas ? ` − salió ${pesos(salidas)}` : '');
 
-export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntregar }: {
-  recarga?: number; usuario?: string; esAdmin?: boolean; alAvisar?: (texto: string) => void; alEntregar?: (texto: string) => void;
+/** `recarga` cambia con cada evento en vivo: la caja se vuelve a pedir sin recargar la página. */
+export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntregar, alVerTodos }: {
+  recarga?: number; usuario?: string; esAdmin?: boolean;
+  alAvisar?: (texto: string) => void; alEntregar?: (texto: string) => void; alVerTodos?: () => void;
 }) {
-  const [turno, setTurno] = useState<Turno | null>(null);
-  const [lineas, setLineas] = useState<LineaTurno[]>([]);
-  const [error, setError] = useState('');
-  const [saliendo, setSaliendo] = useState(false);
-  const [vendiendo, setVendiendo] = useState(false);
-  const [lavanderia, setLavanderia] = useState<PedidoLavanderia[]>([]);
-  const [entregandoRopa, setEntregandoRopa] = useState<PedidoLavanderia | null>(null);
-  const [recibiendoExterno, setRecibiendoExterno] = useState(false);
-  const [deudas, setDeudas] = useState<PedidoLavanderia[]>([]);
-  const [cobrandoDeuda, setCobrandoDeuda] = useState<PedidoLavanderia | null>(null);
-  const [entregando, setEntregando] = useState(false);
-  const [anulando, setAnulando] = useState<QueAnular | null>(null);
-  const [propia, setPropia] = useState(0);
+  const datos = useDatosCaja(recarga);
+  const pan = usePanelesCaja();
+  // El historial de turnos es solo de administración: /turnos responde 403 a recepción.
+  const [turnos, setTurnos] = useState<Turno[]>([]);
 
   useEffect(() => {
-    api.turnoActual().then(async (t) => {
-      setTurno(t);
-      setError('');
-      const [p, m, l, d] = await Promise.all([api.pagosDelTurno(t.id), api.salidasDelTurno(t.id), api.lavanderiaPorEntregar(), api.deudasLavanderia()]);
-      setLineas(lineasDelTurno(p.items, m.items));
-      setLavanderia(l.items);
-      setDeudas(d.items);
-    }).catch((e) => {
-      if (e instanceof ErrorApi && e.estado === 404) { setTurno(null); setError('No hay un turno activo en este momento.'); }
-      else setError(mensajeDeError(e));
-    });
-  }, [recarga, propia]);
+    if (!esAdmin) { setTurnos([]); return; }
+    api.turnos(0, 8).then((r) => setTurnos(r.items)).catch(() => setTurnos([]));
+  }, [esAdmin, recarga]);
 
-  if (error && !turno) return <div class="nota" role="alert"><Ico id="info" clase="ico--s" /><p>{error}</p></div>;
+  const { turno } = datos;
+  // Si falla una recarga con el turno ya en pantalla, el aviso va arriba y la caja no desaparece.
+  if (datos.error && !turno) return <div class="nota" role="alert"><Ico id="info" clase="ico--s" /><p>{datos.error}</p></div>;
   if (!turno) return null;
+
   const c = turno.caja;
   const porRecibir = turno.estado === 'POR_RECIBIR';
+  const { dia, noche } = ultimoDeCadaTipo(turnos);
+  const filas: FilaTurno[] = turnos.map(filaTurno);
+  // Lo registrado desde esta pantalla recarga sus propios datos y avisa arriba.
+  const listo = (texto: string) => { pan.ninguna(); datos.recargar(); alAvisar?.(texto); };
 
   return (
-    <div class="caja-simple">
-      <div class="titulo-vista"><div><h1>Caja</h1>
-        <p>Turno {nombreTurno(turno.tipo)} · {porRecibir ? 'por recibir' : <>de <b>{turno.responsable}</b></>}</p>
-      </div></div>
-      {error && <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{error}</p></div>}
-      <section class="tarjeta caja-grande">
-        <p class="caja-grande__etq">{porRecibir ? 'Dejaron en la caja' : 'En la caja debe haber'}</p>
-        <strong class="caja-grande__valor">{pesos(c.debe_haber)}</strong>
-        <p class="ayuda">
-          {porRecibir ? `${turno.recibido_de ?? 'El turno anterior'} entregó ${pesos(turno.base_entregada)}; falta que alguien lo reciba.`
-            : `Recibió ${pesos(c.base_recibida)} + cobró en efectivo ${pesos(c.efectivo)}${salioTexto(c.salidas)}`}
-        </p>
-        <div class="caja-grande__extra">
-          <span><Ico id="transferencia" clase="ico--s" /> Transferencias (no están en la caja): <b>{pesos(c.transferencias)}</b>
-            {c.por_verificar_cantidad > 0 && ` · ${c.por_verificar_cantidad} por verificar`}</span>
-          {!porRecibir && <span><Ico id="efectivo" clase="ico--s" /> Pago del turno al entregar: <b>{pesos(c.pago_turno)}</b></span>}
+    <div class="caja-vista">
+      <div class="titulo-vista titulo-vista--entre">
+        <div>
+          <h1><span class="titulo-vista__ico"><Ico id="caja" clase="ico--l" /></span>Caja por turno</h1>
+          <p>Control de ingresos y egresos de caja por turno de trabajo.</p>
         </div>
-        {!porRecibir && <div class="caja-grande__botones">
-          <button type="button" class="btn btn--secundario btn--l" onClick={() => setVendiendo(true)}><Ico id="vitrina" clase="ico--s" />Venta de contado</button>
-          <button type="button" class="btn btn--secundario btn--l" onClick={() => setSaliendo(true)}><Ico id="baja" clase="ico--s" />Salió plata</button>
-          <button type="button" class="btn btn--secundario btn--l" onClick={() => setRecibiendoExterno(true)}><Ico id="lavanderia" clase="ico--s" />Lavandería de afuera</button>
-        </div>}
-      </section>
+        {turno.estado === 'ABIERTO' && turno.responsable === usuario && (
+          <button type="button" class="btn btn--primario btn--l" onClick={() => pan.abrir('entregar-turno')}>
+            <Ico id="check" clase="ico--s" />Entregar turno
+          </button>
+        )}
+        {/* HAL-18 [P/V]: un turno trabado (quien lo tenía se fue sin entregarlo) lo cierra la administración, con motivo. */}
+        {turno.estado === 'ABIERTO' && esAdmin && turno.responsable !== usuario && (
+          <button type="button" class="btn btn--secundario btn--l" onClick={() => pan.abrir('entregar-turno')}>
+            <Ico id="alerta" clase="ico--s" />Cerrar el turno de {turno.responsable}
+          </button>
+        )}
+      </div>
 
-      {deudas.length > 0 && <section class="tarjeta"><div class="tarjeta__cab"><h2><Ico id="alerta" clase="ico--s" />Deudas de lavandería</h2></div>
+      {datos.error && <div class="nota" role="alert"><Ico id="alerta" clase="ico--s" /><p>{datos.error}</p></div>}
+      <div class="caja-columnas">
+        <div class="caja-columnas__principal">
+          <TurnoActual turno={turno} lineas={lineasCaja(turno)} desde={horaBogota(turno.inicio_en)}>
+            <div class="turno-actual__nota">
+              <h3>{porRecibir ? 'Lo que dejaron' : 'Cómo se llega al esperado'}</h3>
+              <p>
+                {porRecibir
+                  ? `${turno.recibido_de ?? 'El turno anterior'} entregó ${pesos(turno.base_entregada)}; falta que alguien lo reciba.`
+                  : `Recibió ${pesos(c.base_recibida)} + cobró en efectivo ${pesos(c.efectivo)}${salioTexto(c.salidas)}.`}
+              </p>
+              {turno.cierre?.motivo_diferencia && <>
+                <h3>Motivo de la diferencia</h3>
+                <p class="turno-actual__motivo">{turno.cierre.motivo_diferencia}</p>
+              </>}
+              <p class="ayuda">
+                <Ico id="transferencia" clase="ico--xs" /> Transferencias (no están en la caja): <b>{pesos(c.transferencias)}</b>
+                {c.por_verificar_cantidad > 0 && ` · ${c.por_verificar_cantidad} por verificar`}
+              </p>
+            </div>
+          </TurnoActual>
+
+          {/* Los tres movimientos que recepción registra desde la caja. La venta de contado
+              y la lavandería de afuera entran al efectivo, así que sin ellas el «debe haber»
+              queda corto y el turno cierra con una diferencia que no es de quien lo entrega.
+              El servidor las acepta de recepción: POST /ventas y POST /lavanderia. */}
+          {!porRecibir && <div class="caja-acciones">
+            <button type="button" class="btn btn--secundario btn--l" onClick={() => pan.abrir('vender')}><Ico id="vitrina" clase="ico--s" />Venta de contado</button>
+            <button type="button" class="btn btn--secundario btn--l" onClick={() => pan.abrir('salio')}><Ico id="baja" clase="ico--s" />Salió plata</button>
+            <button type="button" class="btn btn--secundario btn--l" onClick={() => pan.abrir('lavanderia-externa')}><Ico id="lavanderia" clase="ico--s" />Lavandería de afuera</button>
+          </div>}
+        </div>
+
+        <aside class="caja-columnas__lateral">
+          <ResumenTurno turno={dia} tipo="DIA" horario={dia && horarioTurno(dia)} />
+          <ResumenTurno turno={noche} tipo="NOCHE" horario={noche && horarioTurno(noche)} />
+        </aside>
+      </div>
+
+      {datos.deudas.length > 0 && <section class="tarjeta"><div class="tarjeta__cab"><h2><Ico id="alerta" clase="ico--s" />Deudas de lavandería</h2></div>
         <p class="ayuda">Personas de afuera que se llevaron la ropa sin pagar, con la autorización de quien entregó.</p>
-        {deudas.map((p) => <div class="mov" key={p.id}>
+        {datos.deudas.map((p) => <div class="mov" key={p.id}>
           <div class="mov__txt"><div class="mov__titulo">{quienPidio(p)} · {p.detalle}</div>
             <div class="mov__detalle">Autorizó {p.sin_pago_autorizado_por}</div></div>
           <div class="mov__der"><span class="mov__valor negativo">{pesos(p.por_cobrar ?? 0)}</span>
-            {!porRecibir && <button type="button" class="btn btn--secundario btn--mini" onClick={() => setCobrandoDeuda(p)}>Cobrar</button>}</div>
+            {!porRecibir && <button type="button" class="btn btn--secundario btn--mini" onClick={() => pan.cobrarDeuda(p)}>Cobrar</button>}</div>
         </div>)}
       </section>}
 
-      {!porRecibir && lavanderia.length > 0 && <section class="tarjeta"><div class="tarjeta__cab"><h2><Ico id="lavanderia" clase="ico--s" />Lavandería por entregar</h2></div>
-        {lavanderia.map((p) => <div class="mov" key={p.id}>
+      {!porRecibir && datos.lavanderia.length > 0 && <section class="tarjeta"><div class="tarjeta__cab"><h2><Ico id="lavanderia" clase="ico--s" />Lavandería por entregar</h2></div>
+        {datos.lavanderia.map((p) => <div class="mov" key={p.id}>
           <div class="mov__txt"><div class="mov__titulo">{quienPidio(p)} · {p.detalle}</div>
             <div class="mov__detalle">Recibida {horaBogota(p.registrado_en)} · {p.registrado_por}</div></div>
           <div class="mov__der"><span class="mov__valor">{pesos(p.total)}</span>
-            <button type="button" class="btn btn--secundario btn--mini" onClick={() => setEntregandoRopa(p)}>Entregar</button></div>
+            <button type="button" class="btn btn--secundario btn--mini" onClick={() => pan.entregarRopa(p)}>Entregar</button></div>
         </div>)}
       </section>}
 
       {!porRecibir && <section class="tarjeta"><div class="tarjeta__cab"><h2>Lo de este turno</h2></div>
-        {lineas.length === 0 ? <p class="vacio">Todavía no hay cobros ni salidas en este turno.</p> : lineas.map((l) => (
+        {datos.lineas.length === 0 ? <p class="vacio">Todavía no hay cobros ni salidas en este turno.</p> : datos.lineas.map((l) => (
           <div class={`mov${l.anulado ? ' mov--anulado' : ''}`} key={l.id}>
             <span class="mov__ico"><Ico id={icoMovimiento(l)} clase="ico--s" /></span>
             <div class="mov__txt"><div class="mov__titulo">{l.concepto}</div>
@@ -109,38 +142,28 @@ export function Caja({ recarga = 0, usuario, esAdmin = false, alAvisar, alEntreg
               {l.estado === 'RECHAZADO' && <span class="pill pill--alerta">No llegó</span>}
               {l.anulado && <span class="pill pill--neutro">Anulado</span>}
               {puedeAnular(l, esAdmin) && <button type="button" class="accion-icono accion-icono--rojo" aria-label={`Anular ${l.concepto}`} title="Anular"
-                onClick={() => setAnulando({ id: l.id, origen: l.origen, concepto: l.concepto, valor: l.valor })}><Ico id="papelera" clase="ico--s" /></button>}</div>
+                onClick={() => pan.anular({ id: l.id, origen: l.origen, concepto: l.concepto, valor: l.valor })}><Ico id="papelera" clase="ico--s" /></button>}</div>
           </div>
         ))}
       </section>}
-      {turno.estado === 'ABIERTO' && turno.responsable === usuario && <>
-        <button type="button" class="btn btn--primario btn--l btn--bloque" onClick={() => setEntregando(true)}><Ico id="check" clase="ico--s" />Entregar turno</button>
-        <p class="ayuda" style="text-align:center">Entregue al terminar su horario, cuando llegue quien lo recibe.</p>
-      </>}
-      {/* HAL-18 [P/V]: un turno trabado (quien lo tenía se fue sin entregarlo) lo cierra la administración. */}
-      {turno.estado === 'ABIERTO' && esAdmin && turno.responsable !== usuario && <>
-        <button type="button" class="btn btn--secundario btn--l btn--bloque" onClick={() => setEntregando(true)}>
-          <Ico id="alerta" clase="ico--s" />Cerrar el turno de {turno.responsable}</button>
-        <p class="ayuda" style="text-align:center">Solo si se fue sin entregarlo. Usted cuenta la plata y escribe el motivo.</p>
-      </>}
 
-      {recibiendoExterno && <LavanderiaExterna alCerrar={() => setRecibiendoExterno(false)}
-        alRegistrar={(texto) => { setRecibiendoExterno(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
-      {cobrandoDeuda && <CobrarDeudaLavanderia pedido={cobrandoDeuda} alCerrar={() => setCobrandoDeuda(null)}
-        alCobrar={(texto) => { setCobrandoDeuda(null); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
-      {entregandoRopa && <EntregarLavanderia pedido={entregandoRopa} alCerrar={() => setEntregandoRopa(null)}
-        alEntregar={(texto) => { setEntregandoRopa(null); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
-      {vendiendo && <VentaContado alCerrar={() => setVendiendo(false)}
-        alRegistrar={(texto) => { setVendiendo(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
-      {saliendo && <SalidaDinero debeHaber={c.debe_haber} alCerrar={() => setSaliendo(false)}
-        alRegistrar={(texto) => { setSaliendo(false); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
-      {anulando && <Anular que={anulando} alCerrar={() => setAnulando(null)} alAnular={(texto) => { setAnulando(null); setPropia((n) => n + 1); alAvisar?.(texto); }} />}
-      {entregando && <EntregarTurno turno={turno} porAdministracion={turno.responsable !== usuario} alCerrar={() => setEntregando(false)}
+      {esAdmin && <HistorialTurnos filas={filas} alVerTodos={alVerTodos} />}
+
+      {turno.estado === 'ABIERTO' && turno.responsable === usuario && (
+        <p class="ayuda" style="text-align:center">Entregue al terminar su horario, cuando llegue quien lo recibe.</p>
+      )}
+
+      {pan.ventana === 'lavanderia-externa' && <LavanderiaExterna alCerrar={pan.ninguna} alRegistrar={listo} />}
+      {pan.cobrandoDeuda && <CobrarDeudaLavanderia pedido={pan.cobrandoDeuda} alCerrar={pan.ninguna} alCobrar={listo} />}
+      {pan.entregandoRopa && <EntregarLavanderia pedido={pan.entregandoRopa} alCerrar={pan.ninguna} alEntregar={listo} />}
+      {pan.ventana === 'vender' && <VentaContado alCerrar={pan.ninguna} alRegistrar={listo} />}
+      {pan.ventana === 'salio' && <SalidaDinero debeHaber={c.debe_haber} alCerrar={pan.ninguna} alRegistrar={listo} />}
+      {pan.anulando && <Anular que={pan.anulando} alCerrar={pan.ninguna} alAnular={listo} />}
+      {pan.ventana === 'entregar-turno' && <EntregarTurno turno={turno} porAdministracion={turno.responsable !== usuario} alCerrar={pan.ninguna}
         alEntregar={(texto) => {
-          setEntregando(false);
           // Quien entrega su propio turno sale del sistema; la administración que cierra uno trabado sigue adentro.
-          if (turno.responsable === usuario) alEntregar?.(texto);
-          else { alAvisar?.(texto); setPropia((n) => n + 1); }
+          if (turno.responsable === usuario) { pan.ninguna(); alEntregar?.(texto); }
+          else listo(texto);
         }} />}
     </div>
   );

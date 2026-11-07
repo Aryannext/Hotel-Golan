@@ -1,0 +1,86 @@
+/* Tarjetas con foto y datos operativos; la información del huésped vive en el detalle. */
+.cuarto-card.cuarto-card--foto { display: flex; flex-direction: column; align-items: stretch; height: auto; min-height: 285px; padding: 0; gap: 0; overflow: hidden; background: var(--blanco); }
+.cuarto-card--foto .cuarto-card__foto { position: relative; width: 100%; }
+.cuarto-card--foto .foto-hab-contenedor { height: 112px; border-radius: 0; margin: 0; }
+.cuarto-card__demo { position: absolute; bottom: 6px; right: 7px; padding: 2px 5px; border-radius: 4px; background: #ffffffdf; font-size: 8px; color: var(--texto-2); }
+.cuarto-card--foto .cuarto-card__cabecera { display: flex; align-items: center; gap: 8px; padding: 10px 12px 0; }
+.cuarto-card--foto .cuarto-card__icono-box { display: none; }
+.cuarto-card--foto .cuarto-card__meta { display: flex; flex: 1; flex-direction: row; align-items: center; gap: 9px; min-width: 0; }
+.cuarto-card--foto .cuarto-card__numero { font-size: 19px; line-height: 1.2; }
+.cuarto-card--foto .cuarto-card__estado-pill { font-size: 9px; white-space: normal; }
+.cuarto-card--foto .cuarto-card__menu-btn { min-width: 30px; min-height: 32px; padding: 4px; margin-left: auto; }
+.cuarto-card--foto .cuarto-card__puntos { display: block; }
+.cuarto-card--foto .cuarto-card__flecha { display: none; }
+.cuarto-card--foto .cuarto-card__cuerpo { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 8px; padding: 8px 12px 12px; flex: 1; min-height: 62px; }
+.cuarto-card__tipo,.cuarto-card__franja { display: flex; align-items: center; gap: 7px; font-size: 11px; line-height: 1.5; color: var(--texto-2); }
+.cuarto-card__franja--dia { color: #9c6407; }
+.cuarto-card__franja--noche { color: #5b5687; }
+.cuarto-card--foto .cuarto-card__acciones { display: flex; gap: 6px; padding: 0 12px 12px; margin-top: auto; }
+.cuarto-card--foto .cuarto-card__btn { min-height: 35px; font-size: 10px; flex: 1; white-space: normal; }
+@media (min-width: 701px) {
+  .habitaciones-grid--lista .cuarto-card--foto { display: grid; grid-template-columns: 140px minmax(140px,1fr) minmax(160px,1fr) minmax(180px,1fr); min-height: 112px; align-items: center; }
+  .habitaciones-grid--lista .cuarto-card--foto .cuarto-card__cabecera { padding-top: 0; }
+  .habitaciones-grid--lista .cuarto-card--foto .cuarto-card__acciones { margin: 0; padding: 12px; }
+}
+@media (max-width: 700px) {
+  .habitaciones-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .cuarto-card--foto .cuarto-card__cabecera { padding: 9px 9px 0; }
+  .cuarto-card--foto .cuarto-card__meta { flex-wrap: wrap; gap: 4px 7px; }
+  .cuarto-card--foto .cuarto-card__cuerpo { padding-inline: 9px; }
+  .cuarto-card--foto .cuarto-card__acciones { padding: 0 9px 9px; flex-wrap: wrap; }
+  .cuarto-card--foto .cuarto-card__btn { flex-basis: 100%; font-size: 9px; }
+  .cuarto-card__tipo,.cuarto-card__franja { font-size: 10px; }
+}
+@media (max-width: 359px) { .habitaciones-grid { grid-template-columns: minmax(0,1fr); } }
+
+/* Detalle de habitación: cabecera, fotografía, información, fotos y notas. */
+.panel-lateral-hab > .panel-lateral-hab__cab { order: -2; }
+.panel-lateral-hab > .panel-lateral-hab__foto-wrapper { order: -1; }
+.panel-lateral-hab__cab h2 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 18px; }
+.panel-lateral-hab__cab h2 .pill { font-size: 9px; }
+.panel-lateral-hab__cab .panel-lateral-hab__tipo { font-size: 10px; margin-top: 4px; }
+.panel-lateral-hab__datos-lista,.detalle-fotos,.detalle-notas { border: 1px solid var(--borde); border-radius: 8px; padding: 10px; background: var(--blanco); }
+.detalle-seccion-titulo { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; margin: 0 0 8px; }
+.detalle-seccion-titulo > span { font-size: 8px; font-weight: 400; color: var(--texto-2); }
+.detalle-fotos .foto-hab-editor { max-width: 100%; }
+.detalle-fotos .foto-hab-contenedor { width: 96px; border-radius: 6px; }
+.detalle-notas textarea { width: 100%; min-height: 65px; resize: vertical; font-size: 10px; padding: 8px; border: 1px solid var(--borde); border-radius: 6px; }
+.detalle-notas__pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 5px; }
+.detalle-notas__pie small { font-size: 8px; color: var(--texto-2); }
+.panel-lateral-hab__pie { position: sticky; bottom: -14px; z-index: 2; background: var(--blanco); padding: 10px 0 0; }
+.foto-hab-editor--camara .foto-hab-contenedor { position: relative; }
+.foto-hab-elegir { display: grid; place-items: center; cursor: pointer; color: var(--rojo); border: 1px solid var(--borde); background: var(--blanco); }
+.foto-hab-elegir--camara { position: absolute; right: 10px; bottom: 10px; width: 40px; height: 40px; border-radius: 9px; box-shadow: 0 2px 8px #4b3f3f20; }
+.foto-hab-editor--agregar { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+.foto-hab-elegir--agregar { width: 76px; height: 76px; border-style: dashed; border-radius: 6px; background: var(--crema); }
+.foto-hab-elegir:hover { background: var(--crema-2); }
+.foto-hab-error { flex-basis: 100%; }
+.foto-selector { position: fixed; inset: 0; margin: auto; width: min(390px,calc(100vw - 32px)); height: fit-content; max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; border: 1px solid var(--borde); border-radius: 16px; color: var(--texto); background: var(--blanco); box-shadow: 0 18px 60px #4b3f3f30; }
+.foto-selector::backdrop { background: #30262266; }
+.foto-selector h2 { font-size: 18px; line-height: 1.4; margin: 0 0 6px; }
+.foto-selector > p { margin: 0 0 18px; font-size: 12px; color: var(--texto-2); }
+.foto-selector__opciones { display: grid; gap: 10px; margin-bottom: 16px; }
+.foto-selector__opciones .btn { min-height: 46px; }
+.foto-selector__eliminar { display: flex; gap: 6px; align-items: center; margin-bottom: 16px; color: var(--rojo); }
+.foto-selector__cerrar { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 7px; background: transparent; color: var(--texto-2); cursor: pointer; }
+.foto-selector__cerrar:hover { background: var(--crema-2); }
+.foto-selector h2 { padding-right: 24px; }
+
+/* La línea inferior de cada cabecera lateral coincide con la barra superior. */
+.panel--detalle .panel__cab h2 { font-size: 16px; }
+.panel--detalle .panel__cuerpo { padding: 16px; }
+.panel--detalle .panel-lateral-hab { gap: 14px; }
+.panel--detalle .panel-lateral-hab__cab h2 { font-size: 21px; }
+.panel--detalle .panel-lateral-hab__cab .panel-lateral-hab__tipo { font-size: 12px; }
+.panel--detalle .panel-hab-tab { font-size: 13px; min-height: 42px; }
+.panel--detalle .panel-dato-fila { padding: 12px 0; font-size: 12px; line-height: 1.5; }
+.panel--detalle .panel-dato-fila__valor { font-size: 12px; overflow-wrap: anywhere; }
+.panel--detalle .panel-dato-fila__subtexto { font-size: 11px; }
+.panel--detalle .detalle-seccion-titulo { font-size: 13px; }
+.panel--detalle .panel-lateral-hab__btn-salida,.panel--detalle .panel-lateral-hab__btn-editar { font-size: 13px; min-height: 44px; }
+.panel--detalle .detalle-notas textarea { font-size: 12px; }
+@media (min-width: 1024px) {
+  :root { --alto-cabecera-golan: 76px; }
+  .contenido > .barra-sup { height: var(--alto-cabecera-golan); min-height: var(--alto-cabecera-golan); box-sizing: border-box; }
+  .panel:not(.panel--cuenta):not(.panel--entrada) > .panel__cab { height: var(--alto-cabecera-golan); min-height: var(--alto-cabecera-golan); box-sizing: border-box; flex: 0 0 var(--alto-cabecera-golan); }
+}
